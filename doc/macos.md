@@ -45,9 +45,41 @@ sudo port install scrcpy
 _See [build.md](build.md) to build and install the app manually._
 
 
+### As a macOS application
+
+A portable build can be packaged as a regular `.app` bundle, with an icon, so
+that it can be started from Finder, Launchpad or Spotlight:
+
+```bash
+meson setup build-auto --buildtype=release --strip -Db_lto=true \
+    -Dportable=true
+ninja -C build-auto
+release/build_macos_app.sh --dmg build-auto
+```
+
+This creates `dist/scrcpy.app` (and a `.dmg` disk image with `--dmg`). Copy the
+application to `/Applications`, or open the disk image and drag it there. It
+then appears in Launchpad and Spotlight, and can be opened by double-clicking.
+
+The bundle embeds `adb` and `scrcpy-server`, so it does not depend on the
+`PATH` of a terminal. Command line options are not available when the app is
+started from Finder; run the executable directly instead:
+
+```bash
+/Applications/scrcpy.app/Contents/MacOS/scrcpy --help
+```
+
+The bundle is ad-hoc signed by default. If you distribute it to other Macs,
+sign it with a Developer ID (`--identity "Developer ID Application: ..."`) and
+notarize it, otherwise Gatekeeper blocks it.
+
+
 ## Run
 
 _Make sure that your device meets the [prerequisites](/README.md#prerequisites)._
+
+If you installed it as an application bundle, double-click `scrcpy` in
+Applications or Launchpad.
 
 Once installed, run from a terminal:
 
