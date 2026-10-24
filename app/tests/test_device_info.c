@@ -9,6 +9,8 @@
 
 static const char *android_version;
 static const char *api_level;
+static const char *manufacturer;
+static const char *model;
 
 char *
 sc_adb_getprop(struct sc_intr *intr, const char *serial, const char *prop,
@@ -16,8 +18,10 @@ sc_adb_getprop(struct sc_intr *intr, const char *serial, const char *prop,
     (void) intr;
     (void) serial;
     (void) flags;
-    const char *value = !strcmp(prop, "ro.build.version.release")
-                      ? android_version : api_level;
+    const char *value = !strcmp(prop, "ro.build.version.release") ? android_version
+        : !strcmp(prop, "ro.build.version.sdk") ? api_level
+        : !strcmp(prop, "ro.product.manufacturer") ? manufacturer
+        : !strcmp(prop, "ro.product.model") ? model : NULL;
     return value ? strdup(value) : NULL;
 }
 
@@ -28,16 +32,40 @@ test_load(void) {
 
     android_version = "16";
     api_level = "36";
+    manufacturer = "Google";
+    model = "Pixel 7";
     sc_device_info_load(&info, NULL, "serial");
     assert(!strcmp(info.android_version, "16"));
     assert(!strcmp(info.api_level, "36"));
+    assert(!strcmp(info.manufacturer, "Google"));
+    assert(!strcmp(info.model, "Pixel 7"));
 
     android_version = NULL;
     api_level = NULL;
+    manufacturer = NULL;
+    model = NULL;
     sc_device_info_load(&info, NULL, "serial");
     assert(!info.android_version);
     assert(!info.api_level);
+    assert(!info.manufacturer);
+    assert(!info.model);
     sc_device_info_destroy(&info);
+}
+
+static void
+test_device_name(void) {
+    struct sc_device_info info = {.manufacturer = "OnePlus", .model = "PKG110"};
+    char *name = sc_device_info_build_name(&info, "Android device");
+    assert(name && !strcmp(name, "OnePlus PKG110")); free(name);
+    info.manufacturer = "Google"; info.model = "Pixel 7";
+    name = sc_device_info_build_name(&info, "Pixel");
+    assert(name && !strcmp(name, "Google Pixel 7")); free(name);
+    info.manufacturer = "samsung"; info.model = "Samsung Galaxy S23";
+    name = sc_device_info_build_name(&info, "Android device");
+    assert(name && !strcmp(name, "Samsung Galaxy S23")); free(name);
+    info.manufacturer = NULL; info.model = NULL;
+    name = sc_device_info_build_name(&info, "Fallback name");
+    assert(name && !strcmp(name, "Fallback name")); free(name);
 }
 
 static void
@@ -95,6 +123,7 @@ main(int argc, char *argv[]) {
     (void) argv;
 
     test_load();
+    test_device_name();
     test_window_title();
     test_subtitle();
     return 0;

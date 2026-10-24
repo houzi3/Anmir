@@ -6,6 +6,8 @@
 #include "util/intr.h"
 
 struct sc_device_info {
+    char *manufacturer;
+    char *model;
     char *android_version;
     char *api_level;
 };
@@ -19,6 +21,10 @@ sc_device_info_load(struct sc_device_info *info, struct sc_intr *intr,
 
 void
 sc_device_info_destroy(struct sc_device_info *info);
+
+char *
+sc_device_info_build_name(const struct sc_device_info *info,
+                          const char *fallback);
 
 char *
 sc_device_info_build_window_title(const struct sc_device_info *info,

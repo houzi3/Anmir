@@ -78,6 +78,7 @@ src = [
 if host_machine.system() == 'darwin'
     src += [
         'src/sys/macos/clipboard_writer.m',
+        'src/sys/macos/mirror_session.m',
         'src/sys/macos/file.m',
         'src/sys/macos/window_ui.m',
     ]
@@ -348,6 +349,14 @@ if get_option('buildtype') == 'debug'
                          c_args: ['-DSC_TEST'])
         test(t[0], exe)
     endforeach
+    if host_machine.system() == 'darwin'
+        mirror_test = executable('test_mirror_session',
+            ['tests/test_mirror_session.m', 'src/sys/macos/mirror_session.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_mirror_session', mirror_test, timeout: 20)
+    endif
 endif
 
 if meson.version().version_compare('>= 0.58.0')
