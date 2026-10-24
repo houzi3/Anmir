@@ -18,25 +18,38 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 }
 @end
 
-// Keep the phone's full navigation path in one localizable label. English
-// can wrap naturally, while live language changes retain the current QR.
-@interface SCDeviceQRPathLabel : NSTextField
-@end
-@implementation SCDeviceQRPathLabel
-- (void)setStringValue:(NSString *)value {
-    NSMutableAttributedString *text = [[NSMutableAttributedString alloc] initWithString:value
-        attributes:@{NSFontAttributeName:[NSFont systemFontOfSize:11.5],
-            NSForegroundColorAttributeName:NSColor.secondaryLabelColor}];
-    NSRange separator = [value rangeOfString:@"›" options:NSBackwardsSearch];
-    if (separator.location != NSNotFound) {
-        NSRange action = NSMakeRange(NSMaxRange(separator), value.length - NSMaxRange(separator));
-        [text addAttributes:@{NSFontAttributeName:[NSFont systemFontOfSize:11.5 weight:NSFontWeightSemibold],
-            NSForegroundColorAttributeName:NSColor.linkColor} range:action];
-    }
-    [super setAttributedStringValue:text];
-    [self invalidateIntrinsicContentSize];
+// Both prerequisites share one hierarchy. Keep icons aligned to the first
+// text line when a localized navigation path wraps.
+static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *identifier) {
+    NSView *row = [[NSView alloc] init];
+    row.translatesAutoresizingMaskIntoConstraints = NO;
+    NSImageView *icon = [NSImageView imageViewWithImage:SCDeviceSymbol(symbol)];
+    icon.contentTintColor = NSColor.secondaryLabelColor;
+    icon.translatesAutoresizingMaskIntoConstraints = NO;
+    icon.accessibilityElement = NO;
+    NSTextField *label = [NSTextField wrappingLabelWithString:@""];
+    label.identifier = identifier;
+    label.font = [NSFont systemFontOfSize:11.5];
+    label.textColor = NSColor.secondaryLabelColor;
+    label.maximumNumberOfLines = 0;
+    label.preferredMaxLayoutWidth = 448;
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    SCBind(label, @"stringValue", key);
+    [row addSubview:icon];
+    [row addSubview:label];
+    [NSLayoutConstraint activateConstraints:@[
+        [icon.leadingAnchor constraintEqualToAnchor:row.leadingAnchor],
+        [icon.topAnchor constraintEqualToAnchor:row.topAnchor],
+        [icon.widthAnchor constraintEqualToConstant:16],
+        [icon.heightAnchor constraintEqualToConstant:16],
+        [label.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:8],
+        [label.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
+        [label.topAnchor constraintEqualToAnchor:row.topAnchor constant:1],
+        [label.bottomAnchor constraintEqualToAnchor:row.bottomAnchor],
+        [row.heightAnchor constraintGreaterThanOrEqualToConstant:16],
+    ]];
+    return row;
 }
-@end
 
 @interface SCDeviceWiFiController () <NSWindowDelegate, NSTextFieldDelegate>
 @property(nonatomic, copy) NSString *executable;
@@ -254,47 +267,17 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 - (void)buildQRCode {
     NSView *content = self.window.contentView;
     [self.body addArrangedSubview:SCDeviceLocalizedLabel(@"Pair with QR code", 17, NSFontWeightSemibold, NO)];
-    NSImageView *networkIcon = [NSImageView imageViewWithImage:SCDeviceSymbol(@"wifi")];
-    networkIcon.contentTintColor = NSColor.secondaryLabelColor;
-    [networkIcon.widthAnchor constraintEqualToConstant:16].active = YES;
-    [networkIcon.heightAnchor constraintEqualToConstant:16].active = YES;
-    NSTextField *network = SCDeviceLocalizedLabel(
-        @"Phone and Mac: same Wi-Fi, or a reachable company LAN.", 11.5, NSFontWeightRegular, YES);
-    network.identifier = @"WiFi.network";
-    NSStackView *networkRow = SCDeviceStack(@[networkIcon, network], NO, 8);
+    NSView *networkRow = SCDeviceQRGuideRow(@"wifi",
+        @"Phone and Mac: same Wi-Fi, or a reachable company LAN.", @"WiFi.network");
+    NSView *phoneRow = SCDeviceQRGuideRow(@"iphone",
+        @"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code",
+        @"WiFi.phonePath");
     [self.body addArrangedSubview:networkRow];
-    [networkRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
-
-    SCDeviceQRPathLabel *path = [SCDeviceQRPathLabel wrappingLabelWithString:@""];
-    path.identifier = @"WiFi.phonePath";
-    path.font = [NSFont systemFontOfSize:11.5];
-    path.translatesAutoresizingMaskIntoConstraints = NO;
-    path.maximumNumberOfLines = 0;
-    path.preferredMaxLayoutWidth = 448;
-    SCBind(path, @"stringValue",
-        @"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code");
-    NSBox *instructions = [[NSBox alloc] init];
-    instructions.boxType = NSBoxCustom;
-    instructions.transparent = NO;
-    instructions.borderWidth = 0;
-    instructions.fillColor = [NSColor colorWithName:nil dynamicProvider:^NSColor *(NSAppearance *appearance) {
-        BOOL dark = [[appearance bestMatchFromAppearancesWithNames:
-            @[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]] isEqualToString:NSAppearanceNameDarkAqua];
-        return dark ? [NSColor colorWithSRGBRed:.115 green:.125 blue:.137 alpha:1]
-            : [NSColor colorWithSRGBRed:.956 green:.963 blue:.973 alpha:1];
-    }];
-    instructions.cornerRadius = 8;
-    instructions.contentViewMargins = NSZeroSize;
-    instructions.translatesAutoresizingMaskIntoConstraints = NO;
-    [instructions.contentView addSubview:path];
-    [self.body addArrangedSubview:instructions];
-    [self.body setCustomSpacing:16 afterView:instructions];
+    [self.body addArrangedSubview:phoneRow];
+    [self.body setCustomSpacing:16 afterView:phoneRow];
     [NSLayoutConstraint activateConstraints:@[
-        [instructions.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
-        [path.leadingAnchor constraintEqualToAnchor:instructions.contentView.leadingAnchor constant:12],
-        [path.trailingAnchor constraintEqualToAnchor:instructions.contentView.trailingAnchor constant:-12],
-        [path.topAnchor constraintEqualToAnchor:instructions.contentView.topAnchor constant:10],
-        [path.bottomAnchor constraintEqualToAnchor:instructions.contentView.bottomAnchor constant:-10],
+        [networkRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+        [phoneRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
     ]];
 
     SCDeviceQRImageView *code = [[SCDeviceQRImageView alloc] init];
@@ -370,7 +353,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
         [self.body.bottomAnchor constraintLessThanOrEqualToAnchor:separator.topAnchor constant:-12],
         [self.modeButton.trailingAnchor constraintLessThanOrEqualToAnchor:self.qrRefreshButton.leadingAnchor constant:-16],
     ]];
-    [self.window setContentSize:NSMakeSize(520, 428)];
+    [self.window setContentSize:NSMakeSize(520, 412)];
     [self updateEnabled];
 }
 
