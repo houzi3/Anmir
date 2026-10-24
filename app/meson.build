@@ -266,6 +266,12 @@ install_data(
     'data/toolbar-icons/record-20.png',
     'data/toolbar-icons/record-40.png',
     'data/toolbar-icons/record-60.png',
+    'data/toolbar-icons/check-20.png',
+    'data/toolbar-icons/check-40.png',
+    'data/toolbar-icons/check-60.png',
+    'data/toolbar-icons/stop-20.png',
+    'data/toolbar-icons/stop-40.png',
+    'data/toolbar-icons/stop-60.png',
     install_dir: toolbar_icon_dir)
 install_data('data/zsh-completion/_scrcpy',
              install_dir: datadir / 'zsh/site-functions')

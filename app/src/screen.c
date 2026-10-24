@@ -428,8 +428,13 @@ event_watcher(void *data, SDL_Event *event) {
         // In practice, it seems to always be called from the same thread in
         // that specific case. Anyway, it's just a workaround.
         sc_screen_on_resize(screen, &event->window);
+        // Keep the detached toolbar aligned while AppKit blocks the regular
+        // event loop during a live resize. Do not forward unrelated events
+        // here: SDL invokes event watchers on the thread which pushes the
+        // event, while the emulator UI may call AppKit and must stay on the
+        // main thread.
+        sc_emulator_ui_handle_event(&screen->emulator_ui, event);
     }
-    sc_emulator_ui_handle_event(&screen->emulator_ui, event);
 
     return true;
 }
@@ -1263,8 +1268,9 @@ sc_screen_capture_frame(struct sc_screen *screen) {
 
 static void
 sc_screen_toolbar_notify_copy(struct sc_screen *screen) {
-    sc_emulator_ui_show_toast(&screen->emulator_ui,
-                              "Screenshot copied to clipboard");
+    sc_emulator_ui_show_action_feedback(
+        &screen->emulator_ui, SC_TOOLBAR_ACTION_SCREENSHOT,
+        "Screenshot copied");
 }
 
 static void
@@ -1277,7 +1283,6 @@ sc_screen_recording_notify(struct sc_screen *screen) {
     const char *message = NULL;
     switch (notification) {
         case SC_RECORDING_NOTIFICATION_STARTED:
-            message = "Recording started";
             break;
         case SC_RECORDING_NOTIFICATION_SAVED:
             message = "Recording saved";
@@ -1289,7 +1294,8 @@ sc_screen_recording_notify(struct sc_screen *screen) {
             break;
     }
     if (message) {
-        sc_emulator_ui_show_toast(&screen->emulator_ui, message);
+        sc_emulator_ui_show_action_feedback(
+            &screen->emulator_ui, SC_TOOLBAR_ACTION_RECORD, message);
     }
 }
 
@@ -1302,8 +1308,9 @@ sc_screen_toggle_recording(struct sc_screen *screen) {
         screen->recording_manager);
     if (state == SC_RECORDING_STATE_IDLE) {
         if (!sc_recording_manager_start(screen->recording_manager)) {
-            sc_emulator_ui_show_toast(&screen->emulator_ui,
-                                      "Recording failed");
+            sc_emulator_ui_show_action_feedback(
+                &screen->emulator_ui, SC_TOOLBAR_ACTION_RECORD,
+                "Recording failed");
             return;
         }
         if (screen->controller) {

@@ -39,6 +39,10 @@ test_toolbar_layout_and_hit_test(void) {
     assert(toolbar.buttons[SC_TOOLBAR_ACTION_SCREENSHOT].y
            - (toolbar.buttons[SC_TOOLBAR_ACTION_RECENTS].y
               + SC_TOOLBAR_BUTTON_HEIGHT) == SC_TOOLBAR_SEPARATOR_HEIGHT);
+    assert(!sc_toolbar_is_left_of_parent(&toolbar));
+    assert(sc_toolbar_action_center_y(&toolbar, SC_TOOLBAR_ACTION_RECORD)
+           == toolbar.buttons[SC_TOOLBAR_ACTION_RECORD].y
+            + SC_TOOLBAR_BUTTON_HEIGHT / 2.f);
 
     for (enum sc_toolbar_action action = SC_TOOLBAR_ACTION_HOME;
             action < SC_TOOLBAR_ACTION_COUNT; ++action) {
@@ -55,6 +59,17 @@ test_toolbar_layout_and_hit_test(void) {
                                 toolbar.panel.y));
     assert(!sc_toolbar_contains(&toolbar, toolbar.panel.x + 1.f,
                                 toolbar.panel.y + toolbar.panel.h - 1.f));
+}
+
+static void
+test_toolbar_screenshot_feedback(void) {
+    struct sc_toolbar toolbar;
+    sc_toolbar_init(&toolbar, true, true);
+    assert(!sc_toolbar_screenshot_success_active(&toolbar));
+    sc_toolbar_show_screenshot_success(&toolbar);
+    assert(sc_toolbar_screenshot_success_active(&toolbar));
+    toolbar.screenshot_success_until = SDL_GetTicks();
+    assert(!sc_toolbar_screenshot_success_active(&toolbar));
 }
 
 static void
@@ -89,6 +104,7 @@ main(int argc, char *argv[]) {
     (void) argv;
 
     test_toolbar_layout_and_hit_test();
+    test_toolbar_screenshot_feedback();
     test_toolbar_initial_visibility();
     test_disabled_toolbar();
     return 0;

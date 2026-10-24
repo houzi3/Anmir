@@ -19,6 +19,8 @@
     (SC_TOOLBAR_PANEL_HEIGHT + 2 * SC_TOOLBAR_SHADOW_MARGIN)
 #define SC_TOOLBAR_GAP 12
 #define SC_TOOLBAR_TOP_OFFSET 2
+#define SC_TOOLBAR_ACCESSORY_GAP 4
+#define SC_TOOLBAR_ACCESSORY_MAX_WIDTH 150
 
 enum sc_toolbar_action {
     SC_TOOLBAR_ACTION_NONE,
@@ -37,6 +39,8 @@ struct sc_toolbar {
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *icons[SC_TOOLBAR_ACTION_COUNT];
+    SDL_Texture *success_icon;
+    SDL_Texture *stop_icon;
     int icon_asset_size;
     SDL_Texture *render_cache;
     int render_cache_width;
@@ -48,6 +52,8 @@ struct sc_toolbar {
     enum sc_toolbar_action render_cache_hovered;
     enum sc_toolbar_action render_cache_pressed;
     SDL_FRect panel;
+    bool on_left_of_parent;
+    Uint64 screenshot_success_until;
     enum sc_toolbar_action hovered;
     enum sc_toolbar_action pressed;
     SDL_FRect buttons[SC_TOOLBAR_ACTION_COUNT];
@@ -59,6 +65,7 @@ struct sc_toolbar_view_state {
     bool screenshot_enabled;
     bool record_enabled;
     bool recording;
+    bool reduce_motion;
 };
 
 void
@@ -86,6 +93,19 @@ sc_toolbar_is_window(const struct sc_toolbar *toolbar, SDL_WindowID window_id);
 
 void
 sc_toolbar_update_position(struct sc_toolbar *toolbar, SDL_Window *parent);
+
+bool
+sc_toolbar_is_left_of_parent(const struct sc_toolbar *toolbar);
+
+float
+sc_toolbar_action_center_y(const struct sc_toolbar *toolbar,
+                           enum sc_toolbar_action action);
+
+void
+sc_toolbar_show_screenshot_success(struct sc_toolbar *toolbar);
+
+bool
+sc_toolbar_screenshot_success_active(const struct sc_toolbar *toolbar);
 
 void
 sc_toolbar_show(struct sc_toolbar *toolbar);

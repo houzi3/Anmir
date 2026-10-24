@@ -94,6 +94,12 @@ needs to start; the device list opens through its own button or menu action.
 Its three compact rows control Theme, Display language and Show floating toolbar.
 Changes apply immediately and save automatically across independent mirrors.
 The toolbar is enabled by default; a previously saved off choice is preserved.
+Screenshot feedback stays beside the floating toolbar: the capture button
+briefly becomes a check and a compact native bubble confirms the clipboard
+copy. Recording replaces its button with a small stop state and shows elapsed
+time in a separate, dynamically sized bubble. These accessories follow the
+selected appearance, move with the toolbar and remain outside the mirrored
+Android frame. Reduce Motion keeps the recording halo static.
 
 First launch offers Follow System, Simplified Chinese, Traditional Chinese and
 English alongside Follow System, Light and Dark themes. Language and theme

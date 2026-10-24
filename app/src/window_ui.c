@@ -183,6 +183,37 @@ sc_window_ui_show_toast(struct sc_window_ui *ui, const char *message) {
 }
 
 void
+sc_window_ui_show_toolbar_feedback(struct sc_window_ui *ui,
+                                   SDL_Window *toolbar, float anchor_y,
+                                   bool outward_left, const char *message) {
+    (void) toolbar;
+    (void) anchor_y;
+    (void) outward_left;
+    sc_window_ui_show_toast(ui, message);
+}
+
+void
+sc_window_ui_update_toolbar_accessories(struct sc_window_ui *ui,
+                                        SDL_Window *toolbar,
+                                        float record_anchor_y,
+                                        bool outward_left, bool visible,
+                                        bool recording,
+                                        uint64_t elapsed_seconds) {
+    (void) ui;
+    (void) toolbar;
+    (void) record_anchor_y;
+    (void) outward_left;
+    (void) visible;
+    (void) recording;
+    (void) elapsed_seconds;
+}
+
+bool
+sc_window_ui_should_reduce_motion(void) {
+    return false;
+}
+
+void
 sc_window_ui_configure_toolbar_menu(struct sc_window_ui *ui, bool visible,
                                     bool shortcut_enabled,
                                     sc_window_ui_toolbar_toggle_cb on_toggle,

@@ -1,8 +1,8 @@
 # Toolbar icons
 
 The SVG sources are derived from Google Material Icons (`home`,
-`arrow_back`, `center_focus_strong`, and `radio_button_checked`) and are licensed under
-Apache License 2.0, matching the repository's root `LICENSE`. The source
+`arrow_back`, `center_focus_strong`, `radio_button_checked`, `check`, and
+`stop`) and are licensed under Apache License 2.0, matching the repository's root `LICENSE`. The source
 modifications set the fill color to white for runtime color modulation and
 make the SVG viewport responsive for exact-density rasterization.
 

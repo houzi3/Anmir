@@ -115,6 +115,12 @@ clears explicit appearance and follows macOS changes. Hidden screens skip frame
 rendering; screen updates own toolbar repainting. Explicit `--background-color`
 stays authoritative. Standalone CLI contrast remains independent of GUI settings.
 
+Floating-toolbar animation timers only enqueue SDL events. Rendering and native
+AppKit accessory updates happen in the main event loop; the SDL event watcher is
+restricted to the live-resize events for which it exists. Recording repaints at
+animation cadence while its native timer text updates only when the elapsed
+second changes. This keeps AppKit window ordering off SDL worker threads.
+
 `localization` loads all three `.lproj` catalogs explicitly, so changing language
 requires no restart. English source strings are stable message identifiers;
 workflow state remains enums, serials and transport types. Weak bindings update

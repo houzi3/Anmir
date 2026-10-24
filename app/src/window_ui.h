@@ -2,6 +2,7 @@
 #define SC_WINDOW_UI_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <SDL3/SDL.h>
 
 typedef void (*sc_window_ui_toolbar_toggle_cb)(void *userdata);
@@ -24,6 +25,22 @@ sc_window_ui_set_device_title(struct sc_window_ui *ui, const char *primary,
 
 void
 sc_window_ui_show_toast(struct sc_window_ui *ui, const char *message);
+
+void
+sc_window_ui_show_toolbar_feedback(struct sc_window_ui *ui,
+                                   SDL_Window *toolbar, float anchor_y,
+                                   bool outward_left, const char *message);
+
+void
+sc_window_ui_update_toolbar_accessories(struct sc_window_ui *ui,
+                                        SDL_Window *toolbar,
+                                        float record_anchor_y,
+                                        bool outward_left, bool visible,
+                                        bool recording,
+                                        uint64_t elapsed_seconds);
+
+bool
+sc_window_ui_should_reduce_motion(void);
 
 void
 sc_window_ui_configure_toolbar_menu(struct sc_window_ui *ui, bool visible,

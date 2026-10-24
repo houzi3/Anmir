@@ -1,5 +1,6 @@
 #include "toolbar.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -10,6 +11,8 @@
 #define SC_TOOLBAR_SUPERSAMPLING 4
 #define SC_TOOLBAR_ICON_VIEWBOX_SIZE 24.f
 #define SC_TOOLBAR_HIGHLIGHT_RADIUS 19.f
+#define SC_TOOLBAR_SCREENSHOT_SUCCESS_MS 1500
+#define SC_TOOLBAR_RECORDING_PERIOD_MS 1600.f
 
 struct sc_toolbar_color {
     uint8_t r;
@@ -32,19 +35,19 @@ struct sc_toolbar_item {
 };
 
 struct sc_toolbar_palette {
-    struct sc_toolbar_color bg, hover, pressed, recording_bg;
+    struct sc_toolbar_color bg, hover, pressed;
     struct sc_toolbar_color border, divider, icon, disabled;
 };
 
 static const struct sc_toolbar_palette SC_TOOLBAR_DARK = {
     .bg = {28, 30, 31, 255}, .hover = {38, 40, 41, 255},
-    .pressed = {47, 49, 50, 255}, .recording_bg = {59, 29, 31, 255},
+    .pressed = {47, 49, 50, 255},
     .border = {77, 80, 81, 255}, .divider = {244, 244, 242, 96},
     .icon = {244, 244, 242, 255}, .disabled = {139, 141, 141, 190},
 };
 static const struct sc_toolbar_palette SC_TOOLBAR_LIGHT = {
     .bg = {250, 250, 252, 255}, .hover = {235, 236, 239, 255},
-    .pressed = {219, 222, 227, 255}, .recording_bg = {255, 229, 231, 255},
+    .pressed = {219, 222, 227, 255},
     .border = {205, 207, 213, 255}, .divider = {50, 53, 59, 48},
     .icon = {45, 48, 55, 255}, .disabled = {135, 139, 147, 190},
 };
@@ -56,6 +59,9 @@ sc_toolbar_get_palette(const struct sc_toolbar *toolbar) {
 
 static const struct sc_toolbar_color SC_TOOLBAR_RECORDING_RED = {
     230, 67, 72, 255,
+};
+static const struct sc_toolbar_color SC_TOOLBAR_SUCCESS_BLUE = {
+    28, 119, 255, 255,
 };
 
 static const struct sc_toolbar_item SC_TOOLBAR_ITEMS[] = {
@@ -95,6 +101,41 @@ destroy_icon_textures(struct sc_toolbar *toolbar) {
             toolbar->icons[i] = NULL;
         }
     }
+    if (toolbar->success_icon) {
+        SDL_DestroyTexture(toolbar->success_icon);
+        toolbar->success_icon = NULL;
+    }
+    if (toolbar->stop_icon) {
+        SDL_DestroyTexture(toolbar->stop_icon);
+        toolbar->stop_icon = NULL;
+    }
+}
+
+static SDL_Texture *
+load_icon_texture(struct sc_toolbar *toolbar, const char *name,
+                  int asset_size) {
+    char filename[64];
+    int r = snprintf(filename, sizeof(filename), "toolbar-icons/%s-%d.png",
+                     name, asset_size);
+    if (r < 0 || (size_t) r >= sizeof(filename)) {
+        LOGW("Could not build toolbar icon filename");
+        return NULL;
+    }
+    SDL_Surface *surface = sc_icon_load(filename);
+    if (!surface) {
+        LOGW("Could not load toolbar icon: %s", filename);
+        return NULL;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(toolbar->renderer,
+                                                        surface);
+    sc_icon_destroy(surface);
+    if (!texture) {
+        LOGW("Could not create toolbar icon texture: %s", SDL_GetError());
+        return NULL;
+    }
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    return texture;
 }
 
 static void
@@ -112,30 +153,11 @@ load_icon_textures(struct sc_toolbar *toolbar, float density) {
         if (!icon_name) {
             continue;
         }
-        char filename[64];
-        int r = snprintf(filename, sizeof(filename),
-                         "toolbar-icons/%s-%d.png",
-                         icon_name, asset_size);
-        if (r < 0 || (size_t) r >= sizeof(filename)) {
-            LOGW("Could not build toolbar icon filename");
-            continue;
-        }
-        SDL_Surface *surface = sc_icon_load(filename);
-        if (!surface) {
-            LOGW("Could not load toolbar icon: %s", filename);
-            continue;
-        }
         toolbar->icons[action] =
-            SDL_CreateTextureFromSurface(toolbar->renderer, surface);
-        sc_icon_destroy(surface);
-        if (!toolbar->icons[action]) {
-            LOGW("Could not create toolbar icon texture: %s",
-                 SDL_GetError());
-            continue;
-        }
-        SDL_SetTextureBlendMode(toolbar->icons[action], SDL_BLENDMODE_BLEND);
-        SDL_SetTextureScaleMode(toolbar->icons[action], SDL_SCALEMODE_LINEAR);
+            load_icon_texture(toolbar, icon_name, asset_size);
     }
+    toolbar->success_icon = load_icon_texture(toolbar, "check", asset_size);
+    toolbar->stop_icon = load_icon_texture(toolbar, "stop", asset_size);
 }
 
 static bool
@@ -190,6 +212,8 @@ sc_toolbar_init(struct sc_toolbar *toolbar, bool enabled,
     for (size_t i = 0; i < SC_TOOLBAR_ACTION_COUNT; ++i) {
         toolbar->icons[i] = NULL;
     }
+    toolbar->success_icon = NULL;
+    toolbar->stop_icon = NULL;
     toolbar->icon_asset_size = 0;
     toolbar->render_cache = NULL;
     toolbar->render_cache_width = 0;
@@ -201,6 +225,8 @@ sc_toolbar_init(struct sc_toolbar *toolbar, bool enabled,
     toolbar->render_cache_hovered = SC_TOOLBAR_ACTION_NONE;
     toolbar->render_cache_pressed = SC_TOOLBAR_ACTION_NONE;
     toolbar->panel = (SDL_FRect) {0};
+    toolbar->on_left_of_parent = false;
+    toolbar->screenshot_success_until = 0;
     toolbar->hovered = SC_TOOLBAR_ACTION_NONE;
     toolbar->pressed = SC_TOOLBAR_ACTION_NONE;
     for (size_t i = 0; i < SC_TOOLBAR_ACTION_COUNT; ++i) {
@@ -361,15 +387,25 @@ sc_toolbar_update_position(struct sc_toolbar *toolbar, SDL_Window *parent) {
         return;
     }
     (void) parent_height;
-    int panel_x = parent_x + parent_width + SC_TOOLBAR_GAP;
+    int right_panel_x = parent_x + parent_width + SC_TOOLBAR_GAP;
+    int left_panel_x = parent_x - SC_TOOLBAR_GAP - SC_TOOLBAR_PANEL_WIDTH;
+    int panel_x = right_panel_x;
     int panel_y = parent_y + SC_TOOLBAR_TOP_OFFSET;
+    toolbar->on_left_of_parent = false;
 
     SDL_DisplayID display = SDL_GetDisplayForWindow(parent);
     SDL_Rect bounds;
     if (display && SDL_GetDisplayUsableBounds(display, &bounds)) {
-        int right = panel_x + SC_TOOLBAR_PANEL_WIDTH;
-        if (right > bounds.x + bounds.w) {
-            panel_x = parent_x - SC_TOOLBAR_GAP - SC_TOOLBAR_PANEL_WIDTH;
+        int accessory = SC_TOOLBAR_ACCESSORY_GAP
+                      + SC_TOOLBAR_ACCESSORY_MAX_WIDTH;
+        bool right_fits = right_panel_x + SC_TOOLBAR_PANEL_WIDTH
+                        + accessory <= bounds.x + bounds.w;
+        bool left_fits = left_panel_x - accessory >= bounds.x;
+        if (!right_fits && (left_fits
+                || parent_x - bounds.x
+                   > bounds.x + bounds.w - (parent_x + parent_width))) {
+            panel_x = left_panel_x;
+            toolbar->on_left_of_parent = true;
         }
         panel_x = MAX(bounds.x, MIN(panel_x,
                       bounds.x + bounds.w - SC_TOOLBAR_PANEL_WIDTH));
@@ -382,6 +418,32 @@ sc_toolbar_update_position(struct sc_toolbar *toolbar, SDL_Window *parent) {
                                panel_y - SC_TOOLBAR_SHADOW_MARGIN)) {
         LOGD("Could not position floating toolbar: %s", SDL_GetError());
     }
+}
+
+bool
+sc_toolbar_is_left_of_parent(const struct sc_toolbar *toolbar) {
+    return toolbar->on_left_of_parent;
+}
+
+float
+sc_toolbar_action_center_y(const struct sc_toolbar *toolbar,
+                           enum sc_toolbar_action action) {
+    assert(action > SC_TOOLBAR_ACTION_NONE
+        && action < SC_TOOLBAR_ACTION_COUNT);
+    const SDL_FRect *button = &toolbar->buttons[action];
+    return button->y + button->h / 2.f;
+}
+
+void
+sc_toolbar_show_screenshot_success(struct sc_toolbar *toolbar) {
+    toolbar->screenshot_success_until = SDL_GetTicks()
+                                      + SC_TOOLBAR_SCREENSHOT_SUCCESS_MS;
+}
+
+bool
+sc_toolbar_screenshot_success_active(const struct sc_toolbar *toolbar) {
+    return toolbar->screenshot_success_until
+        && SDL_GetTicks() < toolbar->screenshot_success_until;
 }
 
 void
@@ -761,12 +823,81 @@ render_icon_texture(struct sc_toolbar *toolbar,
     return SDL_RenderTexture(toolbar->renderer, texture, &src, &dst);
 }
 
+static bool
+render_aux_icon_texture(struct sc_toolbar *toolbar, SDL_Texture *texture,
+                        enum sc_toolbar_action action, float scale,
+                        struct sc_toolbar_color color) {
+    if (!texture) {
+        return false;
+    }
+    SDL_SetTextureColorMod(texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(texture, color.a);
+    const SDL_FRect *button = &toolbar->buttons[action];
+    SDL_FRect dst = get_icon_rect(button, scale);
+    return SDL_RenderTexture(toolbar->renderer, texture, NULL, &dst);
+}
+
+static void
+render_screenshot_success(struct sc_toolbar *toolbar, float scale) {
+    const SDL_FRect *button = &toolbar->buttons[SC_TOOLBAR_ACTION_SCREENSHOT];
+    float cx = (button->x + button->w / 2.f) * scale;
+    float cy = (button->y + button->h / 2.f) * scale;
+    struct sc_toolbar_color background = toolbar->light_theme
+        ? SC_TOOLBAR_SUCCESS_BLUE
+        : (struct sc_toolbar_color) {45, 47, 49, 255};
+    set_color(toolbar->renderer, background);
+    fill_circle(toolbar->renderer, cx, cy,
+                SC_TOOLBAR_HIGHLIGHT_RADIUS * scale);
+    if (!render_aux_icon_texture(
+            toolbar, toolbar->success_icon, SC_TOOLBAR_ACTION_SCREENSHOT,
+            scale, (struct sc_toolbar_color) {255, 255, 255, 255})) {
+        LOGW("Could not render screenshot success icon: %s", SDL_GetError());
+    }
+}
+
+static void
+render_recording_state(struct sc_toolbar *toolbar, float scale,
+                       bool reduce_motion) {
+    const SDL_FRect *button = &toolbar->buttons[SC_TOOLBAR_ACTION_RECORD];
+    float cx = (button->x + button->w / 2.f) * scale;
+    float cy = (button->y + button->h / 2.f) * scale;
+    float phase = 0.f;
+    if (!reduce_motion) {
+        float progress = fmodf((float) SDL_GetTicks(),
+                               SC_TOOLBAR_RECORDING_PERIOD_MS)
+                       / SC_TOOLBAR_RECORDING_PERIOD_MS;
+        phase = (sinf(progress * 6.2831853071795864769f) + 1.f) / 2.f;
+    }
+    struct sc_toolbar_color halo = SC_TOOLBAR_RECORDING_RED;
+    halo.a = (uint8_t) lroundf((reduce_motion ? 28.f
+                                              : 24.f + phase * 24.f));
+    set_color(toolbar->renderer, halo);
+    fill_circle(toolbar->renderer, cx, cy,
+                (13.5f + (reduce_motion ? 0.f : phase * 1.5f)) * scale);
+    set_color(toolbar->renderer, SC_TOOLBAR_RECORDING_RED);
+    fill_circle(toolbar->renderer, cx, cy, 11.5f * scale);
+    if (!render_aux_icon_texture(
+            toolbar, toolbar->stop_icon, SC_TOOLBAR_ACTION_RECORD, scale,
+            (struct sc_toolbar_color) {255, 255, 255, 255})) {
+        LOGW("Could not render recording stop icon: %s", SDL_GetError());
+    }
+}
+
 static void
 render_icon_textures(struct sc_toolbar *toolbar, float scale,
                      const struct sc_toolbar_view_state *state) {
     const struct sc_toolbar_palette *palette = sc_toolbar_get_palette(toolbar);
     for (enum sc_toolbar_action action = SC_TOOLBAR_ACTION_HOME;
             action < SC_TOOLBAR_ACTION_COUNT; ++action) {
+        if (action == SC_TOOLBAR_ACTION_SCREENSHOT
+                && sc_toolbar_screenshot_success_active(toolbar)) {
+            render_screenshot_success(toolbar, scale);
+            continue;
+        }
+        if (action == SC_TOOLBAR_ACTION_RECORD && state->recording) {
+            render_recording_state(toolbar, scale, state->reduce_motion);
+            continue;
+        }
         bool enabled = action_enabled(action, state);
         struct sc_toolbar_color icon = enabled
                                      ? palette->icon : palette->disabled;
@@ -774,14 +905,6 @@ render_icon_textures(struct sc_toolbar *toolbar, float scale,
                 && !render_icon_texture(toolbar, action, scale, icon)) {
             LOGW("Could not render floating toolbar icon: %s",
                  SDL_GetError());
-        }
-        if (action == SC_TOOLBAR_ACTION_RECORD && state->recording) {
-            const SDL_FRect *button = &toolbar->buttons[action];
-            set_color(toolbar->renderer, SC_TOOLBAR_RECORDING_RED);
-            fill_circle(toolbar->renderer,
-                        (button->x + button->w / 2.f) * scale,
-                        (button->y + button->h / 2.f) * scale,
-                        5.f * scale);
         }
     }
 }
@@ -870,15 +993,11 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
 
     for (enum sc_toolbar_action action = SC_TOOLBAR_ACTION_HOME;
             action < SC_TOOLBAR_ACTION_COUNT; ++action) {
-        bool recording = action == SC_TOOLBAR_ACTION_RECORD
-                      && state->recording;
-        bool active = recording || toolbar->hovered == action
+        bool active = toolbar->hovered == action
                    || toolbar->pressed == action;
         if (active) {
             const SDL_FRect *button = &toolbar->buttons[action];
-            set_color(renderer, recording ? palette->recording_bg
-                                          : get_segment_color(toolbar,
-                                                              action));
+            set_color(renderer, get_segment_color(toolbar, action));
             fill_circle(renderer,
                         (button->x + button->w / 2.f) * draw_scale,
                         (button->y + button->h / 2.f) * draw_scale,

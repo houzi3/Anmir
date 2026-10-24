@@ -8,9 +8,125 @@
 
 #include "window_ui.h"
 #include "theme.h"
+#include "toolbar.h"
 #import "device_ui.h"
 #import "mirror_session.h"
 #include "events.h"
+
+#define SC_STATUS_BUBBLE_TAIL 6.f
+#define SC_STATUS_BUBBLE_CORNER_RADIUS 9.f
+
+@interface SCStatusBubbleView : NSView
+@property(nonatomic, strong) NSTextField *label;
+@property(nonatomic) BOOL pointsLeft;
+@property(nonatomic) BOOL timer;
+@property(nonatomic) BOOL lightTheme;
+- (instancetype)initWithText:(NSString *)text timer:(BOOL)timer
+    lightTheme:(BOOL)lightTheme;
+- (void)updateText:(NSString *)text;
+- (void)applyLightTheme:(BOOL)lightTheme;
+@end
+
+@implementation SCStatusBubbleView
+- (instancetype)initWithText:(NSString *)text timer:(BOOL)timer
+    lightTheme:(BOOL)lightTheme {
+    self = [super initWithFrame:NSZeroRect];
+    if (self) {
+        _timer = timer;
+        _pointsLeft = YES;
+        _label = [NSTextField labelWithString:text];
+        _label.font = timer
+            ? [NSFont monospacedDigitSystemFontOfSize:12
+                                               weight:NSFontWeightMedium]
+            : [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
+        _label.alignment = NSTextAlignmentCenter;
+        _label.lineBreakMode = NSLineBreakByClipping;
+        _label.maximumNumberOfLines = 1;
+        [self addSubview:_label];
+        [self applyLightTheme:lightTheme];
+        [self updateText:text];
+    }
+    return self;
+}
+- (void)setPointsLeft:(BOOL)pointsLeft {
+    if (_pointsLeft == pointsLeft) { return; }
+    _pointsLeft = pointsLeft;
+    [self updateText:self.label.stringValue];
+    self.needsDisplay = YES;
+}
+- (void)updateText:(NSString *)text {
+    self.label.stringValue = text;
+    NSSize labelSize = self.label.fittingSize;
+    CGFloat labelWidth = ceil(labelSize.width);
+    CGFloat labelHeight = ceil(labelSize.height);
+    CGFloat height = self.timer ? 28 : 30;
+    // NSTextField's fitting width includes its internal text insets. Center
+    // that complete control and let the bubble grow when the duration gains
+    // an hour digit, instead of clipping the glyphs inside a fixed field.
+    CGFloat bodyWidth = MAX(self.timer ? 54 : 72, labelWidth + 14);
+    self.frame = NSMakeRect(0, 0, bodyWidth + SC_STATUS_BUBBLE_TAIL,
+                            height);
+    CGFloat bodyX = self.pointsLeft ? SC_STATUS_BUBBLE_TAIL : 0;
+    // NSTextField draws a single-line label against the top of a tall frame.
+    // Give it its natural height and center that frame explicitly so the
+    // glyphs sit on the visual center of both status-bubble sizes.
+    CGFloat labelY = floor((height - labelHeight) / 2.f);
+    CGFloat labelX = bodyX + floor((bodyWidth - labelWidth) / 2.f);
+    self.label.frame = NSMakeRect(labelX, labelY,
+                                  labelWidth, labelHeight);
+    self.needsDisplay = YES;
+}
+- (void)applyLightTheme:(BOOL)lightTheme {
+    _lightTheme = lightTheme;
+    self.appearance = [NSAppearance appearanceNamed:lightTheme
+        ? NSAppearanceNameAqua : NSAppearanceNameDarkAqua];
+    self.label.textColor = [NSColor colorWithWhite:lightTheme ? .18 : .95
+                                             alpha:1];
+    self.needsDisplay = YES;
+}
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    self.needsDisplay = YES;
+}
+- (void)drawRect:(NSRect)dirtyRect {
+    (void) dirtyRect;
+    NSColor *fill = [NSColor colorWithWhite:self.lightTheme ? .99 : .105
+                                      alpha:.98];
+    NSColor *border = [NSColor colorWithWhite:self.lightTheme ? 0 : 1
+                                         alpha:.08];
+    CGFloat bodyX = self.pointsLeft ? SC_STATUS_BUBBLE_TAIL : 0;
+    NSRect body = NSMakeRect(bodyX, .5,
+        NSWidth(self.bounds) - SC_STATUS_BUBBLE_TAIL,
+        NSHeight(self.bounds) - 1);
+    NSBezierPath *shape = [NSBezierPath bezierPathWithRoundedRect:body
+        xRadius:SC_STATUS_BUBBLE_CORNER_RADIUS
+        yRadius:SC_STATUS_BUBBLE_CORNER_RADIUS];
+    CGFloat middle = NSMidY(self.bounds);
+    NSBezierPath *tail = [NSBezierPath bezierPath];
+    if (self.pointsLeft) {
+        [tail moveToPoint:NSMakePoint(0, middle)];
+        [tail lineToPoint:NSMakePoint(SC_STATUS_BUBBLE_TAIL,
+                                      middle - 5)];
+        [tail lineToPoint:NSMakePoint(SC_STATUS_BUBBLE_TAIL,
+                                      middle + 5)];
+    } else {
+        [tail moveToPoint:NSMakePoint(NSWidth(self.bounds), middle)];
+        [tail lineToPoint:NSMakePoint(NSWidth(self.bounds)
+                                      - SC_STATUS_BUBBLE_TAIL,
+                                      middle - 5)];
+        [tail lineToPoint:NSMakePoint(NSWidth(self.bounds)
+                                      - SC_STATUS_BUBBLE_TAIL,
+                                      middle + 5)];
+    }
+    [tail closePath];
+    [fill setFill];
+    [shape fill];
+    [tail fill];
+    [border setStroke];
+    shape.lineWidth = .75;
+    [shape stroke];
+}
+@end
 
 @interface SCScrcpyWindowUI : NSObject <NSToolbarDelegate>
 @property(nonatomic, strong) NSStackView *titleStack;
@@ -18,6 +134,10 @@
 @property(nonatomic, strong) NSTextField *secondaryLabel;
 @property(nonatomic, strong) NSPanel *toastPanel;
 @property(nonatomic) NSUInteger toastGeneration;
+@property(nonatomic, strong) NSPanel *toolbarFeedbackPanel;
+@property(nonatomic) NSUInteger toolbarFeedbackGeneration;
+@property(nonatomic) CGFloat toolbarFeedbackAnchorY;
+@property(nonatomic, strong) NSPanel *recordingTimerPanel;
 @property(nonatomic) sc_window_ui_toolbar_toggle_cb toolbarToggleCallback;
 @property(nonatomic) void *toolbarToggleUserdata;
 @property(nonatomic, strong) NSMenuItem *toolbarMenuItem;
@@ -29,7 +149,7 @@
 @implementation SCScrcpyWindowUI
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
     (void)toolbar;
-    return @[NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Mirror.Devices", @"ScrcpyX.Mirror.Settings"];
+    return @[NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Mirror.Actions"];
 }
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {
     return [self toolbarDefaultItemIdentifiers:toolbar];
@@ -39,18 +159,13 @@
     willBeInsertedIntoToolbar:(BOOL)inserted {
     (void)toolbar; (void)inserted;
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:identifier];
-    NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 28, 28)];
-    BOOL devices = [identifier isEqualToString:@"ScrcpyX.Mirror.Devices"];
-    NSButton *button = devices ? SCDevicePickerButton() : SCSettingsButton();
-    button.frame = NSMakeRect(0, 0, 28, 28);
-    [container addSubview:button];
+    NSView *container = SCDeviceToolbarGroup(@[SCDevicePickerButton(), SCSettingsButton()]);
     item.view = container;
-    item.minSize = item.maxSize = NSMakeSize(28, 28);
+    item.minSize = item.maxSize = container.frame.size;
     item.bordered = NO;
     item.autovalidates = NO;
     item.enabled = YES;
-    SCBind(item, @"label", devices ? @"Open device list" : @"Settings…");
-    SCBind(item, @"toolTip", devices ? @"Open device list" : @"Settings…");
+    SCBind(item, @"label", @"Device actions");
     return item;
 }
 - (void)toggleToolbar:(id)sender {
@@ -64,11 +179,17 @@
 static const void *SC_WINDOW_UI_KEY = &SC_WINDOW_UI_KEY;
 
 static NSWindow *
-sc_window_ui_get_native_window(struct sc_window_ui *ui) {
-    SDL_PropertiesID props = SDL_GetWindowProperties(ui->window);
+sc_window_ui_get_native_sdl_window(SDL_Window *window) {
+    if (!window) { return nil; }
+    SDL_PropertiesID props = SDL_GetWindowProperties(window);
     void *pointer = SDL_GetPointerProperty(
         props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
     return (__bridge NSWindow *) pointer;
+}
+
+static NSWindow *
+sc_window_ui_get_native_window(struct sc_window_ui *ui) {
+    return sc_window_ui_get_native_sdl_window(ui->window);
 }
 
 static NSTextField *
@@ -321,6 +442,192 @@ sc_window_ui_show_toast(struct sc_window_ui *window_ui, const char *text) {
     });
 }
 
+static NSPanel *
+sc_window_ui_create_status_panel(NSString *text, BOOL timer) {
+    SCStatusBubbleView *view = [[SCStatusBubbleView alloc]
+        initWithText:text timer:timer lightTheme:sc_theme_is_light()];
+    NSPanel *panel = [[NSPanel alloc]
+        initWithContentRect:view.bounds
+                  styleMask:NSWindowStyleMaskBorderless
+                    backing:NSBackingStoreBuffered
+                      defer:NO];
+    panel.opaque = NO;
+    panel.backgroundColor = NSColor.clearColor;
+    panel.hasShadow = YES;
+    panel.ignoresMouseEvents = YES;
+    panel.hidesOnDeactivate = NO;
+    panel.collectionBehavior = NSWindowCollectionBehaviorTransient
+                             | NSWindowCollectionBehaviorFullScreenAuxiliary;
+    panel.contentView = view;
+    return panel;
+}
+
+static void
+sc_window_ui_position_status_panel(NSPanel *panel, SDL_Window *toolbar,
+                                   float anchorY, bool outwardLeft) {
+    NSWindow *nativeToolbar = sc_window_ui_get_native_sdl_window(toolbar);
+    if (!panel || !nativeToolbar) { return; }
+    SCStatusBubbleView *view = (SCStatusBubbleView *) panel.contentView;
+    view.pointsLeft = !outwardLeft;
+    [panel setContentSize:view.frame.size];
+
+    NSRect toolbarFrame = nativeToolbar.frame;
+    NSSize size = panel.frame.size;
+    CGFloat panelLeft = NSMinX(toolbarFrame) + SC_TOOLBAR_SHADOW_MARGIN;
+    CGFloat x = outwardLeft
+        ? panelLeft - SC_TOOLBAR_ACCESSORY_GAP - size.width
+        : panelLeft + SC_TOOLBAR_PANEL_WIDTH + SC_TOOLBAR_ACCESSORY_GAP;
+    CGFloat centerY = NSMaxY(toolbarFrame) - anchorY;
+    CGFloat y = centerY - size.height / 2;
+
+    NSScreen *screen = nativeToolbar.screen ?: NSScreen.mainScreen;
+    if (screen) {
+        NSRect visible = NSInsetRect(screen.visibleFrame, 4, 4);
+        x = MAX(NSMinX(visible), MIN(x, NSMaxX(visible) - size.width));
+        y = MAX(NSMinY(visible), MIN(y, NSMaxY(visible) - size.height));
+    }
+    [panel setFrameOrigin:NSMakePoint(round(x), round(y))];
+}
+
+static void
+sc_window_ui_announce(NSString *message) {
+    if (!message.length) { return; }
+    NSAccessibilityPostNotificationWithUserInfo(
+        NSApp, NSAccessibilityAnnouncementRequestedNotification, @{
+            NSAccessibilityAnnouncementKey: message,
+            NSAccessibilityPriorityKey: @(NSAccessibilityPriorityMedium),
+        });
+}
+
+void
+sc_window_ui_show_toolbar_feedback(struct sc_window_ui *window_ui,
+                                   SDL_Window *toolbar, float anchorY,
+                                   bool outwardLeft, const char *text) {
+    NSWindow *window = sc_window_ui_get_native_window(window_ui);
+    if (!window || !toolbar || !text
+            || !sc_window_ui_get_native_sdl_window(toolbar)) {
+        sc_window_ui_show_toast(window_ui, text);
+        return;
+    }
+    SCScrcpyWindowUI *ui = sc_window_ui_get_controller(window);
+    if (ui.toolbarFeedbackPanel) {
+        [window removeChildWindow:ui.toolbarFeedbackPanel];
+        [ui.toolbarFeedbackPanel orderOut:nil];
+    }
+    NSString *key = [NSString stringWithUTF8String:text];
+    NSString *message = SCLocalized(key);
+    NSPanel *panel = sc_window_ui_create_status_panel(message, NO);
+    ui.toolbarFeedbackPanel = panel;
+    ui.toolbarFeedbackAnchorY = anchorY;
+    [window addChildWindow:panel ordered:NSWindowAbove];
+    sc_window_ui_position_status_panel(panel, toolbar, anchorY,
+                                       outwardLeft);
+    panel.alphaValue = 0;
+    [panel orderFront:nil];
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = .12;
+        panel.animator.alphaValue = 1;
+    } completionHandler:nil];
+    sc_window_ui_announce(message);
+
+    NSUInteger generation = ++ui.toolbarFeedbackGeneration;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                 (int64_t) (1.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (ui.toolbarFeedbackGeneration != generation
+                || ui.toolbarFeedbackPanel != panel) {
+            return;
+        }
+        ui.toolbarFeedbackPanel = nil;
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = .16;
+            panel.animator.alphaValue = 0;
+        } completionHandler:^{
+            [window removeChildWindow:panel];
+            [panel orderOut:nil];
+        }];
+    });
+}
+
+static NSString *
+sc_window_ui_recording_time(uint64_t elapsed) {
+    uint64_t seconds = elapsed % 60;
+    uint64_t minutes = elapsed / 60;
+    if (minutes < 60) {
+        return [NSString stringWithFormat:@"%02llu:%02llu", minutes,
+                                          seconds];
+    }
+    return [NSString stringWithFormat:@"%llu:%02llu:%02llu", minutes / 60,
+                                      minutes % 60, seconds];
+}
+
+void
+sc_window_ui_update_toolbar_accessories(struct sc_window_ui *window_ui,
+                                        SDL_Window *toolbar,
+                                        float recordAnchorY,
+                                        bool outwardLeft, bool visible,
+                                        bool recording,
+                                        uint64_t elapsedSeconds) {
+    NSWindow *window = sc_window_ui_get_native_window(window_ui);
+    if (!window) { return; }
+    SCScrcpyWindowUI *ui = sc_window_ui_get_controller(window);
+
+    if (ui.toolbarFeedbackPanel) {
+        sc_window_ui_position_status_panel(ui.toolbarFeedbackPanel, toolbar,
+                                           ui.toolbarFeedbackAnchorY,
+                                           outwardLeft);
+        if (visible && !ui.toolbarFeedbackPanel.visible) {
+            [ui.toolbarFeedbackPanel orderFront:nil];
+        } else if (!visible && ui.toolbarFeedbackPanel.visible) {
+            [ui.toolbarFeedbackPanel orderOut:nil];
+        }
+    }
+
+    if (!recording && ui.recordingTimerPanel) {
+        NSPanel *panel = ui.recordingTimerPanel;
+        ui.recordingTimerPanel = nil;
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = .12;
+            panel.animator.alphaValue = 0;
+        } completionHandler:^{
+            [window removeChildWindow:panel];
+            [panel orderOut:nil];
+        }];
+    }
+    if (!recording) { return; }
+
+    NSString *time = sc_window_ui_recording_time(elapsedSeconds);
+    BOOL created = !ui.recordingTimerPanel;
+    if (created) {
+        ui.recordingTimerPanel = sc_window_ui_create_status_panel(time, YES);
+        [window addChildWindow:ui.recordingTimerPanel ordered:NSWindowAbove];
+    } else {
+        SCStatusBubbleView *view =
+            (SCStatusBubbleView *) ui.recordingTimerPanel.contentView;
+        if (![view.label.stringValue isEqualToString:time]) {
+            [view updateText:time];
+            [ui.recordingTimerPanel setContentSize:view.frame.size];
+        }
+    }
+    sc_window_ui_position_status_panel(ui.recordingTimerPanel, toolbar,
+                                       recordAnchorY, outwardLeft);
+    if (!visible) {
+        [ui.recordingTimerPanel orderOut:nil];
+    } else if (created || !ui.recordingTimerPanel.visible) {
+        ui.recordingTimerPanel.alphaValue = 0;
+        [ui.recordingTimerPanel orderFront:nil];
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = .12;
+            ui.recordingTimerPanel.animator.alphaValue = 1;
+        } completionHandler:nil];
+    }
+}
+
+bool
+sc_window_ui_should_reduce_motion(void) {
+    return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion;
+}
+
 static NSMenu *
 sc_window_ui_get_or_create_view_menu(SCScrcpyWindowUI *ui) {
     NSMenu *mainMenu = NSApp.mainMenu;
@@ -421,14 +728,13 @@ sc_window_ui_handle_event(struct sc_window_ui *window_ui,
         NSWindow *window = sc_window_ui_get_native_window(window_ui);
         SCScrcpyWindowUI *ui = objc_getAssociatedObject(window, SC_WINDOW_UI_KEY);
         sc_window_ui_apply_title_colors(ui);
-        for (NSToolbarItem *item in ui.titleToolbar.items) {
-            if ([item.itemIdentifier isEqualToString:@"ScrcpyX.Mirror.Settings"]) {
-                SCBind(item, @"label", @"Settings…"); SCBind(item, @"toolTip", @"Settings…");
-            }
-        }
         NSView *background = ui.toastPanel.contentView;
         background.layer.backgroundColor = [NSColor colorWithWhite:
             sc_theme_is_light() ? .98 : .08 alpha:.94].CGColor;
+        [(SCStatusBubbleView *) ui.toolbarFeedbackPanel.contentView
+            applyLightTheme:sc_theme_is_light()];
+        [(SCStatusBubbleView *) ui.recordingTimerPanel.contentView
+            applyLightTheme:sc_theme_is_light()];
     }
     // Native menu commands are dispatched by AppKit.
     return false;
@@ -444,6 +750,17 @@ sc_window_ui_destroy(struct sc_window_ui *window_ui) {
     if (ui.toastPanel) {
         [window removeChildWindow:ui.toastPanel];
         [ui.toastPanel orderOut:nil];
+    }
+    ++ui.toolbarFeedbackGeneration;
+    if (ui.toolbarFeedbackPanel) {
+        [window removeChildWindow:ui.toolbarFeedbackPanel];
+        [ui.toolbarFeedbackPanel orderOut:nil];
+        ui.toolbarFeedbackPanel = nil;
+    }
+    if (ui.recordingTimerPanel) {
+        [window removeChildWindow:ui.recordingTimerPanel];
+        [ui.recordingTimerPanel orderOut:nil];
+        ui.recordingTimerPanel = nil;
     }
     ui.toolbarToggleCallback = NULL;
     ui.toolbarToggleUserdata = NULL;
