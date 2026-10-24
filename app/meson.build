@@ -78,6 +78,9 @@ src = [
 if host_machine.system() == 'darwin'
     src += [
         'src/sys/macos/clipboard_writer.m',
+        'src/sys/macos/device_ui.m',
+        'src/sys/macos/theme.m',
+        'src/sys/macos/theme_chooser.m',
         'src/sys/macos/mirror_session.m',
         'src/sys/macos/file.m',
         'src/sys/macos/window_ui.m',
@@ -86,6 +89,7 @@ else
     src += [
         'src/clipboard_writer.c',
         'src/window_ui.c',
+        'src/theme.c',
     ]
     if host_machine.system() == 'windows'
         src += 'src/sys/win/window_ui_menu.c'
@@ -356,6 +360,19 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
         test('test_mirror_session', mirror_test, timeout: 20)
+        device_ui_test = executable('test_device_ui',
+            ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_device_ui', device_ui_test, timeout: 20)
+        theme_chooser_test = executable('test_theme_chooser',
+            ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
+             'src/sys/macos/device_ui.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_theme_chooser', theme_chooser_test, timeout: 20)
     endif
 endif
 
