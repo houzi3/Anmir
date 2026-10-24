@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import "sys/macos/mirror_session.h"
 #include <assert.h>
+#include <string.h>
 
 static dispatch_semaphore_t preparedSignal;
 static NSURL *cancelledRoot;
@@ -26,8 +27,16 @@ static void waitFor(BOOL (^condition)(void)) {
 }
 
 int main(int argc, const char *argv[]) {
-    (void)argc;
     @autoreleasepool {
+        if (argc == 3 && !strcmp(argv[1], "--check-host-bundle")) {
+            NSString *expected = [NSString stringWithUTF8String:argv[2]];
+            NSBundle *host = SCMirrorHostBundle();
+            assert([host.bundlePath.stringByResolvingSymlinksInPath
+                isEqualToString:expected.stringByResolvingSymlinksInPath]);
+            assert(![host.bundlePath isEqualToString:NSBundle.mainBundle.bundlePath]);
+            assert([SCMirrorHostBundleIdentifier() isEqualToString:host.bundleIdentifier]);
+            return 0;
+        }
         NSArray *arguments = SCMirrorArguments(@[@"scrcpy", @"-s", @"old", @"--serial=other",
             @"-d", @"--tcpip=192.0.2.1", @"--no-audio"], @"new");
         assert(([arguments isEqualToArray:@[@"--serial", @"new", @"--no-audio"]]));
@@ -67,6 +76,13 @@ int main(int argc, const char *argv[]) {
         verify.arguments = @[@"--verify", @"--strict", launch.bundleURL.path];
         assert([verify launchAndReturnError:nil]); [verify waitUntilExit];
         assert(!verify.terminationStatus);
+        // Resolve the icon host from inside a real new launcher process, not
+        // only by inspecting its plist from the parent's bundle context.
+        NSTask *child = [[NSTask alloc] init];
+        child.executableURL = launch.executableURL;
+        child.arguments = @[@"--check-host-bundle", hostURL.path];
+        assert([child launchAndReturnError:nil]); [child waitUntilExit];
+        assert(!child.terminationStatus);
         NSURL *sessionRoot = launch.bundleURL.URLByDeletingLastPathComponent;
         [launch cleanup];
         assert(![files fileExistsAtPath:sessionRoot.path]);

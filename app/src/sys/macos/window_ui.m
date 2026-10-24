@@ -7,6 +7,7 @@
 #include "theme.h"
 #import "theme_ui.h"
 #import "device_ui.h"
+#import "mirror_session.h"
 #include "events.h"
 
 @interface SCScrcpyWindowUI : NSObject <NSToolbarDelegate>
@@ -166,7 +167,9 @@ sc_window_ui_set_mirror_icon(void) {
     static BOOL applied;
     if (applied) { return; }
     applied = YES;
-    NSImage *badged = SCDeviceMirrorIcon(NSBundle.mainBundle);
+    // A fresh per-device launcher may not have a normalized Launch Services
+    // icon yet. Reuse the registered host icon that the manager displays.
+    NSImage *badged = SCDeviceMirrorIcon(SCMirrorHostBundle());
     NSApp.applicationIconImage = badged;
     [NSApp.dockTile display];
 }
