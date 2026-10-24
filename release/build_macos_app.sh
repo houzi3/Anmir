@@ -7,7 +7,7 @@ set -e
 # Usage: release/build_macos_app.sh [options] <build-dir|dist-dir>
 #
 # The resulting bundle can be opened from Finder/Launchpad, or copied to
-# /Applications. Use --zip or --dmg to also generate a distributable archive.
+# /Applications. A drag-to-Applications DMG is created by default.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -24,8 +24,9 @@ Build a ScrcpyX.app bundle from:
 
 Options:
     -o, --output <dir>    Output directory (default: <project>/dist)
-        --dmg             Also create a .dmg disk image
-        --zip             Also create a .zip archive
+        --dmg             Create a drag-to-Applications disk image (default)
+        --zip             Create a .zip archive instead (combine with --dmg for both)
+        --app-only        Build only the .app bundle
         --adb <path>      Use this adb executable
         --server <path>   Use this scrcpy-server
         --identity <id>   Code signing identity (default: \$CODESIGN_IDENTITY
@@ -37,11 +38,10 @@ Examples:
     # Build a static release distribution first:
     release/build_macos.sh "\$(uname -m)"
     release/build_server.sh
-    $0 --zip release/work/build-macos-"\$(uname -m)"
-    open dist/ScrcpyX.app
+    $0 release/work/build-macos-"\$(uname -m)"
 
-    # Build a distributable disk image
-    $0 --dmg release/work/build-macos-"\$(uname -m)"
+    # Include a ZIP alongside the default disk image
+    $0 --dmg --zip release/work/build-macos-"\$(uname -m)"
 EOF
 }
 
@@ -67,6 +67,7 @@ external_libraries() {
 OUTPUT_DIR="$ROOT_DIR/dist"
 CREATE_DMG=false
 CREATE_ZIP=false
+APP_ONLY=false
 SIGN=true
 IDENTITY="${CODESIGN_IDENTITY:--}"
 ADB=""
@@ -86,6 +87,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --zip)
             CREATE_ZIP=true
+            shift
+            ;;
+        --app-only)
+            APP_ONLY=true
             shift
             ;;
         --adb)
@@ -121,6 +126,13 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if $APP_ONLY && { $CREATE_DMG || $CREATE_ZIP; }; then
+    die "--app-only cannot be combined with --dmg or --zip"
+fi
+if ! $APP_ONLY && ! $CREATE_ZIP; then
+    CREATE_DMG=true
+fi
 
 [[ -n "$SRC" ]] || { usage >&2; exit 1; }
 [[ -d "$SRC" ]] || die "directory not found: $SRC"
@@ -310,19 +322,29 @@ fi
 
 if $CREATE_DMG; then
     DMG="$OUTPUT_DIR/$APP_NAME-$VERSION-$ARCH.dmg"
-    STAGE="$(mktemp -d "${TMPDIR:-/tmp}/scrcpy-dmg.XXXXXX")"
-    trap 'rm -rf "$STAGE"' EXIT
-    cp -R "$APP" "$STAGE/"
-    cp "$OUTPUT_DIR/README.txt" "$STAGE/README.txt"
-    ln -s /Applications "$STAGE/Applications"
-    rm -f "$DMG"
-    hdiutil create -volname "$APP_NAME $VERSION" -srcfolder "$STAGE" \
-        -ov -format UDZO "$DMG" >/dev/null
-    rm -rf "$STAGE"
-    trap - EXIT
-    echo "Created: $DMG"
+    bash "$SCRIPT_DIR/create_macos_dmg.sh" "$APP" "$APP_NAME $VERSION" "$DMG"
 fi
 
+if $CREATE_DMG || $CREATE_ZIP; then
+    ARCHIVES=()
+    for extension in dmg zip; do
+        archive="$APP_NAME-$VERSION-$ARCH.$extension"
+        if [[ -f "$OUTPUT_DIR/$archive" ]]; then
+            ARCHIVES+=("$archive")
+        fi
+    done
+    (cd "$OUTPUT_DIR" && shasum -a 256 "${ARCHIVES[@]}") \
+        > "$OUTPUT_DIR/SHA256SUMS"
+fi
+
+if $CREATE_DMG; then
+    cat <<EOF
+
+Install:
+    Open "$DMG" and drag $APP_NAME onto Applications.
+    Then open $APP_NAME from Applications and eject the disk image.
+EOF
+else
 cat <<EOF
 
 Install and run:
@@ -332,3 +354,4 @@ Install and run:
 Or run it directly:
     open "$APP"
 EOF
+fi

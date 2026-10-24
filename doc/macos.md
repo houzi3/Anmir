@@ -53,18 +53,23 @@ bundle with an icon:
 ```bash
 release/build_macos.sh "$(uname -m)"
 release/build_server.sh
-release/build_macos_app.sh --zip \
+release/build_macos_app.sh \
     "release/work/build-macos-$(uname -m)"
 ```
 
-This creates `dist/ScrcpyX.app` and a zipped copy. Use `--dmg` instead of
-`--zip` to create a disk image. Copy the application to `/Applications`, or
-open the disk image and drag it there. It then appears in Launchpad and
-Spotlight, and can be opened by double-clicking.
+This creates `dist/ScrcpyX.app` and a read-only `.dmg` installer. Open the disk
+image and drag ScrcpyX onto the Applications shortcut beside it, then open it
+from Applications. The image saves a compact icon view with installation
+instructions and a drag arrow. It then appears in Launchpad and Spotlight.
+Use `--zip` for a ZIP instead, `--dmg --zip` for both formats, or `--app-only`
+for the application bundle alone. DMG layout generation uses Finder and
+requires a logged-in macOS desktop session.
 
-The archive also includes `README.txt` with installation, USB debugging and
-first-launch instructions. The application connects automatically when exactly
-one ready device is attached. With multiple devices it shows a native device
+The application includes `Contents/Resources/README.txt` with installation, USB
+debugging and first-launch instructions; the ZIP also has a top-level copy.
+`SHA256SUMS` accompanies the generated archives. The application connects
+automatically when exactly one ready device is attached. With multiple devices
+it shows a native device
 window with the device name, Android version and connection type. Serial number,
 IP address, API level and status are available from each row's details button.
 **Mirror** starts an independent mirror of an already connected device, so

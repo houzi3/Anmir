@@ -6,7 +6,8 @@ ScrcpyX @VERSION@ — macOS @ARCH@
 - 已内置 adb、Android 服务端和所需媒体库，无需安装 Homebrew 或 Android SDK。
 
 安装与使用
-1. 将 ScrcpyX.app 拖入“应用程序”。
+1. 打开 DMG，将左侧 ScrcpyX 拖到右侧 Applications（应用程序），完成后推出磁盘映像。
+   从“应用程序”打开 ScrcpyX；若使用 ZIP，则先解压再将 ScrcpyX.app 拖入“应用程序”。
    首次打开可选 System（跟随系统，默认）、Light（浅色）或 Dark（深色）。
    之后可点设备列表和投屏标题栏中的太阳/月亮图标切换固定黑白主题。
    “ScrcpyX → Theme → System”可恢复跟随系统，所有窗口同步更新。
