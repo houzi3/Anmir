@@ -169,7 +169,7 @@ Install the packages with [Homebrew]:
 brew install sdl3 ffmpeg libusb
 
 # client build dependencies
-brew install pkg-config meson
+brew install pkg-config meson cmake nasm wget autoconf automake libtool
 ```
 
 Additionally, if you want to build the server, install Java 17 from Caskroom, and

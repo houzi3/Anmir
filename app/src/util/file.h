@@ -41,6 +41,13 @@ char *
 sc_file_get_local_path(const char *name);
 
 /**
+ * Resolve data in a macOS application's Resources directory, or alongside the
+ * executable for other portable layouts. The caller must free the result.
+ */
+char *
+sc_file_get_local_resource_path(const char *name);
+
+/**
  * Return the concatenation of dir, the path separator and the filename.
  *
  * The result must be freed by the caller using free(). It may return NULL on

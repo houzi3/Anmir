@@ -45,7 +45,7 @@ get_icon_path(const char *filename) {
     }
     LOGD("Using icon: %s", icon_path);
 #else
-    icon_path = sc_file_get_local_path(filename);
+    icon_path = sc_file_get_local_resource_path(filename);
     if (!icon_path) {
         LOGE("Could not get icon path");
         return NULL;

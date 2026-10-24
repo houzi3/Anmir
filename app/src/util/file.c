@@ -50,3 +50,10 @@ sc_file_get_local_path(const char *name) {
 
     return file_path;
 }
+
+#ifndef __APPLE__
+char *
+sc_file_get_local_resource_path(const char *name) {
+    return sc_file_get_local_path(name);
+}
+#endif

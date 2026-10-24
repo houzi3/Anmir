@@ -78,6 +78,7 @@ src = [
 if host_machine.system() == 'darwin'
     src += [
         'src/sys/macos/clipboard_writer.m',
+        'src/sys/macos/file.m',
         'src/sys/macos/window_ui.m',
     ]
 else

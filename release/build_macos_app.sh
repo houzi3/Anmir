@@ -7,16 +7,17 @@ set -e
 # Usage: release/build_macos_app.sh [options] <build-dir|dist-dir>
 #
 # The resulting bundle can be opened from Finder/Launchpad, or copied to
-# /Applications. Use --dmg to also generate a drag-and-drop disk image.
+# /Applications. Use --zip or --dmg to also generate a distributable archive.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+APP_NAME="ScrcpyX"
 
 usage() {
     cat <<EOF
 Usage: $0 [options] <build-dir|dist-dir>
 
-Build a scrcpy.app bundle from:
+Build a ScrcpyX.app bundle from:
  - a meson build directory (containing app/scrcpy), or
  - a portable distribution directory (containing scrcpy, adb and
    scrcpy-server, as in a release archive).
@@ -24,6 +25,7 @@ Build a scrcpy.app bundle from:
 Options:
     -o, --output <dir>    Output directory (default: <project>/dist)
         --dmg             Also create a .dmg disk image
+        --zip             Also create a .zip archive
         --adb <path>      Use this adb executable
         --server <path>   Use this scrcpy-server
         --identity <id>   Code signing identity (default: \$CODESIGN_IDENTITY
@@ -32,12 +34,14 @@ Options:
     -h, --help            Print this help
 
 Examples:
-    # After: meson setup build-auto -Dportable=true && ninja -C build-auto
-    $0 build-auto
-    open dist/scrcpy.app
+    # Build a static release distribution first:
+    release/build_macos.sh "\$(uname -m)"
+    release/build_server.sh
+    $0 --zip release/work/build-macos-"\$(uname -m)"
+    open dist/ScrcpyX.app
 
     # Build a distributable disk image
-    $0 --dmg build-auto
+    $0 --dmg release/work/build-macos-"\$(uname -m)"
 EOF
 }
 
@@ -46,8 +50,23 @@ die() {
     exit 1
 }
 
+external_libraries() {
+    otool -L "$1" |
+        awk '$0 ~ /^\t/ { print $1 }' |
+        while IFS= read -r lib; do
+            case "$lib" in
+                /System/Library/*|/usr/lib/*|@executable_path/*|@loader_path/*)
+                    ;;
+                *)
+                    printf '%s ' "$lib"
+                    ;;
+            esac
+        done
+}
+
 OUTPUT_DIR="$ROOT_DIR/dist"
 CREATE_DMG=false
+CREATE_ZIP=false
 SIGN=true
 IDENTITY="${CODESIGN_IDENTITY:--}"
 ADB=""
@@ -63,6 +82,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dmg)
             CREATE_DMG=true
+            shift
+            ;;
+        --zip)
+            CREATE_ZIP=true
             shift
             ;;
         --adb)
@@ -116,8 +139,8 @@ fi
 VERSION="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" "$ROOT_DIR/meson.build" | head -n 1)"
 [[ -n "$VERSION" ]] || die "could not read the project version from meson.build"
 
-# A bundle relies on the portable layout: scrcpy looks for scrcpy-server, adb
-# and its icons next to the executable.
+# A bundle uses the portable build: adb stays next to the executable, while
+# the server and icons are resolved from Contents/Resources on macOS.
 if [[ "$MODE" = build ]]; then
     CONFIG_H="$SRC/app/config.h"
     if [[ -f "$CONFIG_H" ]] && ! grep -q '^#define PORTABLE' "$CONFIG_H"; then
@@ -156,19 +179,28 @@ if [[ -z "$ADB" ]]; then
 fi
 [[ -n "$ADB" && -x "$ADB" ]] || die "adb not found; install it or pass --adb <path>"
 
+# The script only copies the executables, not third-party dylibs. Reject a
+# dynamically linked build so that a successful package is actually portable.
+for executable in "$BIN" "$ADB"; do
+    external_lib_paths="$(external_libraries "$executable")"
+    [[ -z "$external_lib_paths" ]] || die \
+        "$executable depends on external libraries: $external_lib_paths
+Build a static distribution with release/build_macos.sh first"
+done
+
 ARCH="$(lipo -archs "$BIN" 2>/dev/null || true)"
 ARCH="${ARCH// /-}"
 if [[ -z "$ARCH" ]]; then
     ARCH="$(uname -m)"
 fi
 
-APP="$OUTPUT_DIR/scrcpy.app"
+APP="$OUTPUT_DIR/$APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 install -m 755 "$BIN" "$APP/Contents/MacOS/scrcpy"
 install -m 755 "$ADB" "$APP/Contents/MacOS/adb"
-install -m 644 "$SERVER" "$APP/Contents/MacOS/scrcpy-server"
+install -m 644 "$SERVER" "$APP/Contents/Resources/scrcpy-server"
 
 copy_data() {
     local src="$1"
@@ -179,49 +211,112 @@ copy_data() {
 }
 
 if [[ "$MODE" = dist ]]; then
-    copy_data "$SRC/scrcpy.png" "$APP/Contents/MacOS"
-    copy_data "$SRC/disconnected.png" "$APP/Contents/MacOS"
-    copy_data "$SRC/toolbar-icons" "$APP/Contents/MacOS"
+    copy_data "$SRC/scrcpy.png" "$APP/Contents/Resources"
+    copy_data "$SRC/disconnected.png" "$APP/Contents/Resources"
+    copy_data "$SRC/toolbar-icons" "$APP/Contents/Resources"
     copy_data "$SRC/scrcpy.1" "$APP/Contents/Resources"
     copy_data "$SRC/LICENSE" "$APP/Contents/Resources"
 else
-    copy_data "$ROOT_DIR/app/data/scrcpy.png" "$APP/Contents/MacOS"
-    copy_data "$ROOT_DIR/app/data/disconnected.png" "$APP/Contents/MacOS"
-    copy_data "$ROOT_DIR/app/data/toolbar-icons" "$APP/Contents/MacOS"
+    copy_data "$ROOT_DIR/app/data/scrcpy.png" "$APP/Contents/Resources"
+    copy_data "$ROOT_DIR/app/data/disconnected.png" "$APP/Contents/Resources"
+    copy_data "$ROOT_DIR/app/data/toolbar-icons" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/scrcpy.1" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/LICENSE" "$APP/Contents/Resources"
 fi
 
 install -m 644 "$ROOT_DIR/app/data/scrcpy.icns" "$APP/Contents/Resources/scrcpy.icns"
 
-sed "s/@SCRCPY_VERSION@/$VERSION/g" "$ROOT_DIR/app/Info.plist.in" \
+# Take the highest minimum OS version declared by any bundled architecture.
+# Apple Silicon starts at macOS 11 even when the x86_64 deployment target is
+# lower.
+# The native application uses SF Symbols and unified toolbars (macOS 11+).
+# Standalone CLI deployment targets can be older than the GUI bundle.
+MINIMUM_SYSTEM_VERSION=11.0
+BUILD_VERSIONS="$(vtool -show-build "$BIN" && vtool -show-build "$ADB")" \
+    || die "could not inspect the bundled executables' minimum macOS versions"
+while IFS= read -r binary_min_version; do
+    [[ -n "$binary_min_version" ]] || continue
+    if awk -v current="$MINIMUM_SYSTEM_VERSION" -v candidate="$binary_min_version" '
+        function rank(version, parts) {
+            split(version, parts, ".")
+            return (parts[1] + 0) * 10000 + (parts[2] + 0) * 100 + (parts[3] + 0)
+        }
+        BEGIN {
+            exit rank(candidate) > rank(current) ? 0 : 1
+        }
+    '; then
+        MINIMUM_SYSTEM_VERSION="$binary_min_version"
+    fi
+done < <(printf '%s\n' "$BUILD_VERSIONS" |
+    awk '$1 == "minos" { print $2 }')
+
+sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
+    -e "s/@SCRCPY_MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
+    -e "s/@SCRCPY_APP_NAME@/$APP_NAME/g" \
+    "$ROOT_DIR/app/Info.plist.in" \
     > "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+
+SIGNING_STATUS="未签名，未经过 Apple 公证。"
+if $SIGN; then
+    if [[ "$IDENTITY" = "-" ]]; then
+        SIGNING_STATUS="本地 ad-hoc 签名，未经过 Apple 公证。"
+    else
+        SIGNING_STATUS="证书签名，未经过 Apple 公证。"
+    fi
+fi
+sed -e "s/@VERSION@/$VERSION/g" \
+    -e "s/@ARCH@/$ARCH/g" \
+    -e "s/@MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
+    -e "s/@SIGNING_STATUS@/$SIGNING_STATUS/g" \
+    "$SCRIPT_DIR/macos-app-readme.txt" > "$APP/Contents/Resources/README.txt"
+cp "$APP/Contents/Resources/README.txt" "$OUTPUT_DIR/README.txt"
 
 if command -v plutil >/dev/null 2>&1; then
     plutil -lint "$APP/Contents/Info.plist" >/dev/null
 fi
 
 if $SIGN; then
-    if [[ "$IDENTITY" = "-" ]]; then
-        codesign --force --deep --sign - "$APP"
-    else
-        codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" \
-            "$APP"
+    SIGN_OPTIONS=()
+    if [[ "$IDENTITY" != "-" ]]; then
+        SIGN_OPTIONS=(--options runtime --timestamp)
     fi
+    codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" \
+        "$APP/Contents/MacOS/adb"
+    codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" "$APP"
     codesign --verify --deep --strict "$APP"
 fi
 
 echo "Created: $APP"
+echo "Minimum macOS: $MINIMUM_SYSTEM_VERSION"
+
+if $CREATE_ZIP; then
+    ZIP="$OUTPUT_DIR/$APP_NAME-$VERSION-$ARCH.zip"
+    rm -f "$ZIP"
+    ZIP_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/scrcpy-zip.XXXXXX")"
+    trap 'rm -rf "$ZIP_STAGE"' EXIT
+    ditto "$APP" "$ZIP_STAGE/$APP_NAME.app"
+    cp "$OUTPUT_DIR/README.txt" "$ZIP_STAGE/README.txt"
+    ditto -c -k --norsrc --noextattr "$ZIP_STAGE" "$ZIP"
+    if $SIGN; then
+        ditto -x -k "$ZIP" "$ZIP_STAGE/verification"
+        codesign --verify --deep --strict \
+            "$ZIP_STAGE/verification/$APP_NAME.app"
+    fi
+    rm -rf "$ZIP_STAGE"
+    trap - EXIT
+    echo "Created: $ZIP"
+fi
 
 if $CREATE_DMG; then
-    DMG="$OUTPUT_DIR/scrcpy-$VERSION-$ARCH.dmg"
+    DMG="$OUTPUT_DIR/$APP_NAME-$VERSION-$ARCH.dmg"
     STAGE="$(mktemp -d "${TMPDIR:-/tmp}/scrcpy-dmg.XXXXXX")"
     trap 'rm -rf "$STAGE"' EXIT
     cp -R "$APP" "$STAGE/"
+    cp "$OUTPUT_DIR/README.txt" "$STAGE/README.txt"
     ln -s /Applications "$STAGE/Applications"
     rm -f "$DMG"
-    hdiutil create -volname "scrcpy $VERSION" -srcfolder "$STAGE" \
+    hdiutil create -volname "$APP_NAME $VERSION" -srcfolder "$STAGE" \
         -ov -format UDZO "$DMG" >/dev/null
     rm -rf "$STAGE"
     trap - EXIT
@@ -232,7 +327,7 @@ cat <<EOF
 
 Install and run:
     cp -R "$APP" /Applications/
-    open "/Applications/scrcpy.app"
+    open "/Applications/$APP_NAME.app"
 
 Or run it directly:
     open "$APP"

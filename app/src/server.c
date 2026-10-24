@@ -40,7 +40,7 @@ get_server_path(void) {
         return NULL;
     }
 #else
-    server_path = sc_file_get_local_path(SC_SERVER_FILENAME);
+    server_path = sc_file_get_local_resource_path(SC_SERVER_FILENAME);
     if (!server_path) {
         LOGE("Could not get local file path, "
              "using " SC_SERVER_FILENAME " from current directory");

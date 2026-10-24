@@ -13,6 +13,8 @@ fi
 ARCH="$1"
 MACOS_BUILD_DIR="$WORK_DIR/build-macos-$ARCH"
 
+export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.13}"
+
 app/deps/adb_macos.sh
 app/deps/sdl.sh macos native static
 app/deps/dav1d.sh macos native static
@@ -26,10 +28,16 @@ ADB_INSTALL_DIR="$PWD/app/deps/work/install/adb-macos"
 unset PKG_CONFIG_PATH
 export PKG_CONFIG_LIBDIR="$DEPS_INSTALL_DIR/lib/pkgconfig"
 
+# Persist the deployment target in Meson so incremental builds do not silently
+# use the build machine's newer macOS version when this environment is absent.
+DEPLOYMENT_FLAG="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+
 rm -rf "$MACOS_BUILD_DIR"
 meson setup "$MACOS_BUILD_DIR" \
-    -Dc_args="-I$DEPS_INSTALL_DIR/include" \
-    -Dc_link_args="-L$DEPS_INSTALL_DIR/lib" \
+    -Dc_args="-I$DEPS_INSTALL_DIR/include $DEPLOYMENT_FLAG" \
+    -Dobjc_args="$DEPLOYMENT_FLAG" \
+    -Dc_link_args="-L$DEPS_INSTALL_DIR/lib $DEPLOYMENT_FLAG" \
+    -Dobjc_link_args="-L$DEPS_INSTALL_DIR/lib $DEPLOYMENT_FLAG" \
     --buildtype=release \
     --strip \
     -Db_lto=true \
@@ -43,6 +51,7 @@ mkdir -p "$MACOS_BUILD_DIR/dist"
 cp "$MACOS_BUILD_DIR"/app/scrcpy "$MACOS_BUILD_DIR/dist/"
 cp app/data/scrcpy.png "$MACOS_BUILD_DIR/dist/"
 cp app/data/disconnected.png "$MACOS_BUILD_DIR/dist/"
+cp -r app/data/toolbar-icons "$MACOS_BUILD_DIR/dist/"
 cp app/scrcpy.1 "$MACOS_BUILD_DIR/dist/"
 cp LICENSE "$MACOS_BUILD_DIR/dist"
 cp -r "$ADB_INSTALL_DIR"/. "$MACOS_BUILD_DIR/dist/"
