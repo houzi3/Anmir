@@ -6,7 +6,11 @@ NSTextField *SCDeviceLabel(NSString *text, CGFloat size, NSFontWeight weight, BO
 NSTextField *SCDeviceLocalizedLabel(NSString *key, CGFloat size, NSFontWeight weight, BOOL secondary);
 NSImage *SCDeviceSymbol(NSString *name);
 NSImage *SCDeviceWiFiSymbol(void);
+NSImage *SCDeviceListSymbol(void);
 NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spacing);
+// One toolbar item avoids AppKit adding spacing between these 28pt controls.
+// Each glyph is 16pt, with a 2pt gap between independent click targets.
+NSView *SCDeviceToolbarGroup(NSArray<NSButton *> *buttons);
 
 @interface SCDeviceSurface : NSView
 @end
@@ -17,6 +21,7 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 @end
 
 @interface SCDeviceIconButton : NSButton
+@property(nonatomic) CGFloat glyphSize; // Defaults to 14pt; independent of hit area.
 @end
 
 // A custom-drawn choice card uses its entire visible surface as the hit area,

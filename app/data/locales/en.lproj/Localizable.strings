@@ -91,12 +91,12 @@
 "Pairing" = "Pairing";
 "Pairing code" = "Pairing code";
 "Pairing failed. Check the address and code." = "Pairing failed. Check the address and code.";
-"Pairing failed. Choose New QR code and scan again." = "Pairing failed. Choose New QR code and scan again.";
+"Pairing failed. Choose New QR code and scan again." = "Pairing failed. Choose Refresh QR code and scan again.";
 "Pairing timed out. Open a new code and try again." = "Pairing timed out. Open a new code and try again.";
 "Pairing…" = "Pairing…";
 "Paste" = "Paste";
 "Port" = "Port";
-"QR code expired. Choose New QR code to try again." = "QR code expired. Choose New QR code to try again.";
+"QR code expired. Choose New QR code to try again." = "QR code expired. Choose Refresh QR code to try again.";
 "Quit %@" = "Quit %@";
 "Recording failed" = "Recording failed";
 "Recording saved" = "Recording saved";
@@ -159,3 +159,13 @@
 "%@ · Paired" = "%@ · Paired";
 "Close" = "Close";
 "Open device list" = "Open device list";
+
+/* Compact QR pairing guide. */
+"Phone and Mac: same Wi-Fi, or a reachable company LAN." = "Phone and Mac: same Wi-Fi, or a reachable company LAN.";
+"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code" = "On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code";
+"Use the phone’s system pairing scanner, not Camera or other scanners." = "Use the phone’s system pairing scanner, not Camera or other scanners.";
+"Refresh QR code" = "Refresh QR code";
+"Phone not connecting? Check the network or use pairing code." = "Phone not connecting? Check the network or use pairing code.";
+"Copy serial number" = "Copy serial number";
+"Copy IP address" = "Copy IP address";
+"Copied" = "Copied";

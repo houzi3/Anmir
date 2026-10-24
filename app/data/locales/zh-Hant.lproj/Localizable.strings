@@ -159,3 +159,13 @@
 "%@ · Paired" = "%@ · 已配對";
 "Close" = "關閉";
 "Open device list" = "開啟裝置列表";
+
+/* Compact QR pairing guide. */
+"Phone and Mac: same Wi-Fi, or a reachable company LAN." = "手機與 Mac：同一 Wi-Fi，或可互通的公司內網。";
+"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code" = "在手機上：設定 › 開發人員選項 › 無線偵錯 › 使用 QR 碼配對裝置";
+"Use the phone’s system pairing scanner, not Camera or other scanners." = "請用上述系統入口掃描，勿用相機或其他掃描器。";
+"Refresh QR code" = "重新整理 QR 碼";
+"Phone not connecting? Check the network or use pairing code." = "手機未連線？請檢查網路，或使用配對碼。";
+"Copy serial number" = "複製序號";
+"Copy IP address" = "複製 IP 位址";
+"Copied" = "已複製";

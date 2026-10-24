@@ -62,6 +62,21 @@ static NSString *SCMirrorShownNotification(void) {
 }
 @end
 
+@interface SCDeviceDetailCopyButton : SCDeviceIconButton
+@property(nonatomic, weak) NSTextField *valueLabel;
+@end
+@implementation SCDeviceDetailCopyButton
+- (void)copyValue:(id)sender {
+    (void)sender;
+    if (!self.enabled || !self.valueLabel.stringValue.length) { return; }
+    [NSPasteboard.generalPasteboard clearContents];
+    [NSPasteboard.generalPasteboard setString:self.valueLabel.stringValue forType:NSPasteboardTypeString];
+    NSAccessibilityPostNotificationWithUserInfo(self, NSAccessibilityAnnouncementRequestedNotification,
+        @{NSAccessibilityAnnouncementKey:SCLocalized(@"Copied"),
+            NSAccessibilityPriorityKey:@(NSAccessibilityPriorityMedium)});
+}
+@end
+
 static NSString *sc_device_picker_string(const char *value) {
     return value ? ([NSString stringWithUTF8String:value] ?: @"Unknown") : @"Unknown";
 }
@@ -536,11 +551,23 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 }
 
 - (NSTextField *)detailValue:(NSString *)value {
-    NSTextField *label = SCDeviceLabel(value.length ? value : @"—", 12, NSFontWeightRegular, NO);
+    NSTextField *label = SCDeviceLabel(value.length ? value : @"—", 11.5, NSFontWeightRegular, NO);
     label.selectable = YES;
     label.lineBreakMode = NSLineBreakByCharWrapping;
     label.maximumNumberOfLines = 3;
     return label;
+}
+
+- (SCDeviceDetailCopyButton *)copyButtonFor:(NSTextField *)value key:(NSString *)key {
+    SCDeviceDetailCopyButton *copy = [SCDeviceDetailCopyButton buttonWithImage:SCDeviceSymbol(@"doc.on.doc") target:nil action:@selector(copyValue:)];
+    copy.target = copy;
+    copy.valueLabel = value;
+    copy.translatesAutoresizingMaskIntoConstraints = NO;
+    SCBind(copy, @"toolTip", key);
+    SCBind(copy, @"accessibilityLabel", key);
+    [copy.widthAnchor constraintEqualToConstant:24].active = YES;
+    [copy.heightAnchor constraintEqualToConstant:24].active = YES;
+    return copy;
 }
 
 - (void)showDetails:(NSButton *)button {
@@ -553,42 +580,86 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     if (!entry) { return; }
     NSDictionary *properties = self.metadata[entry.serial];
     NSViewController *controller = [[NSViewController alloc] init];
-    controller.view = [[SCDeviceSurface alloc] initWithFrame:NSMakeRect(0, 0, 364, 280)];
+    controller.view = [[SCDeviceSurface alloc] initWithFrame:NSMakeRect(0, 0, 320, 178)];
     NSString *serial = properties[@"ro.serialno"] ?: properties[@"ro.boot.serialno"] ?: entry.serial;
     NSString *host = SCDeviceHost(entry.serial);
     NSTextField *ip = [self detailValue:host ?: (entry.ready ? @"Checking…" : @"Unavailable")];
     if (!host) { SCBind(ip, @"stringValue", entry.ready ? @"Checking…" : @"Unavailable"); }
-    NSStackView *stack = SCDeviceStack(@[entry.fallbackName ? SCDeviceLocalizedLabel(@"Android device", 14, NSFontWeightSemibold, NO) : SCDeviceLabel(entry.name, 14, NSFontWeightSemibold, NO)], YES, 16);
-    NSArray *labels = @[@"Serial number", @"IP address", @"System", @"API level", @"Connection", @"Status"];
-    NSArray *values = @[[self detailValue:serial], ip, [self detailValue:entry.system],
-        [self detailValue:properties[@"ro.build.version.sdk"]], [self detailValue:entry.transport], [self detailValue:[self status:entry]]];
-    SCBind(values[4], @"stringValue", entry.transportType == SC_ADB_DEVICE_TYPE_EMULATOR ? @"Emulator" : entry.transport);
-    SCBind(values[5], @"stringValue", [self status:entry]);
+    NSImageView *phone = [NSImageView imageViewWithImage:SCDeviceSymbol(@"iphone")];
+    phone.contentTintColor = NSColor.secondaryLabelColor;
+    [phone.widthAnchor constraintEqualToConstant:24].active = YES;
+    [phone.heightAnchor constraintEqualToConstant:32].active = YES;
+    NSTextField *name = entry.fallbackName ? SCDeviceLocalizedLabel(@"Android device", 13, NSFontWeightSemibold, NO)
+        : SCDeviceLabel(entry.name, 13, NSFontWeightSemibold, NO);
+    if (!entry.fallbackName) { name.toolTip = entry.name; }
+    NSTextField *transport = SCDeviceLocalizedLabel(entry.transportType == SC_ADB_DEVICE_TYPE_EMULATOR
+        ? @"Emulator" : entry.transport, 11, NSFontWeightRegular, YES);
+    NSTextField *status = SCDeviceLocalizedLabel([self status:entry], 11, NSFontWeightRegular, YES);
+    NSImageView *dot = [NSImageView imageViewWithImage:SCDeviceSymbol(@"circle.fill")];
+    dot.contentTintColor = entry.ready ? NSColor.systemGreenColor : NSColor.systemOrangeColor;
+    [dot.widthAnchor constraintEqualToConstant:5].active = YES;
+    [dot.heightAnchor constraintEqualToConstant:5].active = YES;
+    NSStackView *subtitle = SCDeviceStack(@[transport, dot, status], NO, 7);
+    [subtitle setHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView *heading = SCDeviceStack(@[phone, SCDeviceStack(@[name, subtitle], YES, 3)], NO, 10);
+    NSBox *divider = [[NSBox alloc] init];
+    divider.boxType = NSBoxSeparator;
+    NSStackView *stack = SCDeviceStack(@[heading, divider], YES, 8);
+    [stack setCustomSpacing:12 afterView:heading];
+    [divider.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    [heading.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    [name.widthAnchor constraintLessThanOrEqualToAnchor:stack.widthAnchor constant:-34].active = YES;
+    NSString *api = properties[@"ro.build.version.sdk"];
+    NSString *system = api.length ? [NSString stringWithFormat:@"%@ · API %@", entry.system, api] : entry.system;
+    NSArray *labels = @[@"Serial number", @"IP address", @"System"];
+    NSArray<NSTextField *> *values = @[[self detailValue:serial], ip, [self detailValue:system]];
+    SCDeviceDetailCopyButton *copyIP = nil;
     for (NSUInteger i = 0; i < labels.count; ++i) {
-        NSTextField *label = SCDeviceLocalizedLabel(labels[i], 12, NSFontWeightRegular, YES);
-        [label.widthAnchor constraintEqualToConstant:94].active = YES;
-        NSStackView *row = SCDeviceStack(@[label, values[i]], NO, 12);
+        NSTextField *label = SCDeviceLocalizedLabel(labels[i], 11, NSFontWeightRegular, YES);
+        [label.widthAnchor constraintEqualToConstant:76].active = YES;
+        if (i < 2) { values[i].font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular]; }
+        NSStackView *row = SCDeviceStack(@[label, values[i]], NO, 10);
+        if (i < 2) {
+            SCDeviceDetailCopyButton *copy = [self copyButtonFor:values[i]
+                key:i == 0 ? @"Copy serial number" : @"Copy IP address"];
+            copy.enabled = i == 0 ? serial.length > 0 : host.length > 0;
+            if (i == 1) { copyIP = copy; }
+            [row addArrangedSubview:copy];
+        } else {
+            NSView *spacer = [[NSView alloc] init];
+            [spacer.widthAnchor constraintEqualToConstant:24].active = YES;
+            [row addArrangedSubview:spacer];
+        }
         [stack addArrangedSubview:row];
         [row.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
-        [((NSView *)values[i]).widthAnchor constraintEqualToConstant:210].active = YES;
+        [row.heightAnchor constraintGreaterThanOrEqualToConstant:24].active = YES;
+        values[i].preferredMaxLayoutWidth = 168;
+        [values[i].widthAnchor constraintEqualToConstant:168].active = YES;
     }
     [controller.view addSubview:stack];
     [NSLayoutConstraint activateConstraints:@[
-        [stack.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor constant:20],
-        [stack.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor constant:-20],
-        [stack.topAnchor constraintEqualToAnchor:controller.view.topAnchor constant:20],
+        [stack.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor constant:16],
+        [stack.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor constant:-16],
+        [stack.topAnchor constraintEqualToAnchor:controller.view.topAnchor constant:16],
     ]];
+    [controller.view layoutSubtreeIfNeeded];
+    [controller.view setFrameSize:NSMakeSize(320, ceil(stack.fittingSize.height) + 32)];
     self.details = [[NSPopover alloc] init];
     self.details.behavior = NSPopoverBehaviorTransient;
     self.details.contentViewController = controller;
     [self.details showRelativeToRect:button.bounds ofView:button preferredEdge:NSRectEdgeMinX];
     if (!host && entry.ready) {
         __weak NSTextField *weakIP = ip;
+        __weak SCDeviceDetailCopyButton *weakCopy = copyIP;
         self.detailQuery = [SCDeviceCommand run:self.executable arguments:@[@"-s", entry.serial, @"shell", @"ip", @"-o", @"addr", @"show", @"dev", @"wlan0"] input:nil timeout:4
             completion:^(NSString *output, int status) {
             NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"inet ([0-9.]+)/" options:0 error:nil];
             NSTextCheckingResult *match = status ? nil : [regex firstMatchInString:output options:0 range:NSMakeRange(0, output.length)];
-            SCBind(weakIP, @"stringValue", match ? [output substringWithRange:[match rangeAtIndex:1]] : @"Unavailable");
+            if (match) {
+                NSString *address = [output substringWithRange:[match rangeAtIndex:1]];
+                SCBind(weakIP, @"stringValue", address);
+                weakCopy.enabled = YES;
+            } else { SCBind(weakIP, @"stringValue", @"Unavailable"); }
         }];
     }
 }
@@ -942,7 +1013,7 @@ static SCDeviceMenu *SCDeviceMenuController(void) {
 }
 
 NSButton *SCDevicePickerButton(void) {
-    NSButton *button = [SCDeviceIconButton buttonWithImage:SCDeviceSymbol(@"list.bullet.rectangle")
+    NSButton *button = [SCDeviceIconButton buttonWithImage:SCDeviceListSymbol()
         target:SCDeviceMenuController() action:@selector(showDevices:)];
     button.identifier = @"ScrcpyX.Devices";
     SCBind(button, @"toolTip", @"Open device list");

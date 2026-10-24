@@ -83,7 +83,7 @@
 "Offline %@" = "%@ 已离线";
 "Open Pairing code on your device." = "请在设备上打开配对码。";
 "Open Wi-Fi pairing" = "打开 Wi-Fi 配对";
-"Pair with QR code" = "扫描二维码配对";
+"Pair with QR code" = "扫码配对";
 "Paired" = "已配对";
 "Paired. Connecting…" = "已配对，正在连接…";
 "Paired. Enter the connection address." = "已配对，请输入连接地址。";
@@ -159,3 +159,13 @@
 "%@ · Paired" = "%@ · 已配对";
 "Close" = "关闭";
 "Open device list" = "打开设备列表";
+
+/* Compact QR pairing guide. */
+"Phone and Mac: same Wi-Fi, or a reachable company LAN." = "手机与 Mac：同一 Wi-Fi，或可互通的公司内网。";
+"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code" = "在手机上：设置 › 开发者选项 › 无线调试 › 使用二维码配对设备";
+"Use the phone’s system pairing scanner, not Camera or other scanners." = "请用上述系统入口扫码，勿用相机或其他扫一扫。";
+"Refresh QR code" = "刷新二维码";
+"Phone not connecting? Check the network or use pairing code." = "手机未连接？请检查网络，或使用配对码。";
+"Copy serial number" = "复制序列号";
+"Copy IP address" = "复制 IP 地址";
+"Copied" = "已复制";

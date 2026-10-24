@@ -122,15 +122,24 @@ ADB settings and are removed when the mirror exits. Opening Devices from a
 mirror activates the main manager instead of creating another manager instance.
 
 The Wi-Fi guide’s **Scan QR code →** action opens the QR connection flow directly.
-The Wi-Fi connection window starts with a QR code. On an Android 11+ phone,
-open Developer options > Wireless debugging > Pair device with QR code and
-scan it. The app pairs using the discovered pairing service, finds the phone's
+The Wi-Fi connection window starts with a QR code. Connect the phone and Mac to
+the same Wi-Fi, or a mutually reachable company LAN. **On the Android 11+ phone**,
+open Settings > Developer options > Wireless debugging > Pair device with QR code
+and scan it using that system entry, rather than Camera or another scanner.
+The compact instructions keep this full path visible in light and dark themes.
+The app pairs using the discovered pairing service, finds the phone's
 connection service and opens mirroring. The ADB connection remains available
 for commands such as `adb -s <serial> logcat` and `adb -s <serial> shell`.
 Use **Use pairing code** for code-based pairing or manual address entry when
 automatic discovery is unavailable. QR pairing requires mDNS and network access
 between the phone and Mac; a QR code expires after two minutes and can be
-replaced with **New QR code**.
+replaced with **Refresh QR code**. Waiting for a phone does not produce an error
+merely because several successful discovery polls have returned no services.
+
+The device-details popover groups transport and status beneath the device name,
+then shows serial number, IP and Android/API information in compact rows. Serial
+and IP copy controls copy the full value; the IP control becomes available after
+an asynchronous USB device address lookup succeeds.
 
 The compact pairing-code field accepts exactly six ASCII digits and preserves
 leading zeros. After pairing, ScrcpyX discovers the separate connection service

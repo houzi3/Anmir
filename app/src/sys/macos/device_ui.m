@@ -56,6 +56,39 @@ NSImage *SCDeviceWiFiSymbol(void) {
     return image;
 }
 
+NSImage *SCDeviceListSymbol(void) {
+    NSImage *frame = SCDeviceSymbol(@"rectangle.portrait");
+    NSImage *home = SCDeviceSymbol(@"minus");
+    // Compose stock SF outlines at phone proportions. The iPhone glyph has a
+    // shaded screen and the stock overlapping rectangles are too wide for the
+    // approved design. A native short bar identifies the front phone.
+    NSImage *image = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect bounds) {
+        (void)bounds;
+        [frame drawInRect:NSMakeRect(1, 4, 10, 12)];
+        NSRectFillUsingOperation(NSMakeRect(5, 0, 10, 12), NSCompositingOperationClear);
+        [frame drawInRect:NSMakeRect(5, 0, 10, 12)];
+        [home drawInRect:NSMakeRect(8, 1.6, 4.5, 2)];
+        return YES;
+    }];
+    image.template = YES;
+    SCBind(image, @"accessibilityDescription", @"Open device list");
+    return image;
+}
+
+NSView *SCDeviceToolbarGroup(NSArray<NSButton *> *buttons) {
+    CGFloat width = buttons.count ? buttons.count * 30 - 2 : 0;
+    NSView *group = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, width, 28)];
+    for (NSUInteger i = 0; i < buttons.count; ++i) {
+        NSButton *button = buttons[i];
+        button.frame = NSMakeRect(i * 30, 0, 28, 28);
+        if ([button isKindOfClass:SCDeviceIconButton.class]) {
+            ((SCDeviceIconButton *)button).glyphSize = 16;
+        }
+        [group addSubview:button];
+    }
+    return group;
+}
+
 NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spacing) {
     NSStackView *stack = [NSStackView stackViewWithViews:views];
     stack.orientation = vertical ? NSUserInterfaceLayoutOrientationVertical : NSUserInterfaceLayoutOrientationHorizontal;
@@ -121,7 +154,8 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 @end
 @implementation SCDeviceIconCell
 - (NSRect)imageRectForBounds:(NSRect)bounds {
-    CGFloat size = self.image.size.width <= 16 ? self.image.size.width : 14;
+    SCDeviceIconButton *button = (SCDeviceIconButton *)self.controlView;
+    CGFloat size = button ? button.glyphSize : 14;
     return NSMakeRect(NSMidX(bounds) - size / 2, NSMidY(bounds) - size / 2, size, size);
 }
 @end
@@ -136,12 +170,17 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 - (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        _glyphSize = 14;
         self.bordered = NO;
         self.imagePosition = NSImageOnly;
         self.contentTintColor = NSColor.labelColor;
         self.focusRingType = NSFocusRingTypeNone;
     }
     return self;
+}
+- (void)setGlyphSize:(CGFloat)glyphSize {
+    _glyphSize = glyphSize > 0 ? glyphSize : 14;
+    self.needsDisplay = YES;
 }
 - (BOOL)becomeFirstResponder {
     BOOL accepted = [super becomeFirstResponder];

@@ -153,6 +153,11 @@ minimum-version declaration.
 `test_device_connection` uses its own executable as an ADB fixture to cover stage
 ordering, different pairing/connection ports, changed IPs, wrong GUIDs, fallback,
 connection/state/identity failures, cancellation and the actual service deadline.
+`test_device_wifi` exercises the production QR controller with its own ADB
+fixture: six language/appearance combinations decode the rendered QR pixels;
+refresh invalidates the old service, idle polling preserves the guidance,
+and pairing follows the matching GUID to the connection service before calling
+the mirror action. It also covers failure, expiry and in-flight cancellation.
 `test_mirror_session` covers signed copies, unchanged host bytes, asynchronous
 completion and cancellation. `test_theme_chooser` sends native mouse and key
 events without displaying a desktop window. Existing parser, identity, input,

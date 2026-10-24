@@ -412,6 +412,15 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
             objc_args: ['-UNDEBUG'])
         test('test_device_pairing', pairing_test, timeout: 20)
+        wifi_test = executable('test_device_wifi',
+            ['tests/test_device_wifi.m', 'src/sys/macos/device_wifi.m',
+             'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m',
+             'src/sys/macos/device_connection.m', 'src/sys/macos/device_pairing.m',
+             'src/sys/macos/device_support.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
+            objc_args: ['-UNDEBUG'])
+        test('test_device_wifi', wifi_test, args: [meson.current_source_dir() / 'data/locales'], timeout: 25)
         connection_test = executable('test_device_connection',
             ['tests/test_device_connection.m', 'src/sys/macos/device_connection.m',
              'src/sys/macos/device_pairing.m', 'src/sys/macos/device_support.m'],
