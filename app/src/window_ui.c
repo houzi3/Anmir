@@ -17,6 +17,13 @@ struct sc_window_ui_data {
     struct sc_window_ui_menu menu;
 };
 
+#ifndef __APPLE__
+bool
+sc_window_ui_has_bundle_icon(void) {
+    return false;
+}
+#endif
+
 static void
 sc_window_ui_fill_rounded_rect(SDL_Renderer *renderer, SDL_FRect rect,
                                float radius) {

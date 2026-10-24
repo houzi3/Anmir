@@ -51,6 +51,7 @@ struct sc_screen {
         uint8_t g;
         uint8_t b;
     } bg;
+    bool theme_background;
 
     struct sc_texture tex;
     struct sc_input_manager im;
@@ -142,6 +143,7 @@ struct sc_screen_params {
     uint16_t window_height;
 
     uint32_t background_color;
+    bool theme_background;
 
     bool window_aspect_ratio_lock;
     bool window_borderless;

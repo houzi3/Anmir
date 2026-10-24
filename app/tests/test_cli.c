@@ -151,7 +151,17 @@ static void test_parse_shortcut_mods(void) {
     assert(!ok);
 }
 
+static void test_explicit_background_color(void) {
+    struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
+    assert(!args.opts.background_color_explicit);
+    char *argv[] = {"scrcpy", "--background-color=000000"};
+    assert(scrcpy_parse_args(&args, ARRAY_LEN(argv), argv));
+    assert(args.opts.background_color == 0);
+    assert(args.opts.background_color_explicit);
+}
+
 int main(int argc, char *argv[]) {
+    test_explicit_background_color();
     (void) argc;
     (void) argv;
 

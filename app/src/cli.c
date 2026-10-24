@@ -2946,6 +2946,7 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                 if (!parse_hex_color(optarg, &opts->background_color)) {
                     return false;
                 }
+                opts->background_color_explicit = true;
                 break;
             case OPT_RENDER_FIT:
                 if (!parse_render_fit(optarg, &opts->render_fit)) {

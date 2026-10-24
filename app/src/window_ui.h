@@ -14,6 +14,10 @@ struct sc_window_ui {
 void
 sc_window_ui_init(struct sc_window_ui *ui, SDL_Window *window);
 
+// Return true if the platform application bundle provides its own icon.
+bool
+sc_window_ui_has_bundle_icon(void);
+
 void
 sc_window_ui_set_device_title(struct sc_window_ui *ui, const char *primary,
                               const char *secondary);

@@ -31,20 +31,31 @@ struct sc_toolbar_item {
     bool separator_before;
 };
 
-static const struct sc_toolbar_color SC_TOOLBAR_BG = {28, 30, 31, 255};
-static const struct sc_toolbar_color SC_TOOLBAR_HOVER = {38, 40, 41, 255};
-static const struct sc_toolbar_color SC_TOOLBAR_PRESSED = {47, 49, 50, 255};
-static const struct sc_toolbar_color SC_TOOLBAR_RECORDING_BG = {
-    59, 29, 31, 255,
+struct sc_toolbar_palette {
+    struct sc_toolbar_color bg, hover, pressed, recording_bg;
+    struct sc_toolbar_color border, divider, icon, disabled;
 };
+
+static const struct sc_toolbar_palette SC_TOOLBAR_DARK = {
+    .bg = {28, 30, 31, 255}, .hover = {38, 40, 41, 255},
+    .pressed = {47, 49, 50, 255}, .recording_bg = {59, 29, 31, 255},
+    .border = {77, 80, 81, 255}, .divider = {244, 244, 242, 96},
+    .icon = {244, 244, 242, 255}, .disabled = {139, 141, 141, 190},
+};
+static const struct sc_toolbar_palette SC_TOOLBAR_LIGHT = {
+    .bg = {250, 250, 252, 255}, .hover = {235, 236, 239, 255},
+    .pressed = {219, 222, 227, 255}, .recording_bg = {255, 229, 231, 255},
+    .border = {205, 207, 213, 255}, .divider = {50, 53, 59, 48},
+    .icon = {45, 48, 55, 255}, .disabled = {135, 139, 147, 190},
+};
+
+static const struct sc_toolbar_palette *
+sc_toolbar_get_palette(const struct sc_toolbar *toolbar) {
+    return toolbar->light_theme ? &SC_TOOLBAR_LIGHT : &SC_TOOLBAR_DARK;
+}
+
 static const struct sc_toolbar_color SC_TOOLBAR_RECORDING_RED = {
     230, 67, 72, 255,
-};
-static const struct sc_toolbar_color SC_TOOLBAR_BORDER = {77, 80, 81, 255};
-static const struct sc_toolbar_color SC_TOOLBAR_DIVIDER = {244, 244, 242, 96};
-static const struct sc_toolbar_color SC_TOOLBAR_ICON = {244, 244, 242, 255};
-static const struct sc_toolbar_color SC_TOOLBAR_ICON_DISABLED = {
-    139, 141, 141, 190,
 };
 
 static const struct sc_toolbar_item SC_TOOLBAR_ITEMS[] = {
@@ -172,6 +183,7 @@ void
 sc_toolbar_init(struct sc_toolbar *toolbar, bool enabled,
                 bool initially_visible) {
     toolbar->enabled = enabled;
+    toolbar->light_theme = false;
     toolbar->user_visible = enabled && initially_visible;
     toolbar->window = NULL;
     toolbar->renderer = NULL;
@@ -438,7 +450,8 @@ composite_color(float *r, float *g, float *b, float *a,
 }
 
 static SDL_Texture *
-create_panel_texture(SDL_Renderer *renderer, float scale) {
+create_panel_texture(SDL_Renderer *renderer, float scale,
+                     const struct sc_toolbar_palette *palette) {
     int width = (int) lroundf(SC_TOOLBAR_WINDOW_WIDTH * scale);
     int height = (int) lroundf(SC_TOOLBAR_WINDOW_HEIGHT * scale);
     SDL_Surface *surface = SDL_CreateSurface(width, height,
@@ -490,12 +503,12 @@ create_panel_texture(SDL_Renderer *renderer, float scale) {
 
             float outer_coverage = coverage(rounded_rect_distance(
                 px, py, &outer, outer_radius));
-            composite_color(&r, &g, &b, &a, SC_TOOLBAR_BORDER,
+            composite_color(&r, &g, &b, &a, palette->border,
                             outer_coverage);
 
             float inner_coverage = coverage(rounded_rect_distance(
                 px, py, &inner, inner_radius));
-            composite_color(&r, &g, &b, &a, SC_TOOLBAR_BG,
+            composite_color(&r, &g, &b, &a, palette->bg,
                             inner_coverage);
 
             row[x] = SDL_MapRGBA(details, NULL,
@@ -592,13 +605,14 @@ fill_triangle(SDL_Renderer *renderer, SDL_FPoint a, SDL_FPoint b,
 static struct sc_toolbar_color
 get_segment_color(const struct sc_toolbar *toolbar,
                   enum sc_toolbar_action action) {
+    const struct sc_toolbar_palette *palette = sc_toolbar_get_palette(toolbar);
     if (toolbar->pressed == action) {
-        return SC_TOOLBAR_PRESSED;
+        return palette->pressed;
     }
     if (toolbar->hovered == action) {
-        return SC_TOOLBAR_HOVER;
+        return palette->hover;
     }
-    return SC_TOOLBAR_BG;
+    return palette->bg;
 }
 
 static void
@@ -750,12 +764,12 @@ render_icon_texture(struct sc_toolbar *toolbar,
 static void
 render_icon_textures(struct sc_toolbar *toolbar, float scale,
                      const struct sc_toolbar_view_state *state) {
+    const struct sc_toolbar_palette *palette = sc_toolbar_get_palette(toolbar);
     for (enum sc_toolbar_action action = SC_TOOLBAR_ACTION_HOME;
             action < SC_TOOLBAR_ACTION_COUNT; ++action) {
         bool enabled = action_enabled(action, state);
         struct sc_toolbar_color icon = enabled
-                                     ? SC_TOOLBAR_ICON
-                                     : SC_TOOLBAR_ICON_DISABLED;
+                                     ? palette->icon : palette->disabled;
         if (toolbar->icons[action]
                 && !render_icon_texture(toolbar, action, scale, icon)) {
             LOGW("Could not render floating toolbar icon: %s",
@@ -778,6 +792,9 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
     if (!toolbar->renderer || !toolbar->window) {
         return;
     }
+    bool theme_changed = toolbar->light_theme != state->light_theme;
+    toolbar->light_theme = state->light_theme;
+    const struct sc_toolbar_palette *palette = sc_toolbar_get_palette(toolbar);
 
     SDL_Renderer *renderer = toolbar->renderer;
     float scale = SDL_GetWindowPixelDensity(toolbar->window);
@@ -790,7 +807,7 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
     int output_height;
     bool has_output_size =
         SDL_GetRenderOutputSize(renderer, &output_width, &output_height);
-    bool cache_valid = has_output_size && toolbar->render_cache
+    bool cache_valid = !theme_changed && has_output_size && toolbar->render_cache
                     && toolbar->render_cache_width == output_width
                     && toolbar->render_cache_height == output_height
                     && toolbar->render_cache_navigation_enabled
@@ -845,7 +862,7 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    SDL_Texture *panel_texture = create_panel_texture(renderer, draw_scale);
+    SDL_Texture *panel_texture = create_panel_texture(renderer, draw_scale, palette);
     if (panel_texture) {
         SDL_RenderTexture(renderer, panel_texture, NULL, NULL);
         SDL_DestroyTexture(panel_texture);
@@ -859,7 +876,7 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
                    || toolbar->pressed == action;
         if (active) {
             const SDL_FRect *button = &toolbar->buttons[action];
-            set_color(renderer, recording ? SC_TOOLBAR_RECORDING_BG
+            set_color(renderer, recording ? palette->recording_bg
                                           : get_segment_color(toolbar,
                                                               action));
             fill_circle(renderer,
@@ -869,7 +886,7 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
         }
     }
 
-    set_color(renderer, SC_TOOLBAR_DIVIDER);
+    set_color(renderer, palette->divider);
     SDL_FRect divider = {
         .x = (toolbar->panel.x + 12.f) * draw_scale,
         .y = (toolbar->panel.y + 3 * SC_TOOLBAR_BUTTON_HEIGHT
@@ -886,8 +903,7 @@ sc_toolbar_render(struct sc_toolbar *toolbar,
         }
         bool enabled = action_enabled(action, state);
         struct sc_toolbar_color icon = enabled
-                                     ? SC_TOOLBAR_ICON
-                                     : SC_TOOLBAR_ICON_DISABLED;
+                                     ? palette->icon : palette->disabled;
         struct sc_toolbar_color segment =
             get_segment_color(toolbar, action);
         switch (action) {

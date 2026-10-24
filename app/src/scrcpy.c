@@ -25,6 +25,7 @@
 #include "mouse_sdk.h"
 #include "recording_manager.h"
 #include "screen.h"
+#include "theme.h"
 #include "sdl_hints.h"
 #include "server.h"
 #include "uhid/gamepad_uhid.h"
@@ -48,6 +49,9 @@
 # include "v4l2_sink.h"
 #endif
 #include "video_regulator.h"
+#ifdef __APPLE__
+# include "device_picker.h"
+#endif
 
 struct scrcpy {
     struct sc_server server;
@@ -398,6 +402,7 @@ scrcpy(struct scrcpy_options *options) {
     bool timeout_started = false;
     bool disconnected = false;
     char *device_window_title = NULL;
+    char *device_window_name = NULL;
     char *device_window_subtitle = NULL;
     struct sc_device_info device_info;
     sc_device_info_init(&device_info);
@@ -485,6 +490,19 @@ scrcpy(struct scrcpy_options *options) {
     // SDL
     sc_sdl_set_hints(options->render_driver, options->disable_screensaver);
 
+#ifdef __APPLE__
+    if (options->window && !options->list && !sc_theme_initialize()) {
+        goto end;
+    }
+    enum sc_device_picker_result picker_result =
+        sc_device_picker_run(options, &s->server.intr);
+    if (picker_result != SC_DEVICE_PICKER_CONTINUE) {
+        ret = picker_result == SC_DEVICE_PICKER_FINISHED
+            ? SCRCPY_EXIT_SUCCESS : SCRCPY_EXIT_FAILURE;
+        goto end;
+    }
+#endif
+
     if (!sc_server_start(&s->server)) {
         goto end;
     }
@@ -559,9 +577,16 @@ scrcpy(struct scrcpy_options *options) {
 
     const char *serial = s->server.serial;
     assert(serial);
+#ifdef __APPLE__
+    sc_device_picker_set_current_device(serial);
+#endif
 
-    if (options->window && options->toolbar) {
+    if (options->window) {
         sc_device_info_load(&device_info, &s->server.intr, serial);
+        if (!options->window_title) {
+            device_window_name = sc_device_info_build_name(&device_info, base_window_title);
+            if (device_window_name) { base_window_title = device_window_name; }
+        }
         device_window_title =
             sc_device_info_build_window_title(&device_info,
                                               base_window_title);
@@ -841,6 +866,7 @@ aoa_complete:
             .window_width = options->window_width,
             .window_height = options->window_height,
             .background_color = options->background_color,
+            .theme_background = !options->background_color_explicit,
             .window_aspect_ratio_lock = options->window_aspect_ratio_lock,
             .window_borderless = options->window_borderless,
             .render_fit = options->render_fit,
@@ -1096,6 +1122,7 @@ end:
     sc_server_destroy(&s->server);
     sc_device_info_destroy(&device_info);
     free(device_window_title);
+    free(device_window_name);
     free(device_window_subtitle);
 
     return ret;

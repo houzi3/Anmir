@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "toolbar_preferences.h"
+#include "theme.h"
+#include "events.h"
 #include "util/log.h"
 
 static bool
@@ -19,6 +21,7 @@ sc_emulator_ui_is_visible(const struct sc_emulator_ui *ui) {
 
 static void
 sc_emulator_ui_render(struct sc_emulator_ui *ui) {
+    ui->state.light_theme = sc_theme_is_light();
     sc_toolbar_render(&ui->toolbar, &ui->state);
 }
 
@@ -66,13 +69,13 @@ sc_emulator_ui_init(struct sc_emulator_ui *ui, SDL_Window *parent,
         && sc_toolbar_preferences_load_visible();
     sc_toolbar_init(&ui->toolbar, enabled, initially_visible);
     sc_window_ui_init(&ui->window_ui, parent);
+    sc_window_ui_set_device_title(&ui->window_ui, title_primary,
+                                  title_secondary);
 
     if (!enabled) {
         return;
     }
 
-    sc_window_ui_set_device_title(&ui->window_ui, title_primary,
-                                  title_secondary);
     if (!sc_toolbar_create(&ui->toolbar, parent, always_on_top)) {
         LOGW("Floating toolbar unavailable, continuing without it");
         ui->toolbar.enabled = false;

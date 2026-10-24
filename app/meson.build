@@ -78,14 +78,16 @@ src = [
 if host_machine.system() == 'darwin'
     src += [
         'src/sys/macos/clipboard_writer.m',
-        'src/sys/macos/device_support.m',
+        'src/sys/macos/device_picker.m',
         'src/sys/macos/device_pairing.m',
         'src/sys/macos/device_connection.m',
+        'src/sys/macos/device_support.m',
         'src/sys/macos/device_ui.m',
+        'src/sys/macos/device_wifi.m',
+        'src/sys/macos/file.m',
+        'src/sys/macos/mirror_session.m',
         'src/sys/macos/theme.m',
         'src/sys/macos/theme_chooser.m',
-        'src/sys/macos/mirror_session.m',
-        'src/sys/macos/file.m',
         'src/sys/macos/window_ui.m',
     ]
 else
@@ -357,25 +359,6 @@ if get_option('buildtype') == 'debug'
         test(t[0], exe)
     endforeach
     if host_machine.system() == 'darwin'
-        mirror_test = executable('test_mirror_session',
-            ['tests/test_mirror_session.m', 'src/sys/macos/mirror_session.m'],
-            include_directories: src_dir,
-            dependencies: dependency('appleframeworks', modules: ['AppKit']),
-            objc_args: ['-UNDEBUG'])
-        test('test_mirror_session', mirror_test, timeout: 20)
-        device_ui_test = executable('test_device_ui',
-            ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m'],
-            include_directories: src_dir,
-            dependencies: dependency('appleframeworks', modules: ['AppKit']),
-            objc_args: ['-UNDEBUG'])
-        test('test_device_ui', device_ui_test, timeout: 20)
-        theme_chooser_test = executable('test_theme_chooser',
-            ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
-             'src/sys/macos/device_ui.m'],
-            include_directories: src_dir,
-            dependencies: dependency('appleframeworks', modules: ['AppKit']),
-            objc_args: ['-UNDEBUG'])
-        test('test_theme_chooser', theme_chooser_test, timeout: 20)
         device_test = executable('test_device_support',
             ['tests/test_device_support.m', 'src/sys/macos/device_support.m'],
             include_directories: src_dir,
@@ -396,6 +379,25 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
             objc_args: ['-UNDEBUG'])
         test('test_device_connection', connection_test, timeout: 30)
+        mirror_test = executable('test_mirror_session',
+            ['tests/test_mirror_session.m', 'src/sys/macos/mirror_session.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_mirror_session', mirror_test, timeout: 20)
+        device_ui_test = executable('test_device_ui',
+            ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_device_ui', device_ui_test, timeout: 20)
+        theme_chooser_test = executable('test_theme_chooser',
+            ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
+             'src/sys/macos/device_ui.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_theme_chooser', theme_chooser_test, timeout: 20)
     endif
 endif
 

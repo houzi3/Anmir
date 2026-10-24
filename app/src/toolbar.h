@@ -32,6 +32,7 @@ enum sc_toolbar_action {
 
 struct sc_toolbar {
     bool enabled;
+    bool light_theme;
     bool user_visible;
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -53,6 +54,7 @@ struct sc_toolbar {
 };
 
 struct sc_toolbar_view_state {
+    bool light_theme;
     bool navigation_enabled;
     bool screenshot_enabled;
     bool record_enabled;

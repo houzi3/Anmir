@@ -1,4 +1,5 @@
 #include "screen.h"
+#include "theme.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -315,6 +316,9 @@ sc_screen_render(struct sc_screen *screen, bool update_content_rect) {
 
     SDL_Renderer *renderer = screen->renderer;
     struct sc_screen_bg_color bg = screen->bg;
+    if (screen->theme_background && sc_theme_is_light()) {
+        bg = (struct sc_screen_bg_color) {245, 245, 247};
+    }
     SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 0);
     sc_sdl_render_clear(renderer);
 
@@ -545,6 +549,7 @@ sc_screen_init(struct sc_screen *screen,
     screen->flex_display = params->flex_display;
 
     screen->bg.r = (params->background_color >> 16) & 0xFF;
+    screen->theme_background = params->theme_background;
     screen->bg.g = (params->background_color >> 8) & 0xFF;
     screen->bg.b = params->background_color & 0xFF;
 
@@ -677,7 +682,8 @@ sc_screen_init(struct sc_screen *screen,
 
     SDL_Surface *icon = sc_icon_load(SC_ICON_FILENAME_SCRCPY);
     if (icon) {
-        if (!SDL_SetWindowIcon(screen->window, icon)) {
+        if (!sc_window_ui_has_bundle_icon()
+                && !SDL_SetWindowIcon(screen->window, icon)) {
             LOGW("Could not set window icon: %s", SDL_GetError());
         }
 
@@ -1359,6 +1365,13 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
     }
 
     switch (event->type) {
+        case SC_EVENT_THEME_CHANGED:
+            if (screen->window_shown) {
+                sc_screen_render(screen, false);
+            } else {
+                sc_screen_update_emulator_ui(screen);
+            }
+            return;
         case SC_EVENT_RECORDING_STATE_CHANGED:
             if (event->user.data1 == screen->recording_manager) {
                 sc_screen_update_emulator_ui(screen);
