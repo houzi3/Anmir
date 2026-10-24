@@ -1,10 +1,12 @@
 #include "device_picker.h"
 
 #import <AppKit/AppKit.h>
+#import "localization.h"
+#import "settings_ui.h"
+#import "device_picker_ui.h"
 #import "device_support.h"
 #import "device_ui.h"
 #import "device_wifi.h"
-#import "theme_ui.h"
 #import "mirror_session.h"
 
 #include <stdlib.h>
@@ -65,11 +67,24 @@ static NSString *sc_device_picker_string(const char *value) {
 }
 
 @interface SCDeviceEntry : NSObject
-@property(nonatomic, copy) NSString *serial, *name, *transport, *state, *system;
+@property(nonatomic, copy) NSString *serial, *name, *state, *system;
+@property(nonatomic) enum sc_adb_device_type transportType;
+@property(nonatomic, readonly) NSString *transport;
 @property(nonatomic, readonly) BOOL ready;
+@property(nonatomic) BOOL fallbackName;
+@property(nonatomic, readonly) NSString *displayName;
 @end
 @implementation SCDeviceEntry
+- (NSString *)displayName { return self.fallbackName ? SCLocalized(@"Android device") : self.name; }
 - (BOOL)ready { return [self.state isEqualToString:@"device"]; }
+- (NSString *)transport {
+    switch (self.transportType) {
+        case SC_ADB_DEVICE_TYPE_USB: return @"USB";
+        case SC_ADB_DEVICE_TYPE_TCPIP: return @"Wi-Fi";
+        case SC_ADB_DEVICE_TYPE_EMULATOR: return SCLocalized(@"Emulator");
+    }
+    return SCLocalized(@"Unknown");
+}
 @end
 
 static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_adb_devices *devices) {
@@ -79,11 +94,8 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         SCDeviceEntry *entry = [[SCDeviceEntry alloc] init];
         entry.serial = sc_device_picker_string(device->serial);
         entry.state = sc_device_picker_string(device->state);
-        switch (sc_adb_device_get_type(device->serial)) {
-            case SC_ADB_DEVICE_TYPE_USB: entry.transport = @"USB"; break;
-            case SC_ADB_DEVICE_TYPE_TCPIP: entry.transport = @"Wi-Fi"; break;
-            case SC_ADB_DEVICE_TYPE_EMULATOR: entry.transport = @"Emulator"; break;
-        }
+        entry.transportType = sc_adb_device_get_type(device->serial);
+        entry.fallbackName = !device->model;
         entry.name = device->model ? [sc_device_picker_string(device->model)
             stringByReplacingOccurrencesOfString:@"_" withString:@" "] : @"Android device";
         entry.system = @"—";
@@ -145,8 +157,21 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         __weak SCDeviceManager *weakSelf = self;
         _watcher.changed = ^{ [weakSelf scheduleRefresh]; };
         _watcher.availabilityChanged = ^{ [weakSelf updateFooter]; };
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(languageChanged:)
+            name:SCLanguageChangedNotification object:nil];
     }
     return self;
+}
+
+- (void)languageChanged:(NSNotification *)notification {
+    (void)notification;
+    // Localized bindings update static controls in place. Reload presentation
+    // rows only; never restart discovery, metadata queries or mirror sessions.
+    NSPoint origin = self.scroll.contentView.bounds.origin;
+    [self updateSummary:self.listed];
+    [self.table.headerView setNeedsDisplay:YES];
+    [self.scroll.contentView scrollToPoint:origin];
+    [self.scroll reflectScrolledClipView:self.scroll.contentView];
 }
 
 - (NSArray<NSString *> *)aliasesForSerial:(NSString *)serial {
@@ -200,7 +225,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     for (SCDeviceEntry *entry in self.transports) {
         [serials addObject:entry.serial];
         entries[entry.serial] = entry;
-        if (![entry.transport isEqualToString:@"Emulator"]) {
+        if (entry.transportType != SC_ADB_DEVICE_TYPE_EMULATOR) {
             NSString *identity = SCDevicePhysicalIdentity(self.metadata[entry.serial]);
             if (identity) { identities[entry.serial] = identity; }
         }
@@ -217,7 +242,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         if (!selected) {
             for (NSString *serial in group) {
                 SCDeviceEntry *entry = entries[serial];
-                if (entry.ready && (!selected || [entry.transport isEqualToString:@"USB"])) {
+                if (entry.ready && (!selected || entry.transportType == SC_ADB_DEVICE_TYPE_USB)) {
                     selected = entry;
                 }
             }
@@ -260,16 +285,16 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     if ([self isRunning:entry.serial]) { return @"Mirroring"; }
     if ([self isStarting:entry.serial]) { return @"Starting mirroring…"; }
     if ([entry.state isEqualToString:@"unauthorized"]) { return @"Allow debugging on your device."; }
-    if (!entry.ready) { return entry.state.capitalizedString; }
+    if (!entry.ready) { return [entry.state isEqualToString:@"offline"] ? @"Offline" : @"Unknown"; }
     return self.failures[entry.serial] ?: @"Connected";
 }
 
 - (void)updateFooter {
     self.scanButton.enabled = !self.snapshot.running;
-    self.footer.stringValue = self.listed ? @"Auto-detecting" : self.snapshot.running ? @"Finding devices…" : @"Discovery unavailable · Retrying";
+    SCBind(self.footer, @"stringValue", self.listed ? @"Auto-detecting" : self.snapshot.running ? @"Finding devices…" : @"Discovery unavailable · Retrying");
     self.footerDot.contentTintColor = self.listed ? NSColor.systemGreenColor : NSColor.systemOrangeColor;
-    self.footer.toolTip = self.watcher.connected ? @"Listening for device changes."
-        : @"Checking devices periodically while the ADB listener reconnects.";
+    SCBind(self.footer, @"toolTip", self.watcher.connected ? @"Listening for device changes."
+        : @"Checking devices periodically while the ADB listener reconnects.");
 }
 
 - (void)updateSummary:(BOOL)listed {
@@ -279,9 +304,9 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     self.scroll.hidden = empty;
     BOOL identifying = empty && self.queries.count;
     self.method.hidden = self.steps.hidden = identifying;
-    self.emptyTitle.stringValue = listed && !identifying ? @"Connect a device" : @"Looking for devices";
-    self.emptyHelp.stringValue = identifying ? @"Identifying connected devices…"
-        : listed ? @"USB or Wi-Fi" : @"Check ADB. Discovery will retry automatically.";
+    SCBind(self.emptyTitle, @"stringValue", listed && !identifying ? @"Connect a device" : @"Looking for devices");
+    SCBind(self.emptyHelp, @"stringValue", identifying ? @"Identifying connected devices…"
+        : listed ? @"USB or Wi-Fi" : @"Check ADB. Discovery will retry automatically.");
     [self updateFooter];
     [self.table reloadData];
 }
@@ -309,6 +334,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     struct sc_device_info info = {.manufacturer = (char *)brand.UTF8String, .model = (char *)model.UTF8String};
     char *name = sc_device_info_build_name(&info, entry.name.UTF8String);
     if (name) { model = [NSString stringWithUTF8String:name]; free(name); }
+    entry.fallbackName = entry.fallbackName && ![properties[@"ro.product.model"] length] && !brand.length;
     entry.name = model;
     NSString *version = properties[@"ro.build.version.release"];
     entry.system = version.length ? [@"Android " stringByAppendingString:version] : @"—";
@@ -429,7 +455,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         if (!selected) {
             selected = [[SCDeviceEntry alloc] init];
             selected.serial = serial;
-            selected.name = @"Android device";
+            selected.name = @"Android device"; selected.fallbackName = YES;
         }
         [self applyMetadata:selected];
         displayName = selected.name;
@@ -531,12 +557,15 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     NSString *serial = properties[@"ro.serialno"] ?: properties[@"ro.boot.serialno"] ?: entry.serial;
     NSString *host = SCDeviceHost(entry.serial);
     NSTextField *ip = [self detailValue:host ?: (entry.ready ? @"Checking…" : @"Unavailable")];
-    NSStackView *stack = SCDeviceStack(@[SCDeviceLabel(entry.name, 14, NSFontWeightSemibold, NO)], YES, 16);
+    if (!host) { SCBind(ip, @"stringValue", entry.ready ? @"Checking…" : @"Unavailable"); }
+    NSStackView *stack = SCDeviceStack(@[entry.fallbackName ? SCDeviceLocalizedLabel(@"Android device", 14, NSFontWeightSemibold, NO) : SCDeviceLabel(entry.name, 14, NSFontWeightSemibold, NO)], YES, 16);
     NSArray *labels = @[@"Serial number", @"IP address", @"System", @"API level", @"Connection", @"Status"];
     NSArray *values = @[[self detailValue:serial], ip, [self detailValue:entry.system],
         [self detailValue:properties[@"ro.build.version.sdk"]], [self detailValue:entry.transport], [self detailValue:[self status:entry]]];
+    SCBind(values[4], @"stringValue", entry.transportType == SC_ADB_DEVICE_TYPE_EMULATOR ? @"Emulator" : entry.transport);
+    SCBind(values[5], @"stringValue", [self status:entry]);
     for (NSUInteger i = 0; i < labels.count; ++i) {
-        NSTextField *label = SCDeviceLabel(labels[i], 12, NSFontWeightRegular, YES);
+        NSTextField *label = SCDeviceLocalizedLabel(labels[i], 12, NSFontWeightRegular, YES);
         [label.widthAnchor constraintEqualToConstant:94].active = YES;
         NSStackView *row = SCDeviceStack(@[label, values[i]], NO, 12);
         [stack addArrangedSubview:row];
@@ -559,7 +588,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
             completion:^(NSString *output, int status) {
             NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"inet ([0-9.]+)/" options:0 error:nil];
             NSTextCheckingResult *match = status ? nil : [regex firstMatchInString:output options:0 range:NSMakeRange(0, output.length)];
-            weakIP.stringValue = match ? [output substringWithRange:[match rangeAtIndex:1]] : @"Unavailable";
+            SCBind(weakIP, @"stringValue", match ? [output substringWithRange:[match rangeAtIndex:1]] : @"Unavailable");
         }];
     }
 }
@@ -580,8 +609,8 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         button.enabled = !starting && (entry.ready || running);
         button.identifier = entry.serial;
         button.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
-        button.toolTip = [self status:entry];
-        button.accessibilityLabel = [NSString stringWithFormat:@"%@ %@", action, entry.name];
+        SCBind(button, @"toolTip", [self status:entry]);
+        SCBindFormat(button, @"accessibilityLabel", [action stringByAppendingString:@" %@"], @[entry.displayName]);
         button.translatesAutoresizingMaskIntoConstraints = NO;
         if (running) {
             NSImage *dot = [NSImage imageWithSize:NSMakeSize(8, 8) flipped:NO drawingHandler:^BOOL(NSRect rect) {
@@ -593,8 +622,8 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         info.bordered = NO;
         info.contentTintColor = NSColor.secondaryLabelColor;
         info.identifier = entry.serial;
-        info.toolTip = @"Device details";
-        info.accessibilityLabel = [@"Details for " stringByAppendingString:entry.name];
+        SCBind(info, @"toolTip", @"Device details");
+        SCBindFormat(info, @"accessibilityLabel", @"Details for %@", @[entry.displayName]);
         info.translatesAutoresizingMaskIntoConstraints = NO;
         [cell addSubview:button]; [cell addSubview:info];
         [NSLayoutConstraint activateConstraints:@[
@@ -607,7 +636,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         ]];
     } else {
         BOOL device = [column.identifier isEqualToString:@"device"];
-        NSTextField *label = SCDeviceLabel(device ? entry.name : [column.identifier isEqualToString:@"system"] ? entry.system : entry.transport,
+        NSTextField *label = SCDeviceLabel(device ? entry.displayName : [column.identifier isEqualToString:@"system"] ? entry.system : entry.transport,
             device ? 13 : 12, device ? NSFontWeightMedium : NSFontWeightRegular, !device);
         label.toolTip = label.stringValue;
         [cell addSubview:label];
@@ -656,12 +685,12 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     } else {
         NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 90, 28)];
         self.scanButton = [SCDeviceIconButton buttonWithImage:SCDeviceSymbol(@"arrow.clockwise") target:self action:@selector(refresh:)];
-        self.scanButton.accessibilityLabel = @"Scan devices";
-        self.scanButton.toolTip = @"Device not showing up? Scan again.";
+        SCBind(self.scanButton, @"accessibilityLabel", @"Scan devices");
+        SCBind(self.scanButton, @"toolTip", @"Device not showing up? Scan again.");
         NSButton *wifi = [SCDeviceIconButton buttonWithImage:SCDeviceWiFiSymbol() target:self action:@selector(openWiFi:)];
-        wifi.accessibilityLabel = @"Connect via Wi-Fi";
-        wifi.toolTip = @"Connect via Wi-Fi";
-        NSArray<NSButton *> *buttons = @[self.scanButton, wifi, SCThemeButton()];
+        SCBind(wifi, @"accessibilityLabel", @"Connect via Wi-Fi");
+        SCBind(wifi, @"toolTip", @"Connect via Wi-Fi");
+        NSArray<NSButton *> *buttons = @[self.scanButton, wifi, SCSettingsButton()];
         for (NSUInteger i = 0; i < buttons.count; ++i) {
             buttons[i].frame = NSMakeRect(i * 30, 0, 28, 28);
             [container addSubview:buttons[i]];
@@ -669,7 +698,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         item.view = container;
         item.bordered = NO;
         item.minSize = item.maxSize = NSMakeSize(90, 28);
-        item.label = @"Device actions";
+        SCBind(item, @"label", @"Device actions");
     }
     return item;
 }
@@ -688,16 +717,17 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         if (wifi && i == 2) {
             NSButton *link = [NSButton buttonWithTitle:@"Scan QR code →"
                 target:self action:@selector(openQRCode:)];
+            SCBind(link, @"title", @"Scan QR code →");
             link.bordered = NO;
             link.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
             link.contentTintColor = NSColor.linkColor;
-            link.toolTip = @"Open Wi-Fi pairing";
-            link.accessibilityLabel = @"Scan QR code to connect via Wi-Fi";
+            SCBind(link, @"toolTip", @"Open Wi-Fi pairing");
+            SCBind(link, @"accessibilityLabel", @"Scan QR code to connect via Wi-Fi");
             link.translatesAutoresizingMaskIntoConstraints = NO;
             [link.heightAnchor constraintEqualToConstant:28].active = YES;
             label = link;
         } else {
-            label = SCDeviceLabel(steps[i], 12, NSFontWeightRegular, NO);
+            label = SCDeviceLocalizedLabel(steps[i], 12, NSFontWeightRegular, NO);
         }
         [caption addSubview:label];
         [NSLayoutConstraint activateConstraints:@[
@@ -742,7 +772,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     NSArray *columns = @[@[@"device", @"Device", @268], @[@"system", @"System", @140], @[@"connection", @"Connection", @120], @[@"action", @"", @184]];
     for (NSArray *spec in columns) {
         NSTableColumn *column = [[NSTableColumn alloc] initWithIdentifier:spec[0]];
-        column.title = spec[1]; column.width = [spec[2] doubleValue];
+        SCBind(column, @"title", spec[1]); column.width = [spec[2] doubleValue];
         BOOL device = [spec[0] isEqualToString:@"device"];
         column.minWidth = device ? 200 : column.width;
         column.resizingMask = device ? NSTableColumnAutoresizingMask : NSTableColumnNoResizing;
@@ -767,13 +797,13 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     self.scroll.translatesAutoresizingMaskIntoConstraints = NO;
     [content addSubview:self.scroll];
 
-    self.emptyTitle = SCDeviceLabel(@"Connect a device", 20, NSFontWeightSemibold, NO);
-    self.emptyHelp = SCDeviceLabel(@"USB or Wi-Fi", 12, NSFontWeightRegular, YES);
+    self.emptyTitle = SCDeviceLocalizedLabel(@"Connect a device", 20, NSFontWeightSemibold, NO);
+    self.emptyHelp = SCDeviceLocalizedLabel(@"USB or Wi-Fi", 12, NSFontWeightRegular, YES);
     self.method = [NSSegmentedControl segmentedControlWithLabels:@[@"USB", @"Wi-Fi"] trackingMode:NSSegmentSwitchTrackingSelectOne target:self action:@selector(methodChanged:)];
     self.method.selectedSegment = 0;
     self.method.segmentStyle = NSSegmentStyleRounded;
     [self.method setWidth:108 forSegment:0]; [self.method setWidth:108 forSegment:1];
-    self.method.accessibilityLabel = @"Connection guide";
+    SCBind(self.method, @"accessibilityLabel", @"Connection guide");
     self.steps = SCDeviceStack(@[], NO, 16);
     [self methodChanged:nil];
     self.emptyView = SCDeviceStack(@[self.emptyTitle, self.emptyHelp, self.method, self.steps], YES, 12);
@@ -781,7 +811,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     [self.emptyView setCustomSpacing:22 afterView:self.emptyHelp];
     [self.emptyView setCustomSpacing:32 afterView:self.method];
     [content addSubview:self.emptyView];
-    self.footer = SCDeviceLabel(@"Auto-detecting", 11, NSFontWeightRegular, YES);
+    self.footer = SCDeviceLocalizedLabel(@"Auto-detecting", 11, NSFontWeightRegular, YES);
     self.footerDot = [NSImageView imageViewWithImage:SCDeviceSymbol(@"circle.fill")];
     self.footerDot.contentTintColor = NSColor.systemGreenColor;
     [self.footerDot.widthAnchor constraintEqualToConstant:8].active = YES;
@@ -808,6 +838,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 - (void)show {
     if (!self.window) { [self createWindow]; }
     BOOL wasVisible = self.window.visible;
+    if (self.window.miniaturized) { [self.window deminiaturize:nil]; }
     [self.window makeKeyAndOrderFront:nil]; [NSApp activateIgnoringOtherApps:YES];
     if (!wasVisible) {
         ++self.generation;
@@ -866,11 +897,23 @@ sc_device_picker_get_manager(void) {
 @end
 
 @implementation SCDeviceMenu
+- (instancetype)init {
+    self = [super init];
+    if (self && [SCMirrorHostBundleIdentifier() isEqualToString:NSBundle.mainBundle.bundleIdentifier]) {
+        [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(showDevices:)
+            name:[SCMirrorHostBundleIdentifier() stringByAppendingString:@".ShowDevices"] object:nil
+            suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
+    }
+    return self;
+}
 - (void)showDevices:(id)sender {
     (void) sender;
     NSBundle *host = SCMirrorHostBundle();
     if (![host.bundleIdentifier isEqualToString:NSBundle.mainBundle.bundleIdentifier]) {
         for (NSRunningApplication *app in [NSRunningApplication runningApplicationsWithBundleIdentifier:host.bundleIdentifier]) {
+            [NSDistributedNotificationCenter.defaultCenter postNotificationName:
+                [SCMirrorHostBundleIdentifier() stringByAppendingString:@".ShowDevices"]
+                object:nil userInfo:nil deliverImmediately:YES];
             [app activateWithOptions:NSApplicationActivateAllWindows]; return;
         }
         NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
@@ -892,6 +935,21 @@ sc_device_picker_get_manager(void) {
 }
 @end
 
+static SCDeviceMenu *SCDeviceMenuController(void) {
+    static SCDeviceMenu *controller;
+    if (!controller) { controller = [[SCDeviceMenu alloc] init]; }
+    return controller;
+}
+
+NSButton *SCDevicePickerButton(void) {
+    NSButton *button = [SCDeviceIconButton buttonWithImage:SCDeviceSymbol(@"list.bullet.rectangle")
+        target:SCDeviceMenuController() action:@selector(showDevices:)];
+    button.identifier = @"ScrcpyX.Devices";
+    SCBind(button, @"toolTip", @"Open device list");
+    SCBind(button, @"accessibilityLabel", @"Open device list");
+    return button;
+}
+
 void
 sc_device_picker_install_menu(SDL_Window *window) {
     if (![[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundlePackageType"]
@@ -910,7 +968,8 @@ sc_device_picker_install_menu(SDL_Window *window) {
     if (![mainMenu itemWithTag:0x53434544]) {
         NSMenuItem *editItem = [[NSMenuItem alloc] initWithTitle:@"Edit" action:nil keyEquivalent:@""];
         editItem.tag = 0x53434544;
-        NSMenu *edit = [[NSMenu alloc] initWithTitle:@"Edit"];
+        SCBind(editItem, @"title", @"Edit");
+        NSMenu *edit = [[NSMenu alloc] initWithTitle:@"Edit"]; SCBind(edit, @"title", @"Edit");
         NSArray *commands = @[
             @[@"Undo", @"undo:", @"z"], @[@"Redo", @"redo:", @"Z"],
             @[@"Cut", @"cut:", @"x"], @[@"Copy", @"copy:", @"c"],
@@ -919,7 +978,8 @@ sc_device_picker_install_menu(SDL_Window *window) {
         for (NSUInteger i = 0; i < commands.count; ++i) {
             if (i == 2 || i == 5) { [edit addItem:NSMenuItem.separatorItem]; }
             NSArray *command = commands[i];
-            [edit addItemWithTitle:command[0] action:NSSelectorFromString(command[1]) keyEquivalent:command[2]];
+            NSMenuItem *commandItem = [edit addItemWithTitle:command[0] action:NSSelectorFromString(command[1]) keyEquivalent:command[2]];
+            SCBind(commandItem, @"title", command[0]);
         }
         editItem.submenu = edit;
         [mainMenu insertItem:editItem atIndex:1];
@@ -928,11 +988,11 @@ sc_device_picker_install_menu(SDL_Window *window) {
     if (!appMenu || [appMenu itemWithTag:0x53434456]) {
         return;
     }
-    static SCDeviceMenu *controller;
-    controller = [[SCDeviceMenu alloc] init];
+    SCDeviceMenu *controller = SCDeviceMenuController();
     NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Devices…"
         action:@selector(showDevices:) keyEquivalent:@"d"];
     item.target = controller;
+    SCBind(item, @"title", @"Devices…");
     item.tag = 0x53434456;
     item.keyEquivalentModifierMask =
         NSEventModifierFlagCommand | NSEventModifierFlagShift;
@@ -940,6 +1000,7 @@ sc_device_picker_install_menu(SDL_Window *window) {
     NSMenuItem *rescan = [[NSMenuItem alloc] initWithTitle:@"Rescan devices"
         action:@selector(rescan:) keyEquivalent:@"r"];
     rescan.target = controller;
+    SCBind(rescan, @"title", @"Rescan devices");
     [appMenu insertItem:rescan atIndex:MIN(3, appMenu.numberOfItems)];
     sc_theme_install_menu();
 }
@@ -967,6 +1028,21 @@ sc_device_picker_mirror_shown(void) {
         deliverImmediately:YES];
 }
 
+static void
+sc_device_picker_run_windows(void) {
+    // The manager may be created later by the Devices action while Settings
+    // is already open. Read the shared manager on every iteration.
+    while (deviceManager.window.visible || SCSettingsWindowVisible() || deviceManager.pendingPreparations) {
+        @autoreleasepool {
+            SDL_Event event;
+            if (SDL_WaitEventTimeout(&event, 100) && event.type == SDL_EVENT_QUIT) {
+                [deviceManager.window close];
+                for (NSWindow *window in NSApp.windows.copy) { [window close]; }
+            }
+        }
+    }
+}
+
 enum sc_device_picker_result
 sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr) {
     SCMirrorInstallCleanup();
@@ -977,6 +1053,16 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         return SC_DEVICE_PICKER_CONTINUE;
     }
     @autoreleasepool {
+        if (getenv("SCRCPYX_SHOW_SETTINGS")) {
+            if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+                LOGE("Could not initialize settings: %s", SDL_GetError());
+                return SC_DEVICE_PICKER_ERROR;
+            }
+            sc_device_picker_install_menu(NULL);
+            SCSettingsShow();
+            sc_device_picker_run_windows();
+            return SC_DEVICE_PICKER_FINISHED;
+        }
         struct sc_vec_adb_devices devices = SC_VECTOR_INITIALIZER;
         bool listed = sc_adb_start_server(intr, 0)
             && sc_adb_list_devices(intr, 0, &devices);
@@ -1023,14 +1109,7 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         // manager stays open; mirror processes run independently of this loop.
         // A close cancels preparation, but workers must still finish cleanup
         // before this process exits (including a codesign already in flight).
-        while (manager.window.visible || manager.pendingPreparations) {
-            @autoreleasepool {
-                SDL_Event event;
-                if (SDL_WaitEventTimeout(&event, 100) && event.type == SDL_EVENT_QUIT) {
-                    [manager.window close];
-                }
-            }
-        }
+        sc_device_picker_run_windows();
         return SC_DEVICE_PICKER_FINISHED;
     }
 }

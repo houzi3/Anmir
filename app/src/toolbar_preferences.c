@@ -4,6 +4,9 @@
 #include <SDL3/SDL.h>
 
 #include "util/log.h"
+#ifdef __APPLE__
+# include "sys/macos/settings.h"
+#endif
 
 #define SC_TOOLBAR_VISIBILITY_FILENAME "toolbar-visible.txt"
 
@@ -27,7 +30,7 @@ sc_toolbar_preferences_get_path(void) {
 }
 
 bool
-sc_toolbar_preferences_load_visible(void) {
+sc_toolbar_preferences_load_saved_visible(bool *visible) {
     char *path = sc_toolbar_preferences_get_path();
     if (!path) {
         return false;
@@ -41,16 +44,30 @@ sc_toolbar_preferences_load_visible(void) {
         return false;
     }
 
-    bool visible = size == 1 && data[0] == '1';
-    if (size != 1 || (data[0] != '0' && data[0] != '1')) {
+    bool valid = size == 1 && (data[0] == '0' || data[0] == '1');
+    if (!valid) {
         LOGW("Ignoring invalid toolbar visibility preference");
+    } else {
+        *visible = data[0] == '1';
     }
     SDL_free(data);
-    return visible;
+    return valid;
+}
+
+bool
+sc_toolbar_preferences_load_visible(void) {
+#ifdef __APPLE__
+    if (sc_settings_is_app()) { return sc_settings_toolbar_visible(); }
+#endif
+    bool visible;
+    return sc_toolbar_preferences_load_saved_visible(&visible) ? visible : true;
 }
 
 bool
 sc_toolbar_preferences_save_visible(bool visible) {
+#ifdef __APPLE__
+    if (sc_settings_is_app()) { return sc_settings_set_toolbar_visible(visible); }
+#endif
     char *path = sc_toolbar_preferences_get_path();
     if (!path) {
         return false;

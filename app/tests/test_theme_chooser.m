@@ -4,6 +4,7 @@
 
 static NSButton *findButton(NSView *view, NSString *title) {
     if ([view isKindOfClass:NSButton.class] &&
+            ![view isKindOfClass:NSPopUpButton.class] &&
             [((NSButton *)view).title isEqualToString:title]) {
         return (NSButton *)view;
     }
@@ -29,10 +30,10 @@ int main(void) {
         NSWindow *window = chooser.window;
         [window.contentView layoutSubtreeIfNeeded];
         assert(window.contentView.bounds.size.width == 400);
-        assert(window.frame.size.height == 260);
+        assert(window.frame.size.height == 326);
         assert(!window.contentView.hasAmbiguousLayout);
         NSArray<NSButton *> *rows = @[
-            findButton(window.contentView, @"System"),
+            findButton(window.contentView, @"Follow System"),
             findButton(window.contentView, @"Light"),
             findButton(window.contentView, @"Dark")];
         __block NSUInteger changes = 0;
@@ -59,7 +60,7 @@ int main(void) {
                 [NSApp postEvent:up atStart:YES];
                 [row mouseDown:down];
                 assert(changes == before + 1);
-                assert([chooser.selection isEqualToString:row.title.lowercaseString]);
+                assert([chooser.selection isEqualToString:row.identifier.pathExtension]);
                 for (NSUInteger j = 0; j < rows.count; ++j) {
                     assert(rows[j].state == (i == j ? NSControlStateValueOn : NSControlStateValueOff));
                 }
@@ -67,7 +68,7 @@ int main(void) {
         }
         for (NSUInteger i = 0; i < 6; ++i) {
             [(NSButton *)window.firstResponder keyDown:key(window, 125, 0)];
-            assert([chooser.selection isEqualToString:rows[i % 3].title.lowercaseString]);
+            assert([chooser.selection isEqualToString:rows[i % 3].identifier.pathExtension]);
         }
         NSResponder *selected = window.firstResponder;
         [window sendEvent:key(window, 48, 0)];

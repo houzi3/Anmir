@@ -1,5 +1,6 @@
 #import "theme_chooser.h"
 #import "device_ui.h"
+#import "localization.h"
 
 static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
     return [NSImage imageWithSize:source.size flipped:NO drawingHandler:^BOOL(NSRect bounds) {
@@ -168,7 +169,7 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
     self = [super initWithFrame:frame];
     if (self) {
         self.accessibilityRole = NSAccessibilityRadioGroupRole;
-        self.accessibilityLabel = @"Appearance";
+        SCBind(self, @"accessibilityLabel", @"Appearance");
     }
     return self;
 }
@@ -204,6 +205,7 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
 
 @interface SCThemeWindow : NSWindow
 @property(nonatomic, weak) NSButton *primaryButton;
+@property(nonatomic, weak) NSPopUpButton *languageControl;
 @end
 @implementation SCThemeWindow
 - (void)sendEvent:(NSEvent *)event {
@@ -211,8 +213,10 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
         !(event.modifierFlags & (NSEventModifierFlagCommand |
             NSEventModifierFlagControl | NSEventModifierFlagOption))) {
         // The radio group is one tab stop; arrows choose its active row.
-        NSResponder *next = self.firstResponder == self.primaryButton
-            ? self.initialFirstResponder : self.primaryButton;
+        NSArray *stops = @[self.languageControl, self.initialFirstResponder, self.primaryButton];
+        NSUInteger index = [stops indexOfObjectIdenticalTo:self.firstResponder];
+        NSInteger step = event.modifierFlags & NSEventModifierFlagShift ? 2 : 1;
+        NSResponder *next = stops[((index == NSNotFound ? 0 : index) + step) % 3];
         if (next && [self makeFirstResponder:next]) { return; }
     }
     [super sendEvent:event];
@@ -221,19 +225,22 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
 
 @interface SCThemeChooser () <NSWindowDelegate>
 @property(nonatomic, copy, readwrite) NSString *selection;
+@property(nonatomic, copy, readwrite) NSString *languageSelection;
 @property(nonatomic, strong) NSArray<SCThemeRow *> *rows;
 @property(nonatomic) BOOL accepted;
 @end
 
 @implementation SCThemeChooser
-- (instancetype)init {
+- (instancetype)init { return [self initWithLanguage:@"system"]; }
+- (instancetype)initWithLanguage:(NSString *)language {
     SCThemeWindow *window = [[SCThemeWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 228)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
     // Native titlebar heights vary by macOS version; keep the outer footprint.
-    [window setFrame:NSMakeRect(0, 0, 400, 260) display:NO];
+    [window setFrame:NSMakeRect(0, 0, 400, 326) display:NO];
     self = [super initWithWindow:window];
     if (self) {
         _selection = @"system";
+        _languageSelection = language;
         window.title = @"ScrcpyX";
         window.releasedWhenClosed = NO;
         window.delegate = self;
@@ -241,8 +248,8 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
         window.titlebarAppearsTransparent = YES;
         window.contentView = [[SCDeviceSurface alloc] initWithFrame:window.contentView.bounds];
         NSView *view = window.contentView;
-        NSTextField *heading = SCDeviceLabel(@"Choose a theme", 15, NSFontWeightSemibold, NO);
-        NSTextField *subtitle = SCDeviceLabel(@"Change anytime.", 11, NSFontWeightRegular, YES);
+        NSTextField *heading = SCDeviceLocalizedLabel(@"Choose a theme", 15, NSFontWeightSemibold, NO);
+        NSTextField *subtitle = SCDeviceLocalizedLabel(@"Change anytime.", 11, NSFontWeightRegular, YES);
         SCThemeOptions *options = [[SCThemeOptions alloc] init];
         options.translatesAutoresizingMaskIntoConstraints = NO;
         NSMutableArray *rows = [NSMutableArray array];
@@ -252,14 +259,15 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
             row.choice = choices[i];
             row.followsSystem = i == 0;
             row.dark = i == 2;
-            row.title = row.choice.capitalizedString;
-            row.accessibilityLabel = [row.title stringByAppendingString:@" theme"];
-            row.identifier = [@"Theme." stringByAppendingString:row.title];
+            NSString *title = @[@"Follow System", @"Light", @"Dark"][i];
+            SCBind(row, @"title", title);
+            SCBind(row, @"accessibilityLabel", title);
+            row.identifier = [@"Theme." stringByAppendingString:row.choice];
             row.state = i ? NSControlStateValueOff : NSControlStateValueOn;
             row.target = self;
             row.action = @selector(select:);
             row.translatesAutoresizingMaskIntoConstraints = NO;
-            row.toolTip = row.followsSystem ? @"Match macOS appearance" : row.title;
+            SCBind(row, @"toolTip", row.followsSystem ? @"Match macOS appearance" : title);
             [options addSubview:row];
             [NSLayoutConstraint activateConstraints:@[
                 [row.leadingAnchor constraintEqualToAnchor:options.leadingAnchor],
@@ -278,10 +286,26 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
         next.keyEquivalent = @"\r";
         next.translatesAutoresizingMaskIntoConstraints = NO;
         window.primaryButton = next;
-        for (NSView *item in @[heading, subtitle, options, next]) { [view addSubview:item]; }
+        NSTextField *languageTitle = SCDeviceLocalizedLabel(@"Display language", 12, NSFontWeightMedium, NO);
+        NSPopUpButton *languages = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+        languages.identifier = @"Onboarding.language";
+        [languages addItemsWithTitles:@[@"Follow System", @"简体中文", @"繁體中文", @"English"]];
+        SCBind(languages.itemArray.firstObject, @"title", @"Follow System");
+        SCBind(languages, @"accessibilityLabel", @"Display language");
+        NSUInteger languageIndex = [@[@"system", @"zh-Hans", @"zh-Hant", @"en"] indexOfObject:language];
+        [languages selectItemAtIndex:languageIndex == NSNotFound ? 0 : languageIndex];
+        languages.target = self; languages.action = @selector(selectLanguage:);
+        languages.translatesAutoresizingMaskIntoConstraints = NO;
+        window.languageControl = languages;
+        for (NSView *item in @[languageTitle, languages, heading, subtitle, options, next]) { [view addSubview:item]; }
         [NSLayoutConstraint activateConstraints:@[
             [heading.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:20],
-            [heading.topAnchor constraintEqualToAnchor:view.topAnchor constant:18],
+            [heading.topAnchor constraintEqualToAnchor:view.topAnchor constant:78],
+            [languageTitle.leadingAnchor constraintEqualToAnchor:heading.leadingAnchor],
+            [languages.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-20],
+            [languages.topAnchor constraintEqualToAnchor:view.topAnchor constant:18],
+            [languages.widthAnchor constraintEqualToConstant:190],
+            [languageTitle.centerYAnchor constraintEqualToAnchor:languages.centerYAnchor],
             [subtitle.leadingAnchor constraintEqualToAnchor:heading.leadingAnchor],
             [subtitle.topAnchor constraintEqualToAnchor:heading.bottomAnchor constant:4],
             [options.leadingAnchor constraintEqualToAnchor:heading.leadingAnchor],
@@ -304,6 +328,10 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
         row.needsDisplay = YES;
     }
     if (self.change) { self.change(self.selection); }
+}
+- (void)selectLanguage:(NSPopUpButton *)sender {
+    self.languageSelection = @[@"system", @"zh-Hans", @"zh-Hant", @"en"][sender.indexOfSelectedItem];
+    if (self.languageChanged) { self.languageChanged(self.languageSelection); }
 }
 - (void)accept:(id)sender { (void)sender; self.accepted = YES; [NSApp stopModalWithCode:NSModalResponseOK]; }
 - (void)windowWillClose:(NSNotification *)notification { (void)notification; if (!self.accepted) { [NSApp abortModal]; } }

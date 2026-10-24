@@ -1,4 +1,5 @@
 #include "recording_save.h"
+#include "localization.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -197,9 +198,10 @@ sc_recording_save_show_dialog(struct sc_recording_save *save) {
     }
     save->default_save_path = directory
                             ? sc_recording_build_name(directory) : NULL;
-    static const SDL_DialogFileFilter filters[] = {
+    static SDL_DialogFileFilter filters[] = {
         {"MP4 video", "mp4"},
     };
+    filters[0].name = sc_localize("MP4 video");
     SDL_ShowSaveFileDialog(sc_recording_save_dialog_callback, save,
                            save->dialog_window, filters, ARRAY_LEN(filters),
                            save->default_save_path);
@@ -209,14 +211,14 @@ static bool
 sc_recording_save_confirm_discard(struct sc_recording_save *save,
                                   const char *message) {
     const SDL_MessageBoxButtonData buttons[] = {
-        {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Return"},
-        {0, 1, "Discard"},
+        {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, sc_localize("Return")},
+        {0, 1, sc_localize("Discard")},
     };
     const SDL_MessageBoxData data = {
         .flags = SDL_MESSAGEBOX_WARNING,
         .window = save->dialog_window,
-        .title = "Discard recording?",
-        .message = message,
+        .title = sc_localize("Discard recording?"),
+        .message = sc_localize(message),
         .numbuttons = ARRAY_LEN(buttons),
         .buttons = buttons,
     };

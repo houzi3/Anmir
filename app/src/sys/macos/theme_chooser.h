@@ -5,6 +5,9 @@ NS_ASSUME_NONNULL_BEGIN
 // reads nor writes preferences and is independently testable without SDL.
 @interface SCThemeChooser : NSWindowController
 @property(nonatomic, copy, readonly) NSString *selection;
+@property(nonatomic, copy, readonly) NSString *languageSelection;
+@property(nonatomic, copy, nullable) void (^languageChanged)(NSString *choice);
+- (instancetype)initWithLanguage:(NSString *)language;
 @property(nonatomic, copy, nullable) void (^change)(NSString *choice);
 @end
 NS_ASSUME_NONNULL_END

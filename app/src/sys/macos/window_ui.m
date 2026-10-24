@@ -1,11 +1,13 @@
 #include "device_picker.h"
 
 #import <AppKit/AppKit.h>
+#import "localization.h"
+#import "settings_ui.h"
+#import "device_picker_ui.h"
 #import <objc/runtime.h>
 
 #include "window_ui.h"
 #include "theme.h"
-#import "theme_ui.h"
 #import "device_ui.h"
 #import "mirror_session.h"
 #include "events.h"
@@ -27,7 +29,7 @@
 @implementation SCScrcpyWindowUI
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
     (void)toolbar;
-    return @[NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Mirror.Theme"];
+    return @[NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Mirror.Devices", @"ScrcpyX.Mirror.Settings"];
 }
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {
     return [self toolbarDefaultItemIdentifiers:toolbar];
@@ -38,7 +40,8 @@
     (void)toolbar; (void)inserted;
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:identifier];
     NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 28, 28)];
-    NSButton *button = SCThemeButton();
+    BOOL devices = [identifier isEqualToString:@"ScrcpyX.Mirror.Devices"];
+    NSButton *button = devices ? SCDevicePickerButton() : SCSettingsButton();
     button.frame = NSMakeRect(0, 0, 28, 28);
     [container addSubview:button];
     item.view = container;
@@ -46,8 +49,8 @@
     item.bordered = NO;
     item.autovalidates = NO;
     item.enabled = YES;
-    item.label = button.accessibilityLabel;
-    item.toolTip = button.toolTip;
+    SCBind(item, @"label", devices ? @"Open device list" : @"Settings…");
+    SCBind(item, @"toolTip", devices ? @"Open device list" : @"Settings…");
     return item;
 }
 - (void)toggleToolbar:(id)sender {
@@ -155,7 +158,7 @@ sc_window_ui_get_or_create_title(NSWindow *window) {
         [ui.titleStack.leadingAnchor constraintGreaterThanOrEqualToAnchor:
             lastWindowButton.trailingAnchor constant:12],
         [ui.titleStack.trailingAnchor constraintLessThanOrEqualToAnchor:
-            titlebar.trailingAnchor constant:-48],
+            titlebar.trailingAnchor constant:sc_window_ui_is_app() ? -84 : -48],
     ]];
 
     window.titleVisibility = NSWindowTitleHidden;
@@ -184,7 +187,7 @@ sc_window_ui_init(struct sc_window_ui *ui, SDL_Window *window) {
         sc_window_ui_set_mirror_icon();
         NSWindow *native = sc_window_ui_get_native_window(ui);
         SCScrcpyWindowUI *controller = sc_window_ui_get_controller(native);
-        // Let AppKit size and align the traffic lights and theme control in a
+        // Let AppKit size and align the traffic lights and device/settings controls in a
         // roomier native titlebar rather than adding a second accessory row.
         controller.titleToolbar = [[NSToolbar alloc]
             initWithIdentifier:@"ScrcpyX.Mirror.Toolbar"];
@@ -240,6 +243,9 @@ sc_window_ui_create_toast_panel(NSString *message) {
     panel.collectionBehavior = NSWindowCollectionBehaviorTransient
                              | NSWindowCollectionBehaviorFullScreenAuxiliary;
 
+    NSDictionary *font = @{NSFontAttributeName:[NSFont systemFontOfSize:13 weight:NSFontWeightMedium]};
+    CGFloat width = MAX([message sizeWithAttributes:font].width, [SCLocalized(message) sizeWithAttributes:font].width);
+    [panel setContentSize:NSMakeSize(MAX(178, ceil(width) + 28), 38)];
     NSView *background =
         [[NSView alloc] initWithFrame:panel.contentView.bounds];
     background.wantsLayer = YES;
@@ -248,7 +254,7 @@ sc_window_ui_create_toast_panel(NSString *message) {
     background.layer.cornerRadius = 12;
     panel.contentView = background;
 
-    NSTextField *label = [NSTextField labelWithString:message];
+    NSTextField *label = SCDeviceLocalizedLabel(message, 13, NSFontWeightMedium, NO);
     label.translatesAutoresizingMaskIntoConstraints = NO;
     label.font = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
     label.textColor = sc_window_ui_is_app() ? NSColor.labelColor : NSColor.whiteColor;
@@ -323,8 +329,7 @@ sc_window_ui_get_or_create_view_menu(SCScrcpyWindowUI *ui) {
     }
 
     for (NSMenuItem *item in mainMenu.itemArray) {
-        if ([item.title isEqualToString:@"View"]
-                || [item.submenu.title isEqualToString:@"View"]) {
+        if (item.tag == 0x53435649) {
             ui.toolbarMenuContainer = item;
             return item.submenu;
         }
@@ -335,6 +340,8 @@ sc_window_ui_get_or_create_view_menu(SCScrcpyWindowUI *ui) {
                                                      action:nil
                                               keyEquivalent:@""];
     viewItem.submenu = viewMenu;
+    viewItem.tag = 0x53435649;
+    SCBind(viewItem, @"title", @"View"); SCBind(viewMenu, @"title", @"View");
 
     NSInteger insertionIndex = mainMenu.numberOfItems;
     if (NSApp.windowsMenu) {
@@ -363,7 +370,7 @@ sc_window_ui_set_toolbar_menu_visible(struct sc_window_ui *window_ui,
     if (!ui.toolbarMenuItem) {
         return;
     }
-    ui.toolbarMenuItem.title = visible ? @"Hide Toolbar" : @"Show Toolbar";
+    SCBind(ui.toolbarMenuItem, @"title", visible ? @"Hide Toolbar" : @"Show Toolbar");
 }
 
 void
@@ -415,8 +422,8 @@ sc_window_ui_handle_event(struct sc_window_ui *window_ui,
         SCScrcpyWindowUI *ui = objc_getAssociatedObject(window, SC_WINDOW_UI_KEY);
         sc_window_ui_apply_title_colors(ui);
         for (NSToolbarItem *item in ui.titleToolbar.items) {
-            if ([item.itemIdentifier isEqualToString:@"ScrcpyX.Mirror.Theme"]) {
-                item.label = item.toolTip = sc_theme_is_light() ? @"Switch to Dark" : @"Switch to Light";
+            if ([item.itemIdentifier isEqualToString:@"ScrcpyX.Mirror.Settings"]) {
+                SCBind(item, @"label", @"Settings…"); SCBind(item, @"toolTip", @"Settings…");
             }
         }
         NSView *background = ui.toastPanel.contentView;

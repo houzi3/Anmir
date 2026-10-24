@@ -1,4 +1,5 @@
 #import "device_ui.h"
+#import "localization.h"
 
 NSColor *SCDeviceBackground(void) {
     return [NSColor colorWithName:nil dynamicProvider:^NSColor *(NSAppearance *appearance) {
@@ -26,6 +27,12 @@ NSImage *SCDeviceSymbol(NSString *name) {
     return [NSImage imageWithSystemSymbolName:name accessibilityDescription:nil];
 }
 
+NSTextField *SCDeviceLocalizedLabel(NSString *key, CGFloat size, NSFontWeight weight, BOOL secondary) {
+    NSTextField *label = SCDeviceLabel(@"", size, weight, secondary);
+    SCBind(label, @"stringValue", key);
+    return label;
+}
+
 NSImage *SCDeviceWiFiSymbol(void) {
     NSImage *image = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect bounds) {
         (void)bounds;
@@ -45,7 +52,7 @@ NSImage *SCDeviceWiFiSymbol(void) {
         return YES;
     }];
     image.template = YES;
-    image.accessibilityDescription = @"Connect via Wi-Fi";
+    SCBind(image, @"accessibilityDescription", @"Connect via Wi-Fi");
     return image;
 }
 
@@ -101,6 +108,11 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 
 @implementation SCDeviceButton
 + (Class)cellClass { return SCDeviceButtonCell.class; }
++ (instancetype)buttonWithTitle:(NSString *)title target:(id)target action:(SEL)action {
+    SCDeviceButton *button = [super buttonWithTitle:title target:target action:action];
+    SCBind(button, @"title", title);
+    return button;
+}
 - (void)setPrimary:(BOOL)primary { _primary = primary; self.needsDisplay = YES; }
 - (void)viewDidChangeEffectiveAppearance { [super viewDidChangeEffectiveAppearance]; self.needsDisplay = YES; }
 @end
@@ -249,7 +261,7 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
         ]];
         self.accessibilityElement = YES;
         self.accessibilityRole = NSAccessibilityStaticTextRole;
-        self.accessibilityLabel = [@"Step " stringByAppendingString:label.stringValue];
+        SCBindFormat(self, @"accessibilityLabel", @"Step %@", @[label.stringValue]);
     }
     return self;
 }
@@ -294,7 +306,7 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
     (void)replacement;
     BOOL valid = string.length <= 6 && [string rangeOfCharacterFromSet:
         [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet]].location == NSNotFound;
-    if (!valid && error) { *error = @"Use six digits (0–9)."; }
+    if (!valid && error) { *error = SCLocalized(@"Use six digits (0–9)."); }
     return valid;
 }
 @end
@@ -315,12 +327,12 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
         // AppKit's field editor does not always preserve an attributed
         // placeholder's font/baseline. Draw the hint in a fixed label so
         // entering and leaving editing changes only the focus outline.
-        self.textField.accessibilityPlaceholderValue = placeholder;
-        self.placeholderLabel = SCDeviceLabel(placeholder, 13, NSFontWeightRegular, YES);
+        SCBind(self.textField, @"accessibilityPlaceholderValue", placeholder);
+        self.placeholderLabel = SCDeviceLocalizedLabel(placeholder, 13, NSFontWeightRegular, YES);
         self.placeholderLabel.textColor = NSColor.placeholderTextColor;
         self.placeholderLabel.accessibilityElement = NO;
         self.textField.identifier = identifier;
-        self.textField.accessibilityLabel = identifier;
+        SCBind(self.textField, @"accessibilityLabel", identifier);
         self.textField.usesSingleLineMode = YES;
         self.textField.cell.scrollable = YES;
         [self addSubview:self.placeholderLabel];
@@ -347,8 +359,8 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
     self.textField.font = [NSFont monospacedDigitSystemFontOfSize:17 weight:NSFontWeightMedium];
     self.textField.alignment = NSTextAlignmentCenter;
     self.placeholderLabel.alignment = NSTextAlignmentCenter;
-    self.placeholderLabel.stringValue = @"6-digit code";
-    self.textField.accessibilityPlaceholderValue = @"6-digit code";
+    SCBind(self.placeholderLabel, @"stringValue", @"6-digit code");
+    SCBind(self.textField, @"accessibilityPlaceholderValue", @"6-digit code");
     self.textField.formatter = [[SCDeviceCodeFormatter alloc] init];
 }
 - (void)dealloc { [NSNotificationCenter.defaultCenter removeObserver:self]; }
@@ -412,6 +424,6 @@ NSImage *SCDeviceMirrorIcon(NSBundle *bundle) {
         [details stroke];
         return YES;
     }];
-    badged.accessibilityDescription = @"Device mirroring";
+    SCBind(badged, @"accessibilityDescription", @"Device mirroring");
     return badged;
 }

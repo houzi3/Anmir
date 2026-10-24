@@ -3,6 +3,7 @@
 NSColor *SCDeviceBackground(void);
 NSColor *SCDeviceBlue(void);
 NSTextField *SCDeviceLabel(NSString *text, CGFloat size, NSFontWeight weight, BOOL secondary);
+NSTextField *SCDeviceLocalizedLabel(NSString *key, CGFloat size, NSFontWeight weight, BOOL secondary);
 NSImage *SCDeviceSymbol(NSString *name);
 NSImage *SCDeviceWiFiSymbol(void);
 NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spacing);

@@ -238,6 +238,11 @@ fi
 
 install -m 644 "$ROOT_DIR/app/data/scrcpy.icns" "$APP/Contents/Resources/scrcpy.icns"
 
+# Language-specific resources are also copied into every mirror launcher.
+for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do
+    copy_data "$localization" "$APP/Contents/Resources"
+done
+
 # Take the highest minimum OS version declared by any bundled architecture.
 # Apple Silicon starts at macOS 11 even when the x86_64 deployment target is
 # lower.
@@ -283,6 +288,26 @@ sed -e "s/@VERSION@/$VERSION/g" \
     -e "s/@SIGNING_STATUS@/$SIGNING_STATUS/g" \
     "$SCRIPT_DIR/macos-app-readme.txt" > "$APP/Contents/Resources/README.txt"
 cp "$APP/Contents/Resources/README.txt" "$OUTPUT_DIR/README.txt"
+for language in en zh-Hans zh-Hant; do
+    localized_signing_status="$SIGNING_STATUS"
+    if [[ "$language" = en ]]; then
+        if ! $SIGN; then localized_signing_status="Unsigned; not notarized by Apple."
+        elif [[ "$IDENTITY" = "-" ]]; then localized_signing_status="Local ad hoc signature; not notarized by Apple."
+        else localized_signing_status="Certificate signature; not notarized by Apple."; fi
+    elif [[ "$language" = zh-Hant ]]; then
+        if ! $SIGN; then localized_signing_status="尚未簽署，未經 Apple 公證。"
+        elif [[ "$IDENTITY" = "-" ]]; then localized_signing_status="本機 ad hoc 簽署，未經 Apple 公證。"
+        else localized_signing_status="憑證簽署，未經 Apple 公證。"; fi
+    fi
+    template="$SCRIPT_DIR/macos-app-readme-$language.txt"
+    if [[ "$language" = zh-Hans ]]; then
+        template="$SCRIPT_DIR/macos-app-readme.txt"
+    fi
+    sed -e "s/@VERSION@/$VERSION/g" -e "s/@ARCH@/$ARCH/g" \
+        -e "s/@MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
+        -e "s/@SIGNING_STATUS@/$localized_signing_status/g" \
+        "$template" > "$APP/Contents/Resources/$language.lproj/README.txt"
+done
 
 if command -v plutil >/dev/null 2>&1; then
     plutil -lint "$APP/Contents/Info.plist" >/dev/null

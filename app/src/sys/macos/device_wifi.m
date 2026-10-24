@@ -1,4 +1,5 @@
 #import "device_wifi.h"
+#import "localization.h"
 #import "device_support.h"
 #import "device_ui.h"
 #import "device_pairing.h"
@@ -87,7 +88,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
         _connection.changed = ^{ [weakSelf connectionChanged]; };
         _qrPairing = [[SCDeviceQRPairing alloc] init];
         _qrDeadline = [NSDate dateWithTimeIntervalSinceNow:120];
-        window.title = @"Wi-Fi connection";
+        SCBind(window, @"title", @"Wi-Fi connection");
         window.releasedWhenClosed = NO;
         window.backgroundColor = SCDeviceBackground();
         window.titlebarAppearsTransparent = YES;
@@ -111,6 +112,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 
 - (NSButton *)link:(NSString *)title action:(SEL)action {
     NSButton *button = [NSButton buttonWithTitle:title target:self action:action];
+    SCBind(button, @"title", title);
     button.bordered = NO;
     button.contentTintColor = NSColor.linkColor;
     button.font = [NSFont systemFontOfSize:12];
@@ -160,7 +162,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     NSString *instruction = self.manual ? @"For paired devices."
         : self.paired ? @"Paired. Enter the connection address."
         : @"Wireless debugging → Pairing code.";
-    [self.body addArrangedSubview:SCDeviceLabel(instruction, 12, NSFontWeightRegular, self.manual || self.paired)];
+    [self.body addArrangedSubview:SCDeviceLocalizedLabel(instruction, 12, NSFontWeightRegular, self.manual || self.paired)];
     self.code = nil;
     if (!self.manual && !self.paired) {
         [self buildDeviceChoice];
@@ -172,7 +174,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
         self.port = nil;
     }
     if (!self.manual && !self.paired) {
-        [self.body addArrangedSubview:SCDeviceLabel(@"Pairing code", 12, NSFontWeightRegular, NO)];
+        [self.body addArrangedSubview:SCDeviceLocalizedLabel(@"Pairing code", 12, NSFontWeightRegular, NO)];
         self.code = [self field:@"6-digit code" identifier:@"Pairing code"];
         [self.code usePairingCodeStyle];
         self.code.enabled = !self.busy;
@@ -182,7 +184,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     NSString *helper = self.manual || self.paired ? @"Use the connection port."
         : self.addressRequired ? @"Use the address in the pairing-code dialog."
         : @"Mirroring opens automatically.";
-    [self.body addArrangedSubview:SCDeviceLabel(helper, 11, NSFontWeightRegular, YES)];
+    [self.body addArrangedSubview:SCDeviceLocalizedLabel(helper, 11, NSFontWeightRegular, YES)];
     self.message = [NSTextField wrappingLabelWithString:@""];
     self.message.font = [NSFont systemFontOfSize:11];
     self.message.textColor = NSColor.secondaryLabelColor;
@@ -193,7 +195,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 
     self.connectButton = [self button:@"Connect" action:@selector(connect:) primary:YES];
     self.connectButton.keyEquivalent = @"\r";
-    self.connectButton.accessibilityLabel = @"Connect over Wi-Fi";
+    SCBind(self.connectButton, @"accessibilityLabel", @"Connect over Wi-Fi");
     SCDeviceButton *cancel = [self button:@"Cancel" action:@selector(cancel:) primary:NO];
     cancel.keyEquivalent = @"\033";
     [content addSubview:self.connectButton];
@@ -231,10 +233,10 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 
 - (void)buildQRCode {
     NSView *content = self.window.contentView;
-    [self.body addArrangedSubview:SCDeviceLabel(@"Pair with QR code", 15, NSFontWeightSemibold, NO)];
-    NSTextField *path = SCDeviceLabel(
+    [self.body addArrangedSubview:SCDeviceLocalizedLabel(@"Pair with QR code", 15, NSFontWeightSemibold, NO)];
+    NSTextField *path = SCDeviceLocalizedLabel(
         @"Settings › Developer options › Wireless debugging", 11, NSFontWeightRegular, YES);
-    NSTextField *help = SCDeviceLabel(
+    NSTextField *help = SCDeviceLocalizedLabel(
         @"Tap “Pair device with QR code” to scan.", 12, NSFontWeightRegular, NO);
     NSStackView *instructions = SCDeviceStack(@[path, help], YES, 4);
     [self.body addArrangedSubview:instructions];
@@ -244,7 +246,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     code.image = self.qrPairing.image;
     code.imageScaling = NSImageScaleProportionallyUpOrDown;
     code.translatesAutoresizingMaskIntoConstraints = NO;
-    code.accessibilityLabel = @"Scan with Android Wireless debugging";
+    SCBind(code, @"accessibilityLabel", @"Scan with Android Wireless debugging");
     NSView *row = [[NSView alloc] init];
     row.translatesAutoresizingMaskIntoConstraints = NO;
     [row addSubview:code];
@@ -322,14 +324,14 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     if (self.choices.count > 1) {
         NSPopUpButton *picker = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
         for (SCDeviceService *service in self.choices) {
-            [picker addItemWithTitle:[NSString stringWithFormat:@"%@ · %@", service.host,
-                service.pairing ? @"Pairing" : @"Paired"]];
+            [picker addItemWithTitle:@""];
+            SCBindFormat(picker.lastItem, @"title", service.pairing ? @"%@ · Pairing" : @"%@ · Paired", @[service.host]);
         }
         [picker selectItemAtIndex:MAX(0, (NSInteger)[self.choices indexOfObjectIdenticalTo:self.selected])];
         picker.target = self;
         picker.action = @selector(selectDevice:);
         picker.enabled = !self.busy;
-        picker.accessibilityLabel = @"Wi-Fi device";
+        SCBind(picker, @"accessibilityLabel", @"Wi-Fi device");
         [self.body addArrangedSubview:picker];
         return;
     }
@@ -341,8 +343,8 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     NSString *title = self.selected ? @"Android device" : @"Looking for devices";
     NSString *subtitle = self.selected ? self.selected.host : @"Open Pairing code on your device.";
     NSStackView *labels = SCDeviceStack(@[
-        SCDeviceLabel(title, 13, NSFontWeightMedium, NO),
-        SCDeviceLabel(subtitle, 12, NSFontWeightRegular, YES)], YES, 4);
+        SCDeviceLocalizedLabel(title, 13, NSFontWeightMedium, NO),
+        self.selected ? SCDeviceLabel(subtitle, 12, NSFontWeightRegular, YES) : SCDeviceLocalizedLabel(subtitle, 12, NSFontWeightRegular, YES)], YES, 4);
     [self.body addArrangedSubview:SCDeviceStack(@[icon, labels], NO, 14)];
 }
 
@@ -354,8 +356,8 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     self.address.stringValue = oldAddress;
     self.port.stringValue = oldPort;
     self.address.enabled = self.port.enabled = !self.busy;
-    NSStackView *left = SCDeviceStack(@[SCDeviceLabel(@"IP address", 12, NSFontWeightRegular, NO), self.address], YES, 5);
-    NSStackView *right = SCDeviceStack(@[SCDeviceLabel(@"Port", 12, NSFontWeightRegular, NO), self.port], YES, 5);
+    NSStackView *left = SCDeviceStack(@[SCDeviceLocalizedLabel(@"IP address", 12, NSFontWeightRegular, NO), self.address], YES, 5);
+    NSStackView *right = SCDeviceStack(@[SCDeviceLocalizedLabel(@"Port", 12, NSFontWeightRegular, NO), self.port], YES, 5);
     NSStackView *row = SCDeviceStack(@[left, right], NO, 12);
     [self.body addArrangedSubview:row];
     [NSLayoutConstraint activateConstraints:@[
@@ -391,9 +393,9 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 }
 
 - (void)setMessage:(NSString *)message error:(BOOL)error {
-    self.message.stringValue = message;
+    SCBind(self.message, @"stringValue", message);
     self.message.textColor = error ? NSColor.systemRedColor : NSColor.secondaryLabelColor;
-    self.message.accessibilityValue = message;
+    SCBind(self.message, @"accessibilityValue", message);
 }
 
 - (void)discover {
@@ -479,7 +481,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
         ? SCDeviceEndpoint(self.address.stringValue, self.port.stringValue) != nil : self.selected != nil;
     BOOL needsCode = !self.manual && !self.paired && (!self.selected || self.selected.pairing);
     self.connectButton.enabled = !self.busy && endpoint && (!needsCode || SCDevicePairingCodeValid(self.code.stringValue));
-    self.connectButton.title = self.busy ? @"Connecting…" : @"Connect";
+    SCBind(self.connectButton, @"title", self.busy ? @"Connecting…" : @"Connect");
     self.code.enabled = self.address.enabled = self.port.enabled = !self.busy;
     self.modeButton.enabled = !self.busy;
     self.qrRefreshButton.enabled = !self.busy;

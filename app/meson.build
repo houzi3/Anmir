@@ -87,6 +87,10 @@ if host_machine.system() == 'darwin'
         'src/sys/macos/file.m',
         'src/sys/macos/mirror_session.m',
         'src/sys/macos/theme.m',
+        'src/sys/macos/localization.m',
+        'src/sys/macos/settings.m',
+        'src/sys/macos/settings_window.m',
+        'src/sys/macos/settings_ui.m',
         'src/sys/macos/theme_chooser.m',
         'src/sys/macos/window_ui.m',
     ]
@@ -95,6 +99,7 @@ else
         'src/clipboard_writer.c',
         'src/window_ui.c',
         'src/theme.c',
+        'src/localization.c',
     ]
     if host_machine.system() == 'windows'
         src += 'src/sys/win/window_ui_menu.c'
@@ -240,6 +245,9 @@ executable('scrcpy', src,
 datadir = get_option('datadir') # by default 'share'
 
 install_man('scrcpy.1')
+
+# Native bundles copy these directories into Contents/Resources.
+install_subdir('data/locales', install_dir: get_option('datadir') / 'scrcpy')
 install_data('data/scrcpy.png',
              install_dir: datadir / 'icons/hicolor/256x256/apps')
 install_data('data/disconnected.png',
@@ -359,6 +367,38 @@ if get_option('buildtype') == 'debug'
         test(t[0], exe)
     endforeach
     if host_machine.system() == 'darwin'
+        settings_startup_test = executable('test_settings_startup',
+            ['tests/test_settings_startup.m', 'src/sys/macos/device_picker.m',
+             'src/sys/macos/settings_ui.m', 'src/sys/macos/settings_window.m',
+             'src/sys/macos/settings.m', 'src/sys/macos/localization.m',
+             'src/sys/macos/device_ui.m', 'src/sys/macos/mirror_session.m',
+             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_connection.m',
+             'src/sys/macos/device_support.m', 'src/sys/macos/device_pairing.m'],
+            include_directories: src_dir,
+            dependencies: dependencies + [dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics'])],
+            objc_args: ['-UNDEBUG'])
+        test('test_settings_startup', settings_startup_test, timeout: 20)
+        localization_test = executable('test_localization',
+            ['tests/test_localization.m', 'src/sys/macos/localization.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['Foundation']),
+            objc_args: ['-UNDEBUG'])
+        test('test_localization', localization_test, args: [meson.current_source_dir() / 'data/locales'])
+        settings_sync_test = executable('test_settings_sync',
+            ['tests/test_settings_sync.m', 'src/sys/macos/settings.m', 'src/sys/macos/localization.m'],
+            include_directories: src_dir,
+            dependencies: dependencies + [dependency('appleframeworks', modules: ['AppKit'])],
+            objc_args: ['-UNDEBUG'])
+        test('test_settings_sync', settings_sync_test, args: [meson.current_source_dir() / 'data/locales'], timeout: 25)
+        settings_test = executable('test_settings_window',
+            ['tests/test_settings_window.m', 'src/sys/macos/settings_window.m',
+             'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m',
+             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_connection.m',
+             'src/sys/macos/device_support.m', 'src/sys/macos/device_pairing.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
+            objc_args: ['-UNDEBUG'])
+        test('test_settings_window', settings_test, args: [meson.current_source_dir() / 'data/locales'], timeout: 20)
         device_test = executable('test_device_support',
             ['tests/test_device_support.m', 'src/sys/macos/device_support.m'],
             include_directories: src_dir,
@@ -386,7 +426,7 @@ if get_option('buildtype') == 'debug'
             objc_args: ['-UNDEBUG'])
         test('test_mirror_session', mirror_test, timeout: 20)
         device_ui_test = executable('test_device_ui',
-            ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m'],
+            ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
@@ -394,7 +434,7 @@ if get_option('buildtype') == 'debug'
             args: [meson.current_source_dir() / 'data/scrcpy.icns'], timeout: 20)
         theme_chooser_test = executable('test_theme_chooser',
             ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
-             'src/sys/macos/device_ui.m'],
+             'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])

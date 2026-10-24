@@ -232,6 +232,13 @@ sc_emulator_ui_handle_event(struct sc_emulator_ui *ui,
     }
 
     switch (event->type) {
+        case SC_EVENT_SETTINGS_CHANGED:
+            ui->toolbar.user_visible = sc_toolbar_preferences_load_visible();
+            ui->toolbar.hovered = SC_TOOLBAR_ACTION_NONE;
+            ui->toolbar.pressed = SC_TOOLBAR_ACTION_NONE;
+            sc_window_ui_set_toolbar_menu_visible(&ui->window_ui, ui->toolbar.user_visible);
+            sc_emulator_ui_sync(ui);
+            break;
         case SDL_EVENT_WINDOW_MOVED:
         case SDL_EVENT_WINDOW_RESIZED:
             if (event->window.windowID == ui->parent_id) {

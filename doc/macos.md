@@ -86,14 +86,24 @@ headless modes retain their command line behavior. The standalone CLI is
 unaffected.
 
 The default device window is 760 × 500 points with compact, single-line rows.
-The title bar has scan, Wi-Fi-add and theme icons. The sun or moon switches
-between Light and Dark in one click, and is also available in mirror windows.
-The first-launch chooser offers System (the default), Light and Dark. The System
-symbol is a circle split diagonally from bottom-left to top-right. The compact
-400 × 260 point chooser has three selectable rows. System
-follows macOS appearance automatically; the title-bar shortcut selects a fixed
-appearance. Return to System through ScrcpyX > Theme > System. Theme choices are
-saved and shared across the manager and independent mirrors.
+The title bar has scan, Wi-Fi-add and settings icons. The mirror title bar includes a device-list button that raises the existing
+manager, restoring it if minimized or closed, and launches the host if needed.
+The gear in both the device window and mirror window opens the shared **Settings…** window (Cmd+,).
+Opening Settings from a mirror opens only Settings, including when the host
+needs to start; the device list opens through its own button or menu action.
+Its three compact rows control Theme, Display language and Show floating toolbar.
+Changes apply immediately and save automatically across independent mirrors.
+The toolbar is enabled by default; a previously saved off choice is preserved.
+
+First launch offers Follow System, Simplified Chinese, Traditional Chinese and
+English alongside Follow System, Light and Dark themes. Language and theme
+selections preview immediately; Continue saves both. Traditional Chinese uses
+Taiwanese terminology. Follow System resolves Chinese script/region and falls
+back to English for unsupported languages. Changing language updates the app's
+windows, menus, messages and input hints in place, preserving pairing input,
+connections and recordings. macOS-owned permission prompts and file dialog
+controls follow the operating system's language. Localized installation notes
+are included in the bundle's en, zh-Hans and zh-Hant resource directories.
 
 Multiple ADB transports for one phone (USB, mDNS or IP) are grouped using its
 physical serial number, while different phones remain separate. A newly seen
@@ -107,7 +117,7 @@ is a smaller secondary title. A roomier unified titlebar keeps the controls
 aligned and uses theme-specific text colors for readable active and inactive
 windows. Newly opened mirrors move to the foreground. Each GUI mirror has a phone badge on its Dock icon
 and uses the device name as its Dock display name; the manager remains ScrcpyX.
-Disposable per-device app launchers share the installed application’s theme and
+Disposable per-device app launchers share the installed application’s theme, language, toolbar visibility and
 ADB settings and are removed when the mirror exits. Opening Devices from a
 mirror activates the main manager instead of creating another manager instance.
 
