@@ -166,8 +166,7 @@ sc_window_ui_set_mirror_icon(void) {
     static BOOL applied;
     if (applied) { return; }
     applied = YES;
-    NSImage *base = [NSApp.applicationIconImage copy];
-    NSImage *badged = SCDeviceMirrorIcon(base);
+    NSImage *badged = SCDeviceMirrorIcon(NSBundle.mainBundle);
     NSApp.applicationIconImage = badged;
     [NSApp.dockTile display];
 }

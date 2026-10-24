@@ -390,7 +390,8 @@ if get_option('buildtype') == 'debug'
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
-        test('test_device_ui', device_ui_test, timeout: 20)
+        test('test_device_ui', device_ui_test,
+            args: [meson.current_source_dir() / 'data/scrcpy.icns'], timeout: 20)
         theme_chooser_test = executable('test_theme_chooser',
             ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
              'src/sys/macos/device_ui.m'],

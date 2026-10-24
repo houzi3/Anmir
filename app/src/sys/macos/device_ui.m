@@ -382,16 +382,15 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 - (void)viewDidChangeEffectiveAppearance { [super viewDidChangeEffectiveAppearance]; self.needsDisplay = YES; }
 @end
 
-NSImage *SCDeviceMirrorIcon(NSImage *base) {
+NSImage *SCDeviceMirrorIcon(NSBundle *bundle) {
+    // applicationIconImage may be raw ICNS artwork or an already-normalized
+    // Dock image, depending on how the process was opened. Mixing those inputs
+    // enlarges some mirrors. Ask the system for one consistent bundle icon.
+    NSImage *base = [NSWorkspace.sharedWorkspace iconForFile:bundle.bundlePath];
     NSImage *badged = [NSImage imageWithSize:NSMakeSize(256, 256) flipped:NO drawingHandler:^BOOL(NSRect bounds) {
-        // Dock applies its app-icon mask to a bundle icon, but assigning a
-        // composed NSImage bypasses that mask. Preserve the rounded silhouette
-        // explicitly instead of exposing the source artwork's opaque canvas.
-        [NSGraphicsContext saveGraphicsState];
-        [[NSBezierPath bezierPathWithRoundedRect:NSInsetRect(bounds, 4, 4)
-            xRadius:54 yRadius:54] addClip];
+        // Preserve the system's transparent margins and rounded silhouette.
+        // The phone badge uses that same canvas; it never rescales the base.
         [base drawInRect:bounds];
-        [NSGraphicsContext restoreGraphicsState];
         [NSGraphicsContext saveGraphicsState];
         NSShadow *shadow = [[NSShadow alloc] init];
         shadow.shadowColor = [NSColor.blackColor colorWithAlphaComponent:0.2];

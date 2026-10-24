@@ -37,4 +37,6 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 - (void)usePairingCodeStyle;
 @end
 
-NSImage *SCDeviceMirrorIcon(NSImage *base);
+// Start with the system-normalized bundle icon so the mirror keeps the same
+// visible size and silhouette as the manager, independently of startup state.
+NSImage *SCDeviceMirrorIcon(NSBundle *bundle);
