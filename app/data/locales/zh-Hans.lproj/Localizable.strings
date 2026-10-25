@@ -170,3 +170,51 @@
 "Copy serial number" = "复制序列号";
 "Copy IP address" = "复制 IP 地址";
 "Copied" = "已复制";
+
+/* Software updates */
+"Check for Updates…" = "检查更新…";
+"Checking for updates…" = "正在检查更新…";
+"Could not contact GitHub. Please try again later." = "无法连接 GitHub，请稍后重试。";
+"The release information is invalid." = "版本信息无效。";
+"You’re up to date" = "当前已是最新版本";
+"No verified update package is available for this Mac." = "此 Mac 暂无可校验的更新包，请稍后重试。";
+"An update is available" = "发现新版本";
+"Download and Install" = "下载并安装";
+"Later" = "稍后";
+"Close all mirroring windows before installing an update." = "请先关闭所有投屏窗口，再安装更新。";
+"Move Anmir to a writable Applications folder before updating." = "请先将 Anmir 移到有写入权限的“应用程序”文件夹，再更新。";
+"Downloading update…" = "正在下载更新…";
+"Preparing update…" = "正在准备更新…";
+"The update download failed." = "更新下载失败。";
+"The update checksum does not match." = "更新包校验失败。";
+"The downloaded application is invalid." = "下载的应用程序无效。";
+"This update requires a newer version of macOS." = "此更新需要更高版本的 macOS。";
+"The update could not be prepared." = "无法准备更新。";
+"Ready to install" = "准备安装更新";
+"Anmir will quit, install the update, and reopen. The previous version will be kept next to the application." = "Anmir 将退出、安装更新并重新打开。旧版本将保留在应用程序所在文件夹中。";
+"Install and Restart" = "安装并重新启动";
+"The update installer is missing." = "缺少更新安装程序。";
+"Update failed" = "更新失败";
+"A new version of Anmir is available" = "新版本的 Anmir 已经发布";
+"Anmir %@ is available. You’re currently using %@. Would you like to download and install it now?" = "Anmir %@ 可供下载，您现在的版本是 %@。要现在下载并安装吗？";
+"Release Notes:" = "更新信息：";
+"Install Update" = "安装更新";
+"Install Later" = "稍后安装";
+"Skip This Version" = "跳过这个版本";
+"You skipped this version" = "您已跳过这个版本";
+"You skipped Anmir %@. You can still view and install it manually." = "您已跳过 Anmir %@。仍可手动查看并安装此版本。";
+"View Update" = "查看更新";
+
+/* About Anmir */
+"Version %@" = "版本 %@";
+"Version %@ (Build %@)" = "版本 %@（构建 %@）";
+"Mirror and control Android devices from your Mac." = "在 Mac 上投屏并控制安卓设备。";
+"Project Home" = "项目主页";
+"Report an Issue" = "问题反馈";
+"Open Source Licenses" = "开源许可";
+"Anmir is licensed under Apache 2.0. Third-party components retain their own licenses." = "Anmir 采用 Apache 2.0 许可，第三方组件保留各自的许可。";
+"Anmir License" = "Anmir 开源许可";
+"Upstream Notices" = "上游项目声明";
+"Third-Party Notices" = "第三方软件声明";
+"License files are unavailable in this build." = "此构建中缺少许可文件。";
+"OK" = "好";

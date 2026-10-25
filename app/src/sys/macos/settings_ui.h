@@ -4,3 +4,4 @@ void SCSettingsInstallMenu(void);
 void SCSettingsShow(void);
 BOOL SCSettingsWindowVisible(void);
 void SCLocalizeApplicationMenus(void);
+BOOL SCAboutWindowVisible(void);

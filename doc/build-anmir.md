@@ -12,7 +12,7 @@ binary does not produce an Intel build.
 - Python 3 and `dmgbuild==1.6.7` to produce the installer.
 
 ```sh
-git clone https://github.com/laobie/Anmir.git
+git clone https://github.com/houzi3/Anmir.git
 cd Anmir
 git checkout v0.1.0
 
@@ -66,3 +66,56 @@ ADB is a separate executable; its upstream notices are included in the app.
 
 The Android helper's version must match the client version. Both are `0.1.0`
 for this release. Its Java namespace remains `com.genymobile.scrcpy`.
+
+## In-app updates
+
+The host application checks GitHub's latest stable release seven seconds after
+normal GUI startup, at most once per local calendar day. Settings-only launches
+and disposable mirror processes do not schedule a check. Attempts (including
+failures and manual requests) persist their date, so relaunching does not repeat
+a background request that day. There is no periodic polling while the app stays
+open. Automatic checks show no progress, up-to-date notices or error dialogs.
+
+Before showing a new release, the updater rechecks running mirror sessions and
+the saved skipped version. If either suppresses the automatic prompt, it is
+silently discarded for that startup, rather than queued to interrupt the user
+later. **Skip This Version** affects that version only. The **Anmir → Check for
+Updates…** menu remains available on demand, including for skipped versions and
+while mirroring. It bypasses the daily limit and can adopt an in-flight
+background request instead of duplicating it. Installation still requires all
+mirror windows to close and an explicit user choice.
+
+Release metadata comes from
+`https://api.github.com/repos/houzi3/Anmir/releases/latest`. Only stable
+`vMAJOR.MINOR.PATCH` or `MAJOR.MINOR.PATCH` tags are accepted; numeric comparison
+prevents downgrades.
+
+Publish `Anmir-VERSION-arm64.zip` and `Anmir-VERSION-x86_64.zip` as Release
+assets (the existing CI publishes both DMG and ZIP). The updater requires the
+asset's GitHub API `digest` to contain a SHA-256 checksum; missing hashes or
+packages fail closed. It uses HTTPS metadata from the fixed repository and
+verifies the downloaded ZIP hash, bundle identity, version, minimum macOS and
+code signature integrity. Ad hoc signatures remain supported: this is not a
+publisher-signature trust mechanism independent of GitHub. A compromised
+publisher account is outside this update trust model.
+
+All mirror windows must be closed before installation. The installed app must
+be in a writable folder, outside a mounted disk image; the updater never asks
+for administrator privileges. After download, confirmation is required to quit
+and restart. The packaged `install-update.sh` waits up to 60 seconds for the host
+to exit, then replaces it using a staged app on the same volume. A failed move
+or Launch Services open restores the previous app. The old bundle remains as
+`Anmir.previous-TIMESTAMP-PID.app` after success for manual recovery; a crash
+following a successful launch is not automatically detected. System security
+prompts remain under macOS control.
+
+Updater checks can be run without phones or network:
+
+```sh
+meson test -C build-debug test_updater test_updater_automatic --print-errorlogs
+python3 app/tests/test_update_installer.py
+```
+
+The installer tests replace only the OS launch and move entry points with
+fixtures; all application folders are disposable. A real released ZIP, GUI
+confirmation and relaunch still require an end-to-end manual test.

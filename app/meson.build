@@ -92,6 +92,8 @@ if host_machine.system() == 'darwin'
         'src/sys/macos/settings.m',
         'src/sys/macos/settings_window.m',
         'src/sys/macos/settings_ui.m',
+        'src/sys/macos/about_window.m',
+        'src/sys/macos/updater.m',
         'src/sys/macos/theme_chooser.m',
         'src/sys/macos/window_ui.m',
     ]
@@ -376,9 +378,28 @@ if get_option('buildtype') == 'debug'
         test(t[0], exe)
     endforeach
     if host_machine.system() == 'darwin'
+        about_test = executable('test_about_window',
+            ['tests/test_about_window.m', 'src/sys/macos/about_window.m', 'src/sys/macos/localization.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_about_window', about_test,
+            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/scrcpy.icns'], timeout: 20)
+        updater_test = executable('test_updater',
+            ['tests/test_updater.m', 'src/sys/macos/updater.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG', '-Wno-deprecated-declarations'])
+        test('test_updater', updater_test)
+        updater_automatic_test = executable('test_updater_automatic',
+            ['tests/test_updater_automatic.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG', '-Wno-deprecated-declarations'])
+        test('test_updater_automatic', updater_automatic_test, timeout: 20)
         settings_startup_test = executable('test_settings_startup',
             ['tests/test_settings_startup.m', 'src/sys/macos/device_picker.m',
-             'src/sys/macos/settings_ui.m', 'src/sys/macos/settings_window.m',
+             'src/sys/macos/settings_ui.m', 'src/sys/macos/about_window.m', 'src/sys/macos/updater.m', 'src/sys/macos/settings_window.m',
              'src/sys/macos/settings.m', 'src/sys/macos/localization.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/mirror_session.m',
              'src/sys/macos/device_wifi.m', 'src/sys/macos/device_connection.m',
