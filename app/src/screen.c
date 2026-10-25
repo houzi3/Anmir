@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "screen.h"
 #include "theme.h"
 

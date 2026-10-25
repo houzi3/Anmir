@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #ifndef SC_FILE_H
 #define SC_FILE_H
 

@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "common.h"
 
 #include <stdbool.h>
@@ -33,8 +34,8 @@ main_scrcpy(int argc, char *argv[]) {
     setbuf(stderr, NULL);
 #endif
 
-    printf("scrcpy " SCRCPY_VERSION
-           " <https://github.com/Genymobile/scrcpy>\n");
+    printf("Anmir " SCRCPY_VERSION
+           " <https://github.com/laobie/Anmir>\n");
 
     struct scrcpy_cli_args args = {
         .opts = scrcpy_options_default,
@@ -60,7 +61,7 @@ main_scrcpy(int argc, char *argv[]) {
 
     if (args.opts.update_terminal_title) {
         sc_term_save_title();
-        sc_term_set_title("scrcpy");
+        sc_term_set_title("Anmir");
         term_title_saved = true;
     }
 

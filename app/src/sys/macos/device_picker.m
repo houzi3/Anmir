@@ -734,7 +734,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
     (void)toolbar;
-    return @[@"ScrcpyX.Title", NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Actions"];
+    return @[@"Anmir.Title", NSToolbarFlexibleSpaceItemIdentifier, @"Anmir.Actions"];
 }
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar { return [self toolbarDefaultItemIdentifiers:toolbar]; }
 - (NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)identifier willBeInsertedIntoToolbar:(BOOL)inserted {
@@ -742,9 +742,9 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:identifier];
     item.autovalidates = NO;
     item.enabled = YES;
-    if ([identifier isEqualToString:@"ScrcpyX.Title"]) {
+    if ([identifier isEqualToString:@"Anmir.Title"]) {
         NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 100, 28)];
-        NSTextField *title = SCDeviceLabel(@"ScrcpyX", 14, NSFontWeightMedium, NO);
+        NSTextField *title = SCDeviceLabel(@"Anmir", 14, NSFontWeightMedium, NO);
         [container addSubview:title];
         [NSLayoutConstraint activateConstraints:@[
             [title.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
@@ -824,7 +824,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 760, 440)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
         backing:NSBackingStoreBuffered defer:NO];
-    self.window.title = @"ScrcpyX";
+    self.window.title = @"Anmir";
     self.window.titleVisibility = NSWindowTitleHidden;
     self.window.releasedWhenClosed = NO;
     self.window.backgroundColor = SCDeviceBackground();
@@ -834,7 +834,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     self.window.toolbarStyle = NSWindowToolbarStyleUnifiedCompact;
     self.window.contentView = [[SCDeviceSurface alloc] initWithFrame:self.window.contentView.bounds];
     NSView *content = self.window.contentView;
-    NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"ScrcpyX.Devices.Toolbar"];
+    NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"Anmir.Devices.Toolbar"];
     toolbar.delegate = self; toolbar.allowsUserCustomization = NO;
     toolbar.displayMode = NSToolbarDisplayModeIconOnly; toolbar.showsBaselineSeparator = YES;
     self.window.toolbar = toolbar;
@@ -988,7 +988,7 @@ sc_device_picker_get_manager(void) {
             [app activateWithOptions:NSApplicationActivateAllWindows]; return;
         }
         NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
-        configuration.environment = @{@"SCRCPYX_SHOW_DEVICES":@"1"};
+        configuration.environment = @{@"ANMIR_SHOW_DEVICES":@"1"};
         [NSWorkspace.sharedWorkspace openApplicationAtURL:host.bundleURL configuration:configuration
             completionHandler:^(NSRunningApplication *app, NSError *error) { (void)app;
                 if (error) { LOGE("Could not open device manager: %s", error.localizedDescription.UTF8String); }
@@ -1015,7 +1015,7 @@ static SCDeviceMenu *SCDeviceMenuController(void) {
 NSButton *SCDevicePickerButton(void) {
     NSButton *button = [SCDeviceIconButton buttonWithImage:SCDeviceListSymbol()
         target:SCDeviceMenuController() action:@selector(showDevices:)];
-    button.identifier = @"ScrcpyX.Devices";
+    button.identifier = @"Anmir.Devices";
     SCBind(button, @"toolTip", @"Open device list");
     SCBind(button, @"accessibilityLabel", @"Open device list");
     return button;
@@ -1124,7 +1124,7 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         return SC_DEVICE_PICKER_CONTINUE;
     }
     @autoreleasepool {
-        if (getenv("SCRCPYX_SHOW_SETTINGS")) {
+        if (getenv("ANMIR_SHOW_SETTINGS")) {
             if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
                 LOGE("Could not initialize settings: %s", SDL_GetError());
                 return SC_DEVICE_PICKER_ERROR;
@@ -1137,7 +1137,7 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         struct sc_vec_adb_devices devices = SC_VECTOR_INITIALIZER;
         bool listed = sc_adb_start_server(intr, 0)
             && sc_adb_list_devices(intr, 0, &devices);
-        if (listed && devices.size == 1 && !getenv("SCRCPYX_SHOW_DEVICES") &&
+        if (listed && devices.size == 1 && !getenv("ANMIR_SHOW_DEVICES") &&
                 !strcmp(devices.data[0].state, "device")) {
             NSString *serial = sc_device_picker_string(devices.data[0].serial);
             struct sc_device_info info;

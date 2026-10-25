@@ -50,7 +50,7 @@ static NSBitmapImageRep *snapshot(NSView *view) {
     return bitmap;
 }
 static void save(NSView *view, NSString *name) {
-    NSString *output = NSProcessInfo.processInfo.environment[@"SCRCPYX_WIFI_SNAPSHOTS"];
+    NSString *output = NSProcessInfo.processInfo.environment[@"ANMIR_WIFI_SNAPSHOTS"];
     if (!output.length) { return; }
     assert([NSFileManager.defaultManager createDirectoryAtPath:output
         withIntermediateDirectories:YES attributes:nil error:nil]);
@@ -119,12 +119,12 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
 
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
-        root = NSProcessInfo.processInfo.environment[@"SCRCPYX_WIFI_FIXTURE"];
+        root = NSProcessInfo.processInfo.environment[@"ANMIR_WIFI_FIXTURE"];
         if (argc > 2) { return fixture(NSProcessInfo.processInfo.arguments); }
         assert(argc == 2);
         root = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
         assert([NSFileManager.defaultManager createDirectoryAtPath:root withIntermediateDirectories:YES attributes:nil error:nil]);
-        setenv("SCRCPYX_WIFI_FIXTURE", root.UTF8String, 1);
+        setenv("ANMIR_WIFI_FIXTURE", root.UTF8String, 1);
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
         SCLocalizationInitialize([NSBundle bundleWithPath:[NSString stringWithUTF8String:argv[1]]], @"en");

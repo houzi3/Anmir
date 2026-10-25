@@ -3,10 +3,10 @@
 #include <signal.h>
 #include <stdlib.h>
 
-static NSString *const SCHostPath = @"ScrcpyXHostBundlePath";
-static NSString *const SCHostIdentifier = @"ScrcpyXHostBundleIdentifier";
-static NSString *const SCMirrorRoot = @"ScrcpyXMirrorRoot";
-static NSString *const SCMirrorSerial = @"ScrcpyXDeviceSerial";
+static NSString *const SCHostPath = @"AnmirHostBundlePath";
+static NSString *const SCHostIdentifier = @"AnmirHostBundleIdentifier";
+static NSString *const SCMirrorRoot = @"AnmirMirrorRoot";
+static NSString *const SCMirrorSerial = @"AnmirDeviceSerial";
 
 NSBundle *SCMirrorHostBundle(void) {
     NSString *path = [NSBundle.mainBundle objectForInfoDictionaryKey:SCHostPath];
@@ -15,7 +15,7 @@ NSBundle *SCMirrorHostBundle(void) {
 
 NSString *SCMirrorHostBundleIdentifier(void) {
     return [NSBundle.mainBundle objectForInfoDictionaryKey:SCHostIdentifier]
-        ?: NSBundle.mainBundle.bundleIdentifier ?: @"org.scrcpy.scrcpyx";
+        ?: NSBundle.mainBundle.bundleIdentifier ?: @"io.github.laobie.anmir";
 }
 
 NSArray<NSString *> *
@@ -54,7 +54,7 @@ static void SCMirrorCleanupAtExit(void) {
 
 void SCMirrorInstallCleanup(void) {
     NSString *root = [NSBundle.mainBundle objectForInfoDictionaryKey:SCMirrorRoot];
-    NSString *parent = [[NSTemporaryDirectory() stringByAppendingPathComponent:@"ScrcpyXMirrors"] stringByResolvingSymlinksInPath];
+    NSString *parent = [[NSTemporaryDirectory() stringByAppendingPathComponent:@"AnmirMirrors"] stringByResolvingSymlinksInPath];
     NSString *canonicalRoot = root.stringByResolvingSymlinksInPath;
     NSString *bundleParent = NSBundle.mainBundle.bundleURL.URLByDeletingLastPathComponent.path.stringByResolvingSymlinksInPath;
     if (root.length && [canonicalRoot.stringByDeletingLastPathComponent isEqualToString:parent]
@@ -146,7 +146,7 @@ NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) {
     NSFileManager *files = NSFileManager.defaultManager;
     NSString *token = NSUUID.UUID.UUIDString;
     launch.root = [[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES]
-        URLByAppendingPathComponent:[@"ScrcpyXMirrors" stringByAppendingPathComponent:token] isDirectory:YES];
+        URLByAppendingPathComponent:[@"AnmirMirrors" stringByAppendingPathComponent:token] isDirectory:YES];
     NSString *displayName = name.length ? name : @"Android device";
     NSString *filename = [[displayName componentsSeparatedByCharactersInSet:
         [NSCharacterSet characterSetWithCharactersInString:@"/:\n\r"]] componentsJoinedByString:@" "];

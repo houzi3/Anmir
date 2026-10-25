@@ -1,3 +1,4 @@
+# Modified for Anmir; see NOTICE for downstream changes.
 src = [
     'src/main.c',
     'src/adb/adb.c',

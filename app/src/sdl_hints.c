@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "sdl_hints.h"
 
 #include "util/log.h"
@@ -9,7 +10,7 @@ sc_sdl_set_hints(const char *render_driver, bool disable_screensaver) {
     }
 
     // App name used in various contexts (such as PulseAudio)
-    if (!SDL_SetHint(SDL_HINT_APP_NAME, "scrcpy")) {
+    if (!SDL_SetHint(SDL_HINT_APP_NAME, "Anmir")) {
         LOGW("Could not set app name");
     }
 

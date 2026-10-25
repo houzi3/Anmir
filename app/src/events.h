@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #ifndef SC_EVENTS_H
 #define SC_EVENTS_H
 

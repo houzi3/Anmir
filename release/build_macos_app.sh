@@ -11,13 +11,13 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-APP_NAME="ScrcpyX"
+APP_NAME="Anmir"
 
 usage() {
     cat <<EOF
 Usage: $0 [options] <build-dir|dist-dir>
 
-Build a ScrcpyX.app bundle from:
+Build an Anmir.app bundle from:
  - a meson build directory (containing app/scrcpy), or
  - a portable distribution directory (containing scrcpy, adb and
    scrcpy-server, as in a release archive).
@@ -213,6 +213,12 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 install -m 755 "$BIN" "$APP/Contents/MacOS/scrcpy"
 install -m 755 "$ADB" "$APP/Contents/MacOS/adb"
 install -m 644 "$SERVER" "$APP/Contents/Resources/scrcpy-server"
+install -m 644 "$ROOT_DIR/NOTICE" "$ROOT_DIR/THIRD_PARTY.md" "$APP/Contents/Resources/"
+if [[ -d "$SRC/licenses" ]]; then
+    cp -R "$SRC/licenses" "$APP/Contents/Resources/"
+else
+    bash "$SCRIPT_DIR/collect_macos_licenses.sh" "$APP/Contents/Resources/licenses"
+fi
 
 copy_data() {
     local src="$1"

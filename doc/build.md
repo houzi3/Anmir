@@ -1,3 +1,4 @@
+<!-- Modified for Anmir; see NOTICE for downstream changes. -->
 # Build scrcpy
 
 Here are the instructions to build _scrcpy_ (client and server).

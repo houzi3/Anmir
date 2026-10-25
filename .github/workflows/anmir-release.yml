@@ -1,0 +1,84 @@
+name: Anmir macOS release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK components
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Build Android helper
+        run: |
+          mkdir -p release/work/build-server
+          BUILD_DIR="$PWD/release/work/build-server" bash server/build_without_gradle.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: anmir-server
+          path: release/work/build-server/scrcpy-server
+          if-no-files-found: error
+
+  macos:
+    needs: server
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install build dependencies
+        run: brew install meson ninja cmake nasm pkg-config zlib automake autoconf libtool wget
+      - name: Install installer builder
+        run: |
+          python3 -m venv release/work/dmgbuild-env
+          release/work/dmgbuild-env/bin/pip install dmgbuild==1.6.7
+          echo "DMGBUILD=$PWD/release/work/dmgbuild-env/bin/dmgbuild" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v8
+        with:
+          name: anmir-server
+          path: release/work/build-server
+      - name: Build native client
+        run: bash release/build_macos.sh '${{ matrix.arch }}'
+      - name: Test client
+        run: |
+          export PKG_CONFIG_LIBDIR="$PWD/app/deps/work/install/macos-native-static/lib/pkgconfig"
+          meson setup build-tests --buildtype=debug -Dcompile_server=false -Dstatic=true \
+            -Dc_args="-I$PWD/app/deps/work/install/macos-native-static/include" \
+            -Dc_link_args="-L$PWD/app/deps/work/install/macos-native-static/lib"
+          meson test -C build-tests --num-processes 1 --print-errorlogs
+      - name: Package app, DMG and ZIP
+        run: |
+          bash release/build_macos_app.sh --dmg --zip \
+            --server "$PWD/release/work/build-server/scrcpy-server" \
+            'release/work/build-macos-${{ matrix.arch }}'
+          test "$(lipo -archs dist/Anmir.app/Contents/MacOS/scrcpy)" = '${{ matrix.arch }}'
+          dist/Anmir.app/Contents/MacOS/scrcpy --version
+          codesign --verify --deep --strict dist/Anmir.app
+          (cd dist && shasum -a 256 -c SHA256SUMS)
+      - name: Package complete source
+        if: matrix.arch == 'arm64'
+        run: bash release/package_sources.sh dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: anmir-macos-${{ matrix.arch }}
+          path: |
+            dist/Anmir-*.dmg
+            dist/Anmir-*.zip
+            dist/Anmir-*-source.tar.gz
+          if-no-files-found: error

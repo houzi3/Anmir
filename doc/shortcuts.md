@@ -1,3 +1,4 @@
+<!-- Modified for Anmir; see NOTICE for downstream changes. -->
 # Shortcuts
 
 Actions can be performed on the scrcpy window using keyboard and mouse

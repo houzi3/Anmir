@@ -1,12 +1,12 @@
-ScrcpyX @VERSION@ — macOS @ARCH@
+Anmir @VERSION@ — macOS @ARCH@
 
 Requirements
 - macOS @MINIMUM_SYSTEM_VERSION@ or later; @ARCH@ build.
 - Includes adb, the Android server and media libraries. No Homebrew or SDK required.
 
 Install and connect
-1. Open the DMG and drag ScrcpyX to Applications, then eject the disk image.
-   For a ZIP, extract it and move ScrcpyX.app to Applications.
+1. Open the DMG and drag Anmir to Applications, then eject the disk image.
+   For a ZIP, extract it and move Anmir.app to Applications.
 2. On first launch, choose Follow System, 简体中文, 繁體中文 or English and preview
    Follow System, Light or Dark appearance. Continue saves your choices.
 3. Enable USB debugging in Android Developer options, connect a data-capable
@@ -17,7 +17,7 @@ Install and connect
    Device details contain serial number, IP address and API level.
 5. Devices are detected automatically. Use the scan icon or Cmd+R to rescan.
    The device-list button in the mirror title bar raises the existing manager.
-   ScrcpyX > Devices… (Cmd+Shift+D) opens it as well.
+   Anmir > Devices… (Cmd+Shift+D) opens it as well.
 6. Use the Wi-Fi-add icon or Scan QR code → for wireless pairing on Android 11+.
    Scan with Wireless debugging > Pair device with QR code, or use pairing code.
    Paired devices can use Manual connection with the connection IP and port.
@@ -37,9 +37,9 @@ System Settings > Privacy & Security > Open Anyway if you trust its source.
 Apple guidance: https://support.apple.com/102445
 
 Command line
-  /Applications/ScrcpyX.app/Contents/MacOS/scrcpy --help
-  /Applications/ScrcpyX.app/Contents/MacOS/scrcpy --serial <serial>
+  /Applications/Anmir.app/Contents/MacOS/scrcpy --help
+  /Applications/Anmir.app/Contents/MacOS/scrcpy --serial <serial>
 Explicit selectors, ANDROID_SERIAL and headless modes retain their behavior.
 The standalone CLI keeps its English command-line interface.
 
-ScrcpyX is based on scrcpy. See Contents/Resources/LICENSE.
+Anmir is based on scrcpy. See Contents/Resources/LICENSE.

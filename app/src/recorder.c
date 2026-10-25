@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "recorder.h"
 
 #include <assert.h>
@@ -158,7 +159,7 @@ sc_recorder_open_output_file(struct sc_recorder *recorder) {
     recorder->ctx->oformat = format;
 
     av_dict_set(&recorder->ctx->metadata, "comment",
-                "Recorded by scrcpy " SCRCPY_VERSION, 0);
+                "Recorded by Anmir " SCRCPY_VERSION, 0);
 
     LOGI("Recording started to %s file: %s", format_name, recorder->filename);
     return true;

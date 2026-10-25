@@ -1,5 +1,6 @@
+# Modified for Anmir; see NOTICE for downstream changes.
 [Desktop Entry]
-Name=scrcpy (console)
+Name=Anmir (console)
 GenericName=Android Remote Control
 Comment=Display and control your Android device
 # For some users, the PATH or ADB environment variables are set from the shell

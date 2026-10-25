@@ -1,4 +1,5 @@
 #!/bin/bash
+# Modified for Anmir; see NOTICE for downstream changes.
 set -ex
 cd "$(dirname ${BASH_SOURCE[0]})"
 . build_common
@@ -11,9 +12,17 @@ then
 fi
 
 ARCH="$1"
+[[ "$ARCH" != aarch64 ]] || ARCH=arm64
+[[ "$ARCH" = arm64 || "$ARCH" = x86_64 ]] || {
+    echo "Unsupported macOS architecture: $ARCH" >&2; exit 1;
+}
+[[ "$(uname -m)" = "$ARCH" ]] || {
+    echo "Build $ARCH on a native $ARCH runner; this script does not cross-compile." >&2
+    exit 1
+}
 MACOS_BUILD_DIR="$WORK_DIR/build-macos-$ARCH"
 
-export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.13}"
+export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-11.0}"
 
 app/deps/adb_macos.sh
 app/deps/sdl.sh macos native static
@@ -54,4 +63,6 @@ cp app/data/disconnected.png "$MACOS_BUILD_DIR/dist/"
 cp -r app/data/toolbar-icons "$MACOS_BUILD_DIR/dist/"
 cp app/scrcpy.1 "$MACOS_BUILD_DIR/dist/"
 cp LICENSE "$MACOS_BUILD_DIR/dist"
+cp NOTICE THIRD_PARTY.md "$MACOS_BUILD_DIR/dist"
 cp -r "$ADB_INSTALL_DIR"/. "$MACOS_BUILD_DIR/dist/"
+release/collect_macos_licenses.sh "$MACOS_BUILD_DIR/dist/licenses"

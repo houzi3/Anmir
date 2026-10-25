@@ -24,7 +24,7 @@ static NSData *SCButtonSnapshot(NSView *view) {
 }
 
 static void SCCheckToolbarStates(void) {
-    NSString *output = NSProcessInfo.processInfo.environment[@"SCRCPYX_UI_SNAPSHOTS"];
+    NSString *output = NSProcessInfo.processInfo.environment[@"ANMIR_UI_SNAPSHOTS"];
     if (output.length) {
         assert([NSFileManager.defaultManager createDirectoryAtPath:output
             withIntermediateDirectories:YES attributes:nil error:nil]);

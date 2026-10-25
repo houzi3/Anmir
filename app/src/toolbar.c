@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "toolbar.h"
 
 #include <assert.h>
@@ -274,7 +275,7 @@ sc_toolbar_create(struct sc_toolbar *toolbar, SDL_Window *parent,
 
     bool ok =
         SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING,
-                              "scrcpy controls");
+                              "Anmir controls");
     ok &= SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER,
                                 SC_TOOLBAR_WINDOW_WIDTH);
     ok &= SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER,

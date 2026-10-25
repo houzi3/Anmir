@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Modified for Anmir; see NOTICE for downstream changes.
 set -ex
 . $(dirname ${BASH_SOURCE[0]})/_init
 process_args "$@"
@@ -40,7 +41,7 @@ else
         export LDFLAGS='-static-libgcc -static'
     elif [[ "$HOST" == "macos" ]]
     then
-        export PKG_CONFIG_PATH="/opt/homebrew/opt/zlib/lib/pkgconfig"
+        export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig"
     fi
 
     export PKG_CONFIG_PATH="$INSTALL_DIR/$DIRNAME/lib/pkgconfig:$PKG_CONFIG_PATH"

@@ -1,3 +1,4 @@
+<!-- Modified for Anmir; see NOTICE for downstream changes. -->
 # On macOS
 
 ## Install
@@ -57,13 +58,12 @@ release/build_macos_app.sh \
     "release/work/build-macos-$(uname -m)"
 ```
 
-This creates `dist/ScrcpyX.app` and a read-only `.dmg` installer. Open the disk
-image and drag ScrcpyX onto the Applications shortcut beside it, then open it
+This creates `dist/Anmir.app` and a read-only `.dmg` installer. Open the disk
+image and drag Anmir onto the Applications shortcut beside it, then open it
 from Applications. The image saves a compact icon view with installation
 instructions and a drag arrow. It then appears in Launchpad and Spotlight.
 Use `--zip` for a ZIP instead, `--dmg --zip` for both formats, or `--app-only`
-for the application bundle alone. DMG layout generation uses Finder and
-requires a logged-in macOS desktop session.
+for the application bundle alone. DMG layout generation uses `dmgbuild==1.6.7` and does not require a logged-in desktop session. See [build-anmir.md](build-anmir.md).
 
 The application includes `Contents/Resources/README.txt` with installation, USB
 debugging and first-launch instructions; the ZIP also has a top-level copy.
@@ -78,7 +78,7 @@ mirror window appears; **Show** then activates that window. Unauthorized and
 offline devices cannot start mirroring. Device changes are detected
 automatically. The scan icon at the top right (Cmd+R) is a manual fallback:
 “Device not showing up? Scan again.” Close the window with its normal
-close button. The ScrcpyX > Devices… menu (Cmd+Shift+D) opens the device window
+close button. The Anmir > Devices… menu (Cmd+Shift+D) opens the device window
 from any mirror, including single-device launches. With no usable device, the
 application shows setup guidance. Explicit
 selectors (`-s`, `-d`, `-e`, `ANDROID_SERIAL`), `--tcpip=<address>`, list and
@@ -122,7 +122,7 @@ Mirror windows display the manufacturer and full model name. The Android version
 is a smaller secondary title. A roomier unified titlebar keeps the controls
 aligned and uses theme-specific text colors for readable active and inactive
 windows. Newly opened mirrors move to the foreground. Each GUI mirror has a phone badge on its Dock icon
-and uses the device name as its Dock display name; the manager remains ScrcpyX.
+and uses the device name as its Dock display name; the manager remains Anmir.
 Disposable per-device app launchers share the installed application’s theme, language, toolbar visibility and
 ADB settings and are removed when the mirror exits. Opening Devices from a
 mirror activates the main manager instead of creating another manager instance.
@@ -148,7 +148,7 @@ and IP copy controls copy the full value; the IP control becomes available after
 an asynchronous USB device address lookup succeeds.
 
 The compact pairing-code field accepts exactly six ASCII digits and preserves
-leading zeros. After pairing, ScrcpyX discovers the separate connection service
+leading zeros. After pairing, Anmir discovers the separate connection service
 and opens mirroring automatically. If it cannot discover that service, the same
 window asks for the connection IP and port without pairing again. **Manual
 connection** is a secondary entry for already paired devices. Pairing codes are
@@ -164,7 +164,7 @@ The bundle embeds `adb` and `scrcpy-server`, so it does not depend on the
 started from Finder; run the executable directly instead:
 
 ```bash
-/Applications/ScrcpyX.app/Contents/MacOS/scrcpy --help
+/Applications/Anmir.app/Contents/MacOS/scrcpy --help
 ```
 
 Only the native executables are placed in `Contents/MacOS`; the Android server,
@@ -184,7 +184,7 @@ notarize it, otherwise Gatekeeper blocks it.
 
 _Make sure that your device meets the [prerequisites](/README.md#prerequisites)._
 
-If you installed it as an application bundle, double-click `ScrcpyX` in
+If you installed it as an application bundle, double-click `Anmir` in
 Applications or Launchpad.
 
 Once installed, run from a terminal:

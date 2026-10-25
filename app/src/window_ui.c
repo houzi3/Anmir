@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "window_ui.h"
 
 #include <math.h>
@@ -75,7 +76,7 @@ sc_window_ui_create_toast(struct sc_window_ui *ui) {
 
     bool ok =
         SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING,
-                              "scrcpy toast");
+                              "Anmir toast");
     ok &= SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER,
                                 SC_TOAST_WIDTH);
     ok &= SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER,

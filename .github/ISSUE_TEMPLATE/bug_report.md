@@ -7,20 +7,23 @@ assignees: ''
 
 ---
 
-_Please read the [prerequisites] to run scrcpy._
+<!-- Modified for Anmir; see NOTICE for downstream changes. -->
 
-[prerequisites]: https://github.com/Genymobile/scrcpy#prerequisites
+_Please read the [prerequisites] to run Anmir._
+
+[prerequisites]: https://github.com/laobie/Anmir#安装与连接
 
 _Also read the [FAQ] and check if your [issue][issues] already exists._
 
-[FAQ]: https://github.com/Genymobile/scrcpy/blob/master/FAQ.md
-[issues]: https://github.com/Genymobile/scrcpy/issues
+[FAQ]: https://github.com/laobie/Anmir/blob/main/FAQ.md
+[issues]: https://github.com/laobie/Anmir/issues
 
 ## Environment
 
- - **OS:** [e.g. Debian, Windows, macOS...]
- - **Scrcpy version:** [e.g. 2.5]
- - **Installation method:** [e.g. manual build, apt, snap, brew, Windows release...]
+ - **macOS version:** [e.g. 15.0]
+ - **Mac processor:** [Apple Silicon / Intel]
+ - **Anmir version:** [e.g. 0.1.3]
+ - **Installation method:** [DMG / ZIP / source build]
  - **Device model:**
  - **Android version:** [e.g. 14]
 

@@ -33,7 +33,7 @@ func text(_ value: String, x: CGFloat = 44, y: CGFloat, size: CGFloat,
         ])
 }
 
-text("ScrcpyX", y: 274, size: 22, weight: .semibold, gray: 0.14)
+text("Anmir", y: 274, size: 22, weight: .semibold, gray: 0.14)
 text("Drag to Applications to install.", y: 247, size: 12,
      weight: .regular, gray: 0.43)
 
@@ -58,7 +58,7 @@ arrow.lineJoinStyle = .round
 NSColor(calibratedRed: 0.22, green: 0.56, blue: 0.42, alpha: 1).setStroke()
 arrow.stroke()
 
-text("Once copied, open ScrcpyX from Applications.", y: 24, size: 11,
+text("Once copied, open Anmir from Applications.", y: 24, size: 11,
      weight: .regular, gray: 0.48, alignment: .center)
 
 NSGraphicsContext.restoreGraphicsState()

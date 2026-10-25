@@ -1,3 +1,4 @@
+<!-- Modified for Anmir; see NOTICE for downstream changes. -->
 # Window
 
 ## Disable window

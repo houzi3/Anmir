@@ -139,7 +139,7 @@ static NSImage *SCSettingsThemeSymbol(NSString *choice) {
     if (!self) { return nil; }
     window.releasedWhenClosed = NO;
     window.titlebarAppearsTransparent = YES;
-    SCBind(window, @"title", @"ScrcpyX Settings");
+    SCBind(window, @"title", @"Anmir Settings");
     window.contentView = [[SCSettingsSurface alloc] initWithFrame:window.contentView.bounds];
     window.backgroundColor = SCSettingsBase(NO);
     SCSettingsSurface *group = [[SCSettingsSurface alloc] init]; group.group = YES;

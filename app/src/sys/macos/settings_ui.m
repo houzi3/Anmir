@@ -18,7 +18,7 @@ static NSString *SCSettingsShowNotification(void) {
 }
 
 void SCLocalizeApplicationMenus(void) {
-    NSString *name = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"ScrcpyX";
+    NSString *name = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"Anmir";
     NSDictionary *titles = @{@"terminate:":@"Quit %@", @"hide:":@"Hide %@",
         @"hideOtherApplications:":@"Hide Others", @"unhideAllApplications:":@"Show All",
         @"orderFrontStandardAboutPanel:":@"About %@", @"performMiniaturize:":@"Minimize",
@@ -62,7 +62,7 @@ void SCLocalizeApplicationMenus(void) {
             if (@available(macOS 14.0, *)) { [NSApp yieldActivationToApplicationWithBundleIdentifier:host.bundleIdentifier]; }
             NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
             configuration.activates = NO;
-            configuration.environment = @{@"SCRCPYX_SHOW_SETTINGS":@"1"};
+            configuration.environment = @{@"ANMIR_SHOW_SETTINGS":@"1"};
             [NSWorkspace.sharedWorkspace openApplicationAtURL:host.bundleURL configuration:configuration
                 completionHandler:^(NSRunningApplication *app, NSError *error) {
                     (void)app;
@@ -117,7 +117,7 @@ BOOL SCSettingsWindowVisible(void) { return actions.controller.window.visible; }
 NSButton *SCSettingsButton(void) {
     SCSettingsEnsureActions();
     NSButton *button = [SCDeviceIconButton buttonWithImage:SCDeviceSymbol(@"gearshape") target:actions action:@selector(show:)];
-    button.identifier = @"ScrcpyX.Settings";
+    button.identifier = @"Anmir.Settings";
     SCBind(button, @"toolTip", @"Settings…"); SCBind(button, @"accessibilityLabel", @"Settings…");
     return button;
 }

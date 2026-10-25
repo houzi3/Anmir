@@ -149,7 +149,7 @@
 @implementation SCScrcpyWindowUI
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
     (void)toolbar;
-    return @[NSToolbarFlexibleSpaceItemIdentifier, @"ScrcpyX.Mirror.Actions"];
+    return @[NSToolbarFlexibleSpaceItemIdentifier, @"Anmir.Mirror.Actions"];
 }
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {
     return [self toolbarDefaultItemIdentifiers:toolbar];
@@ -311,7 +311,7 @@ sc_window_ui_init(struct sc_window_ui *ui, SDL_Window *window) {
         // Let AppKit size and align the traffic lights and device/settings controls in a
         // roomier native titlebar rather than adding a second accessory row.
         controller.titleToolbar = [[NSToolbar alloc]
-            initWithIdentifier:@"ScrcpyX.Mirror.Toolbar"];
+            initWithIdentifier:@"Anmir.Mirror.Toolbar"];
         controller.titleToolbar.delegate = controller;
         controller.titleToolbar.allowsUserCustomization = NO;
         controller.titleToolbar.displayMode = NSToolbarDisplayModeIconOnly;

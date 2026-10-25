@@ -5,10 +5,10 @@
 #import "mirror_session.h"
 #import <AppKit/AppKit.h>
 
-NSNotificationName const SCSettingsChangedNotification = @"ScrcpyXSettingsChanged";
-static NSString *const SCThemeKey = @"ScrcpyXTheme";
-static NSString *const SCLanguageKey = @"ScrcpyXLanguage";
-static NSString *const SCToolbarKey = @"ScrcpyXToolbarVisible";
+NSNotificationName const SCSettingsChangedNotification = @"AnmirSettingsChanged";
+static NSString *const SCThemeKey = @"AnmirTheme";
+static NSString *const SCLanguageKey = @"AnmirLanguage";
+static NSString *const SCToolbarKey = @"AnmirToolbarVisible";
 static NSUserDefaults *defaults;
 static NSString *previewLanguage;
 
@@ -21,6 +21,18 @@ static NSUserDefaults *SCSettingsDefaults(void) {
         defaults = [SCMirrorHostBundleIdentifier() isEqualToString:NSBundle.mainBundle.bundleIdentifier]
             ? NSUserDefaults.standardUserDefaults
             : [[NSUserDefaults alloc] initWithSuiteName:SCMirrorHostBundleIdentifier()];
+        // Preserve choices made in the development app without changing its store.
+        if ([SCMirrorHostBundleIdentifier() isEqualToString:@"io.github.laobie.anmir"]) {
+            NSDictionary *legacy = [defaults persistentDomainForName:@"com.genymobile.scrcpy"];
+            NSDictionary *keys = @{@"ScrcpyXTheme": SCThemeKey,
+                @"ScrcpyXLanguage": SCLanguageKey, @"ScrcpyXToolbarVisible": SCToolbarKey};
+            for (NSString *oldKey in keys) {
+                NSString *newKey = keys[oldKey];
+                if (![defaults objectForKey:newKey] && legacy[oldKey]) {
+                    [defaults setObject:legacy[oldKey] forKey:newKey];
+                }
+            }
+        }
     }
     return defaults;
 }

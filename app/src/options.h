@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #ifndef SCRCPY_OPTIONS_H
 #define SCRCPY_OPTIONS_H
 

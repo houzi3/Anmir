@@ -17,7 +17,7 @@
     <key>CFBundleIconFile</key>
     <string>scrcpy</string>
     <key>CFBundleIdentifier</key>
-    <string>com.genymobile.scrcpy</string>
+    <string>io.github.laobie.anmir</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

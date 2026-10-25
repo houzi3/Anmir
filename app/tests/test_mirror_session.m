@@ -64,9 +64,9 @@ int main(int argc, const char *argv[]) {
         NSBundle *mirror = [NSBundle bundleWithURL:launch.bundleURL];
         assert([launch.bundleURL.lastPathComponent isEqualToString:@"Google Pixel 7.app"]);
         assert([[mirror objectForInfoDictionaryKey:@"CFBundleDisplayName"] isEqualToString:@"Google Pixel 7"]);
-        assert([[mirror objectForInfoDictionaryKey:@"ScrcpyXDeviceSerial"]
+        assert([[mirror objectForInfoDictionaryKey:@"AnmirDeviceSerial"]
             isEqualToString:@"adb-28151FDH200EZG-test._adb-tls-connect._tcp"]);
-        assert([[mirror objectForInfoDictionaryKey:@"ScrcpyXHostBundleIdentifier"] isEqualToString:info[@"CFBundleIdentifier"]]);
+        assert([[mirror objectForInfoDictionaryKey:@"AnmirHostBundleIdentifier"] isEqualToString:info[@"CFBundleIdentifier"]]);
         assert(![mirror.bundleIdentifier isEqualToString:info[@"CFBundleIdentifier"]]);
         assert([original isEqualToData:[NSData dataWithContentsOfURL:binary]]);
         NSString *expectedADB = NSProcessInfo.processInfo.environment[@"ADB"] ?: [macOS URLByAppendingPathComponent:@"adb"].path;

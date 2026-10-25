@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #include "scrcpy.h"
 
 #include <assert.h>
@@ -354,11 +355,13 @@ init_sdl_gamepads(void) {
 static void
 set_terminal_title_with_prefix(const char *value) {
     char title[128];
-    memcpy(title, "scrcpy - ", 9);
-    size_t trunc_len = sc_str_utf8_truncation_index(value, 128 - 9 - 1);
-    assert(trunc_len <= 128 - 9 - 1);
-    memcpy(&title[9], value, trunc_len);
-    title[9 + trunc_len] = '\0';
+    static const char prefix[] = "Anmir - ";
+    const size_t prefix_len = sizeof(prefix) - 1;
+    memcpy(title, prefix, prefix_len);
+    size_t trunc_len = sc_str_utf8_truncation_index(value, sizeof(title) - prefix_len - 1);
+    assert(trunc_len <= sizeof(title) - prefix_len - 1);
+    memcpy(&title[prefix_len], value, trunc_len);
+    title[prefix_len + trunc_len] = '\0';
     sc_term_set_title(title);
 }
 

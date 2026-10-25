@@ -50,7 +50,7 @@ int main(int argc, const char *argv[]) {
         if (argc == 2) {
             // Use real bundle identities: the host uses standardUserDefaults,
             // while independent mirror apps must read the host's suite.
-            NSString *testDomain = [@"com.scrcpyx.test." stringByAppendingString:NSUUID.UUID.UUIDString];
+            NSString *testDomain = [@"com.anmir.test." stringByAppendingString:NSUUID.UUID.UUIDString];
             NSString *root = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
             NSMutableArray *executables = [NSMutableArray array];
             for (NSString *role in @[@"host", @"mirror"]) {

@@ -1,12 +1,12 @@
-ScrcpyX @VERSION@ — macOS @ARCH@
+Anmir @VERSION@ — macOS @ARCH@
 
 系統需求
 - macOS @MINIMUM_SYSTEM_VERSION@ 或更新版本；本套件架構為 @ARCH@。
 - 已內建 adb、Android 伺服器與媒體函式庫，無須安裝 Homebrew 或 Android SDK。
 
 安裝與連線
-1. 開啟 DMG，將 ScrcpyX 拖到「應用程式」，完成後退出磁碟映像檔。
-   若使用 ZIP，請先解壓縮，再將 ScrcpyX.app 移到「應用程式」。
+1. 開啟 DMG，將 Anmir 拖到「應用程式」，完成後退出磁碟映像檔。
+   若使用 ZIP，請先解壓縮，再將 Anmir.app 移到「應用程式」。
 2. 首次開啟可選擇跟隨系統、简体中文、繁體中文或 English，並預覽跟隨系統、
    淺色或深色主題。按一下「繼續」即可儲存。
 3. 在 Android 的「開發人員選項」開啟「USB 偵錯」。使用可傳輸資料的 USB 線
@@ -16,7 +16,7 @@ ScrcpyX @VERSION@ — macOS @ARCH@
    的視窗。同一部手機的多條連線會合併為一列，並共用鏡像輸出視窗。
    序號、IP 位址與 API 級別可在裝置詳細資訊中查看。
 5. 裝置會自動偵測。找不到裝置時，可按一下掃描圖示或按 ⌘R 重新掃描。
-   鏡像輸出視窗右上角的裝置列表按鈕可開啟或叫出現有列表。也可從「ScrcpyX → 裝置…」（⌘⇧D）開啟裝置列表。
+   鏡像輸出視窗右上角的裝置列表按鈕可開啟或叫出現有列表。也可從「Anmir → 裝置…」（⌘⇧D）開啟裝置列表。
 6. 右上角的 Wi-Fi 加號或「掃描 QR 碼 →」可開啟無線連線（Android 11 以上）。
    在手機的「無線偵錯 → 使用 QR 碼配對裝置」掃描，或改用六位數配對碼。
    已配對裝置可使用「手動連線」輸入 IP 位址與連線通訊埠。
@@ -34,8 +34,8 @@ ScrcpyX @VERSION@ — macOS @ARCH@
 Apple 說明：https://support.apple.com/102445
 
 指令列
-  /Applications/ScrcpyX.app/Contents/MacOS/scrcpy --help
-  /Applications/ScrcpyX.app/Contents/MacOS/scrcpy --serial <裝置序號>
+  /Applications/Anmir.app/Contents/MacOS/scrcpy --help
+  /Applications/Anmir.app/Contents/MacOS/scrcpy --serial <裝置序號>
 指定裝置、ANDROID_SERIAL 與無視窗模式維持原有行為。獨立 CLI 的指令介面維持英文。
 
-ScrcpyX 以 scrcpy 開源專案為基礎。授權條款請見 Contents/Resources/LICENSE。
+Anmir 以 scrcpy 開源專案為基礎。授權條款請見 Contents/Resources/LICENSE。

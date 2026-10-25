@@ -1,3 +1,4 @@
+// Modified for Anmir; see NOTICE for downstream changes.
 #ifndef SC_ADB_H
 #define SC_ADB_H
 

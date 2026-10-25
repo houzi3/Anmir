@@ -241,7 +241,7 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
     if (self) {
         _selection = @"system";
         _languageSelection = language;
-        window.title = @"ScrcpyX";
+        window.title = @"Anmir";
         window.releasedWhenClosed = NO;
         window.delegate = self;
         window.backgroundColor = SCDeviceBackground();

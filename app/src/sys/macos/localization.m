@@ -1,7 +1,7 @@
 #import "localization.h"
 #include "../../localization.h"
 
-NSNotificationName const SCLanguageChangedNotification = @"ScrcpyXLanguageChanged";
+NSNotificationName const SCLanguageChangedNotification = @"AnmirLanguageChanged";
 static NSDictionary<NSString *, NSDictionary<NSString *, NSString *> *> *tables;
 static NSDictionary<NSString *, NSDictionary<NSString *, NSData *> *> *encodedTables;
 static NSString *language = @"en";

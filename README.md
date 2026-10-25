@@ -1,238 +1,72 @@
-> [!WARNING]
-> **This GitHub repo (<https://github.com/Genymobile/scrcpy>) is the only official
-source for the project. Do not download releases from random websites, even if
-their name contains `scrcpy`.**
+# Anmir
 
-# scrcpy (v4.1)
+[简体中文](README.md) · [English](README.en.md)
 
-<img src="app/data/scrcpy.svg" width="128" height="128" alt="scrcpy" align="right" />
+<img src="app/data/scrcpy.png" width="112" height="112" alt="Anmir" align="right" />
 
-_pronounced "**scr**een **c**o**py**"_
+**在 Mac 上连接与控制 Android。**
 
-This application mirrors Android devices (video and audio) connected via USB or
-[TCP/IP](doc/connection.md#tcpip-wireless) and allows control using the
-computer's keyboard and mouse. It does not require _root_ access or an app
-installed on the device. It works on _Linux_, _Windows_, and _macOS_.
+Anmir 是基于 [scrcpy](https://github.com/Genymobile/scrcpy) 开发的独立 macOS 应用，提供原生设备管理、USB 与无线连接、多设备投屏，以及截图和录屏。下载后拖入“应用程序”即可使用，无需另行安装 Homebrew、Android SDK 或 adb。
 
-[![Linux](https://img.shields.io/badge/Linux-download-orange?style=for-the-badge&logo=linux)](doc/linux.md)&nbsp;
-[![Windows](https://img.shields.io/badge/Windows-download-blue?style=for-the-badge&logo=windows)](doc/windows.md)&nbsp;
-[![macOS](https://img.shields.io/badge/macOS-download-brightgreen?style=for-the-badge&logo=apple)](doc/macos.md)&nbsp;
+当前版本：**0.1.3**。提供 Apple Silicon 和 Intel 两种原生版本。
 
-![screenshot](assets/screenshot-debian-600.jpg)
+## 下载
 
-It focuses on:
+| Mac 芯片 | 推荐安装包 | ZIP |
+| --- | --- | --- |
+| Apple Silicon（M 系列） | [Anmir 0.1.3 · arm64 DMG](https://github.com/laobie/Anmir/releases/download/v0.1.3/Anmir-0.1.3-arm64.dmg) | [arm64 ZIP](https://github.com/laobie/Anmir/releases/download/v0.1.3/Anmir-0.1.3-arm64.zip) |
+| Intel | [Anmir 0.1.3 · x86_64 DMG](https://github.com/laobie/Anmir/releases/download/v0.1.3/Anmir-0.1.3-x86_64.dmg) | [x86_64 ZIP](https://github.com/laobie/Anmir/releases/download/v0.1.3/Anmir-0.1.3-x86_64.zip) |
 
- - **lightness**: native, displays only the device screen
- - **performance**: 30~120fps, depending on the device
- - **quality**: 1920×1080 or above
- - **low latency**: [35~70ms][lowlatency]
- - **low startup time**: ~1 second to display the first image
- - **non-intrusiveness**: nothing is left installed on the Android device
- - **user benefits**: no account, no ads, no internet required
- - **freedom**: free and open source software
+[全部版本](https://github.com/laobie/Anmir/releases) · [SHA-256 校验文件](https://github.com/laobie/Anmir/releases/download/v0.1.3/SHA256SUMS)
 
-[lowlatency]: https://github.com/Genymobile/scrcpy/pull/646
+系统要求：**macOS 11 或更新版本**。USB 投屏支持 Android 5.0+；无线扫码和配对码连接需要 Android 11+。音频转发通常需要 Android 11+，部分设备存在额外限制。
 
-Its features include:
- - [audio forwarding](doc/audio.md) (Android 11+)
- - [recording](doc/recording.md)
- - [virtual display](doc/virtual-display.md)
- - mirroring with [Android device screen off](doc/device.md#turn-screen-off)
- - [copy-paste](doc/control.md#copy-paste) in both directions
- - [configurable quality](doc/video.md)
- - [camera mirroring](doc/camera.md) (Android 12+)
- - [mirroring as a webcam (V4L2)](doc/v4l2.md) (Linux-only)
- - physical [keyboard][hid-keyboard] and [mouse][hid-mouse] simulation (HID)
- - [gamepad](doc/gamepad.md) support
- - [OTG mode](doc/otg.md)
- - and more…
+## 安装与连接
 
-[hid-keyboard]: doc/keyboard.md#physical-keyboard-simulation
-[hid-mouse]: doc/mouse.md#physical-mouse-simulation
+1. 打开 DMG，将 **Anmir** 拖入 **Applications（应用程序）**，再从“应用程序”打开。
+2. 首次启动选择语言和外观；之后可在设置中随时更改。
+3. 在 Android 设备上开启“开发者选项 → USB 调试”。
+4. 用 USB 数据线连接 Mac，在手机上允许 USB 调试授权。一台可用设备时会直接投屏；多台设备时可在设备列表中选择。
 
-## Prerequisites
+**无线连接：**让手机和 Mac 处于可互通的网络，点击设备列表中的 Wi-Fi 加号。在手机的“开发者选项 → 无线调试 → 使用二维码配对设备”中扫码，也可切换为六位配对码或手动地址连接。
 
-The Android device requires at least API 21 (Android 5.0).
+0.1.3 使用本地 ad hoc 签名，**尚未经过 Apple 公证**。首次打开若被系统拦截，请确认下载来源后，按 [Apple 官方说明](https://support.apple.com/102445)前往“系统设置 → 隐私与安全性 → 仍要打开”。
 
-[Audio forwarding](doc/audio.md) is supported for API >= 30 (Android 11+).
+## 功能
 
-Make sure you [enabled USB debugging][enable-adb] on your device(s).
+- **原生设备管理**：自动发现设备，显示型号和连接状态；同一手机的 USB 与无线连接合并展示。
+- **多设备投屏**：每台设备拥有独立窗口和 Dock 入口，可从任一投屏窗口返回设备列表。
+- **无线配对**：支持二维码、配对码和手动地址。
+- **操作工具栏**：返回、主页、最近任务、截图和录屏，提供就近操作反馈。
+- **截图与录屏**：截图复制到剪贴板；录制时显示时长，并可选择保存位置。
+- **即时设置**：浅色、深色、跟随系统；简体中文、繁体中文、英文和跟随系统语言。
+- **本地连接**：无需账号，不依赖云端转发；ADB 连接仍可用于调试和日志采集。
 
-[enable-adb]: https://developer.android.com/studio/debug/dev-options#enable
+## 命令行与构建
 
-On some devices (especially Xiaomi), you might get the following error:
+应用内保留兼容 scrcpy 参数的命令行入口：
 
-```
-Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```sh
+/Applications/Anmir.app/Contents/MacOS/scrcpy --help
+/Applications/Anmir.app/Contents/MacOS/scrcpy --serial <设备序列号>
 ```
 
-In that case, you need to enable [an additional option][control] `USB debugging
-(Security Settings)` (this is an item different from `USB debugging`) to control
-it using a keyboard and mouse. Rebooting the device is necessary once this
-option is set.
+构建和 LGPL 库重新链接方法见[构建说明](doc/build-anmir.md)。[Release](https://github.com/laobie/Anmir/releases) 提供包含应用源码和第三方库原始源码的完整源码包。
 
-[control]: https://github.com/Genymobile/scrcpy/issues/70#issuecomment-373286323
+[窗口与快捷键](doc/window.md) · [键盘](doc/keyboard.md) · [鼠标](doc/mouse.md) · [音频](doc/audio.md) · [连接](doc/connection.md) · [macOS 架构](doc/macos-architecture.md)
 
-Note that USB debugging is not required to run scrcpy in [OTG mode](doc/otg.md).
+底层 scrcpy 保留跨平台能力；Anmir 当前发布的图形应用面向 macOS。部分继承的技术文档仍使用 scrcpy 名称描述底层功能。
 
+## 反馈
 
-## Get the app
+请通过 [Anmir Issues](https://github.com/laobie/Anmir/issues) 报告问题，并附上 Anmir 版本、Mac 芯片、macOS/Android 版本和连接方式。
 
- - [Linux](doc/linux.md)
- - [Windows](doc/windows.md) (read [how to run](doc/windows.md#run))
- - [macOS](doc/macos.md)
+## 开源许可与致谢
 
+Anmir 基于 **scrcpy v4.1**，独立维护，与 Genymobile 及 scrcpy 维护者无隶属或背书关系。
 
-## Must-know tips
+原始 scrcpy 版权归 Genymobile、Romain Vimont 及相应贡献者所有，原有声明保留在 [LICENSE](LICENSE) 和 [NOTICE](NOTICE) 中。Anmir 的修改按 **Apache License 2.0** 分发；第三方依赖遵循各自许可证，详见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
- - [Reducing resolution](doc/video.md#size) may greatly improve performance
-   (`scrcpy -m1024`)
- - [_Right-click_](doc/mouse.md#mouse-bindings) triggers `BACK`
- - [_Middle-click_](doc/mouse.md#mouse-bindings) triggers `HOME`
- - <kbd>Alt</kbd>+<kbd>f</kbd> toggles [fullscreen](doc/window.md#fullscreen)
- - There are many other [shortcuts](doc/shortcuts.md)
+感谢 [scrcpy](https://github.com/Genymobile/scrcpy)、[SDL](https://www.libsdl.org/)、[FFmpeg](https://ffmpeg.org/)、[dav1d](https://code.videolan.org/videolan/dav1d) 和 [libusb](https://libusb.info/) 项目及其贡献者。
 
-
-## Usage examples
-
-There are a lot of options, [documented](#user-documentation) in separate pages.
-Here are just some common examples.
-
- - Capture the screen in H.265 (better quality), limit the size to 1920, limit
-   the frame rate to 60fps, disable audio, and control the device by simulating
-   a physical keyboard:
-
-    ```bash
-    scrcpy --video-codec=h265 --max-size=1920 --max-fps=60 --no-audio --keyboard=uhid
-    scrcpy --video-codec=h265 -m1920 --max-fps=60 --no-audio -K  # short version
-    ```
-
- - Start VLC in a new virtual display (separate from the device display):
-
-    ```bash
-    scrcpy --new-display=1920x1080 --start-app=org.videolan.vlc
-    ```
-
- - Start VLC in a new _flex_ display using H.265 with a bitrate of 16 Mbps,
-   while keeping the display active so it does not turn off:
-
-    ```bash
-    scrcpy --new-display -x --keep-active --start-app=org.videolan.vlc --video-codec=h265 -b16M
-    ```
-
- - Record the device camera in H.265 at 1920x1080 (and microphone) to an MP4
-   file:
-
-    ```bash
-    scrcpy --video-source=camera --video-codec=h265 --camera-size=1920x1080 --record=file.mp4
-    ```
-
- - Capture the device front camera and expose it as a webcam on the computer (on
-   Linux):
-
-    ```bash
-    scrcpy --video-source=camera --camera-size=1920x1080 --camera-facing=front --v4l2-sink=/dev/video2 --no-playback
-    ```
-
- - Control the device without mirroring by simulating a physical keyboard and
-   mouse (USB debugging not required):
-
-    ```bash
-    scrcpy --otg
-    ```
-
- - Control the device using gamepads plugged into the computer:
-
-    ```bash
-    scrcpy --gamepad=uhid
-    scrcpy -G  # short version
-    ```
-
-## User documentation
-
-The application provides a lot of features and configuration options. They are
-documented in the following pages:
-
- - [Connection](doc/connection.md)
- - [Video](doc/video.md)
- - [Audio](doc/audio.md)
- - [Control](doc/control.md)
- - [Keyboard](doc/keyboard.md)
- - [Mouse](doc/mouse.md)
- - [Gamepad](doc/gamepad.md)
- - [Device](doc/device.md)
- - [Window](doc/window.md)
- - [Recording](doc/recording.md)
- - [Virtual display](doc/virtual-display.md)
- - [Tunnels](doc/tunnels.md)
- - [OTG](doc/otg.md)
- - [Camera](doc/camera.md)
- - [Video4Linux](doc/v4l2.md)
- - [Shortcuts](doc/shortcuts.md)
-
-
-## Resources
-
- - [FAQ](FAQ.md)
- - [Translations][wiki] (not necessarily up to date)
- - [Build instructions](doc/build.md)
- - [Developers](doc/develop.md)
- - [Verify release signatures](doc/verify-release.md)
-
-[wiki]: https://github.com/Genymobile/scrcpy/wiki
-
-
-## Articles
-
-- [Introducing scrcpy][article-intro]
-- [Scrcpy now works wirelessly][article-tcpip]
-- [Scrcpy 2.0, with audio][article-scrcpy2]
-
-[article-intro]: https://blog.rom1v.com/2018/03/introducing-scrcpy/
-[article-tcpip]: https://www.genymotion.com/blog/open-source-project-scrcpy-now-works-wirelessly/
-[article-scrcpy2]: https://blog.rom1v.com/2023/03/scrcpy-2-0-with-audio/
-
-## Contact
-
-You can open an [issue] for bug reports, feature requests or general questions.
-
-For bug reports, please read the [FAQ](FAQ.md) first, you might find a solution
-to your problem immediately.
-
-[issue]: https://github.com/Genymobile/scrcpy/issues
-
-You can also use:
-
- - Reddit: [`r/scrcpy`](https://www.reddit.com/r/scrcpy)
- - BlueSky: [`@scrcpy.bsky.social`](https://bsky.app/profile/scrcpy.bsky.social)
- - Twitter: [`@scrcpy_app`](https://twitter.com/scrcpy_app)
-
-
-## Donate
-
-I'm [@rom1v](https://github.com/rom1v), the author and maintainer of _scrcpy_.
-
-If you appreciate this application, you can [support my open source
-work][donate]:
- - [GitHub Sponsors](https://github.com/sponsors/rom1v)
- - [Liberapay](https://liberapay.com/rom1v/)
- - [PayPal](https://paypal.me/rom2v)
-
-[donate]: https://blog.rom1v.com/about/#support-my-open-source-work
-
-## License
-
-    Copyright (C) 2018 Genymobile
-    Copyright (C) 2018-2026 Romain Vimont
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+Android is a trademark of Google LLC.

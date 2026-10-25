@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Modified for Anmir; see NOTICE for downstream changes.
 set -ex
 . $(dirname ${BASH_SOURCE[0]})/_init "$@"
 
@@ -27,3 +28,5 @@ fi
 mkdir -p "$INSTALL_DIR/adb-macos"
 cd "$INSTALL_DIR/adb-macos"
 cp -r "$SOURCES_DIR/$PROJECT_DIR"/. "$INSTALL_DIR/adb-macos/"
+unzip -p "$SOURCES_DIR/$FILENAME" platform-tools/NOTICE.txt \
+    > "$INSTALL_DIR/adb-macos/NOTICE.txt"

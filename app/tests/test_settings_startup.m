@@ -73,7 +73,7 @@ static int fixture(NSString *requestBinary) {
     [bar addItem:app]; NSApp.mainMenu = bar;
     SCSettingsInitialize();
     // Settings takes precedence even if a parent exported Show Devices.
-    setenv("SCRCPYX_SHOW_SETTINGS", "1", 1); setenv("SCRCPYX_SHOW_DEVICES", "1", 1);
+    setenv("ANMIR_SHOW_SETTINGS", "1", 1); setenv("ANMIR_SHOW_DEVICES", "1", 1);
     unsetenv("ANDROID_SERIAL");
     __block NSUInteger phase = 0;
     __block NSWindow *settings, *manager;
@@ -87,12 +87,12 @@ static int fixture(NSString *requestBinary) {
         assert(deadline.timeIntervalSinceNow > 0);
         if (phase == 0) {
             assert(SCSettingsWindowVisible());
-            assert(!windowNamed(@"ScrcpyX")); // No manager even constructed.
+            assert(!windowNamed(@"Anmir")); // No manager even constructed.
             assert(adbStarts == 0); // Settings alone does not scan devices.
-            settings = windowNamed(@"ScrcpyX Settings"); assert(settings);
+            settings = windowNamed(@"Anmir Settings"); assert(settings);
             NSMenuItem *devices = [[NSApp.mainMenu itemAtIndex:0].submenu itemWithTag:0x53434456]; assert(devices);
             assert([NSApp sendAction:devices.action to:devices.target from:devices]);
-            manager = windowNamed(@"ScrcpyX"); assert(manager.visible);
+            manager = windowNamed(@"Anmir"); assert(manager.visible);
             [settings close];
         } else if (phase == 1) {
             // Closing Settings must not end a subsequently opened device list.
@@ -100,7 +100,7 @@ static int fixture(NSString *requestBinary) {
             [manager orderOut:nil]; SCSettingsShow();
         } else if (phase == 2) {
             assert(SCSettingsWindowVisible() && !manager.visible);
-            assert(windowNamed(@"ScrcpyX Settings") == settings); // Reuse Settings.
+            assert(windowNamed(@"Anmir Settings") == settings); // Reuse Settings.
             SCSettingsShow();
             assert(!manager.visible); // Repeated open cannot reveal the list.
             request = [[NSTask alloc] init];
@@ -110,10 +110,10 @@ static int fixture(NSString *requestBinary) {
             if (request.running || !requests) { return; }
             assert(request.terminationStatus == 0 && requests == 1);
             assert(SCSettingsWindowVisible() && !manager.visible);
-            assert(windowNamed(@"ScrcpyX Settings") == settings);
+            assert(windowNamed(@"Anmir Settings") == settings);
             NSMenuItem *devices = [[NSApp.mainMenu itemAtIndex:0].submenu itemWithTag:0x53434456];
             assert([NSApp sendAction:devices.action to:devices.target from:devices]);
-            assert(windowNamed(@"ScrcpyX") == manager && manager.visible);
+            assert(windowNamed(@"Anmir") == manager && manager.visible);
             [manager close];
         } else {
             assert(SCSettingsWindowVisible() && !manager.visible);
@@ -146,7 +146,7 @@ int main(int argc, const char *argv[]) {
         assert([files createDirectoryAtPath:macOS withIntermediateDirectories:YES attributes:nil error:nil]);
         NSString *binary = [macOS stringByAppendingPathComponent:@"test_settings_startup"];
         assert([files copyItemAtPath:[NSString stringWithUTF8String:argv[0]] toPath:binary error:nil]);
-        NSString *domain = [@"com.scrcpyx.test.routing." stringByAppendingString:NSUUID.UUID.UUIDString];
+        NSString *domain = [@"com.anmir.test.routing." stringByAppendingString:NSUUID.UUID.UUIDString];
         NSDictionary *info = @{@"CFBundleIdentifier":domain, @"CFBundleExecutable":@"test_settings_startup",
             @"CFBundlePackageType":@"APPL", @"LSUIElement":@YES};
         assert([info writeToFile:[contents stringByAppendingPathComponent:@"Info.plist"] atomically:YES]);
@@ -158,8 +158,8 @@ int main(int argc, const char *argv[]) {
         assert([files copyItemAtPath:binary toPath:mirrorBinary error:nil]);
         NSMutableDictionary *mirrorInfo = [info mutableCopy];
         mirrorInfo[@"CFBundleIdentifier"] = [domain stringByAppendingString:@".mirror"];
-        mirrorInfo[@"ScrcpyXHostBundlePath"] = bundle;
-        mirrorInfo[@"ScrcpyXHostBundleIdentifier"] = domain;
+        mirrorInfo[@"AnmirHostBundlePath"] = bundle;
+        mirrorInfo[@"AnmirHostBundleIdentifier"] = domain;
         assert([mirrorInfo writeToFile:[mirrorContents stringByAppendingPathComponent:@"Info.plist"] atomically:YES]);
         NSTask *child = [[NSTask alloc] init]; child.executableURL = [NSURL fileURLWithPath:binary]; child.arguments = @[@"fixture", mirrorBinary];
         assert([child launchAndReturnError:nil]); [child waitUntilExit];

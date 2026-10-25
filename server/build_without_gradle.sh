@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Modified for Anmir; see NOTICE for downstream changes.
 #
 # This script generates the scrcpy binary "manually" (without gradle).
 #
@@ -12,7 +13,7 @@
 set -e
 
 SCRCPY_DEBUG=false
-SCRCPY_VERSION_NAME=4.1
+SCRCPY_VERSION_NAME=0.1.3
 
 PLATFORM=${ANDROID_PLATFORM:-36}
 BUILD_TOOLS=${ANDROID_BUILD_TOOLS:-36.0.0}

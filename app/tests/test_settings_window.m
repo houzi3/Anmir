@@ -54,7 +54,7 @@ int main(int argc, const char *argv[]) {
         [dark performClick:nil]; assert([selectedTheme isEqualToString:@"dark"]);
         [languages selectItemAtIndex:2]; [NSApp sendAction:languages.action to:languages.target from:languages];
         assert([selectedLanguage isEqualToString:@"zh-Hant"]);
-        assert([settings.window.title isEqualToString:@"ScrcpyX 設定"]);
+        assert([settings.window.title isEqualToString:@"Anmir 設定"]);
         assert([dark.title isEqualToString:@"深色"]);
         assert([languages.itemArray.firstObject.title isEqualToString:@"跟隨系統"]);
         toolbar.state = NSControlStateValueOff;
