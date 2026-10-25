@@ -1,12 +1,10 @@
 # Anmir screenshots
 
-Unedited window captures taken on 2026-10-25 with Anmir on macOS 26.6.2.
-The device list shows a connected Google Pixel 7 running Android 16.
+User-provided screenshots added on 2026-10-25, shared by the Chinese and English READMEs.
 
-- `en/`: English interface, light appearance.
-- `zh-Hans/`: Simplified Chinese interface, light appearance.
-- `devices.png`: device manager.
-- `wireless.png`: manual connection form, with empty fields showing the app's example placeholders.
-- `settings.png`: appearance, language and toolbar settings.
+- `devices.png`: device manager, with transparent outer corners.
+- `mirroring.png`: Google Pixel 7 screen mirroring with floating controls.
 
-The app's original English language, light appearance and enabled toolbar were restored after capture.
+`devices.png` keeps its original 1520 × 1000 canvas and window contents. Only the
+desktop background around the four rounded corners and its edge transparency
+were adjusted. `mirroring.png` is unchanged from the supplied file.

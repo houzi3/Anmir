@@ -1,83 +1,119 @@
 # Anmir
 
-[简体中文](README.md) · [English](README.en.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-在 Mac 上投屏和控制 Android。基于 [scrcpy](https://github.com/Genymobile/scrcpy)，提供原生设备管理、无线配对和独立投屏窗口。内置 adb，无需另装 Homebrew 或 Android SDK。
+**Mirror and control Android devices on your Mac.**
 
-> /ˈæn.mɪr/（安米尔）· An(droid) + mir(ror)
+Built on [scrcpy](https://github.com/Genymobile/scrcpy), with QR pairing, device management and floating controls in a native macOS interface.
 
-## 特色功能
+adb is included, with no separate Homebrew or Android SDK installation needed. Mirroring stays local and requires no account or cloud relay.
 
-- **USB 与无线连接**：自动发现设备，支持扫码、配对码和手动地址；同一手机的连接合并展示。
-- **多设备投屏**：每台设备拥有独立窗口和 Dock 入口，可随时返回设备列表。
-- **截图与录屏**：截图复制到剪贴板；录屏显示时长，并可选择保存位置。
-- **原生 macOS 体验**：悬浮工具栏提供返回、主页、最近任务、截图和录屏，支持明暗主题与跟随系统。
-- **多语言切换**：简体中文、繁体中文、英文即时切换，设置自动保存并同步到投屏窗口。
-- **本地直连**：无需账号或云端转发，ADB 连接仍可用于调试和日志采集。
+> /ˈæn.mɪr/ (AN-mir) · An(droid) + mir(ror)
 
-## 下载
+[Download](#download) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Release history](#release-history)
 
-**v0.1.0** · macOS 11+
+## Highlights
 
-| Mac 芯片 | DMG | ZIP |
-| --- | --- | --- |
-| Apple Silicon（M 系列） | [arm64](https://github.com/laobie/Anmir/releases/download/v0.1.0/Anmir-0.1.0-arm64.dmg) | [arm64](https://github.com/laobie/Anmir/releases/download/v0.1.0/Anmir-0.1.0-arm64.zip) |
-| Intel | [x86_64](https://github.com/laobie/Anmir/releases/download/v0.1.0/Anmir-0.1.0-x86_64.dmg) | [x86_64](https://github.com/laobie/Anmir/releases/download/v0.1.0/Anmir-0.1.0-x86_64.zip) |
+- **Built-in wireless pairing:** scan Anmir's QR code with your Android device, or enter a pairing code. Connect paired devices by IP address and port.
+- **Unified device management:** discover Android devices and group each device's USB and wireless connections. Each mirror has its own window and Dock entry.
+- **Floating controls:** Back, Home, Recents, screenshots and recording beside the mirror window.
+- **Screenshots and recording:** copy device screenshots to your Mac's clipboard. Start and stop recording while mirroring, check elapsed time and choose a save location.
+- **Appearance and language:** light, dark or system appearance; live switching between English, Simplified Chinese and Traditional Chinese. Settings apply to mirror windows too.
 
-[全部版本](https://github.com/laobie/Anmir/releases) · [SHA-256 校验](https://github.com/laobie/Anmir/releases/download/v0.1.0/SHA256SUMS) · [源码包](https://github.com/laobie/Anmir/releases/download/v0.1.0/Anmir-0.1.0-source.tar.gz)
+## Download
 
-USB 投屏需 Android 5.0+，无线配对需 Android 11+。
+[Latest release](https://github.com/laobie/Anmir/releases/latest) · macOS 11+ · Apple Silicon / Intel
 
-## 界面预览
+Choose **arm64** for Apple Silicon or **x86_64** for Intel.
 
-<img src="doc/images/zh-Hans/devices.png" alt="Anmir 简体中文设备管理界面" width="760" />
+## Screenshots
+
+<table>
+  <tr>
+    <th>Device list</th>
+    <th>Screen mirroring and floating controls</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="doc/images/devices.png" alt="Anmir device list" width="480" /></td>
+    <td valign="top"><img src="doc/images/mirroring.png" alt="Anmir screen mirroring and floating controls" width="250" /></td>
+  </tr>
+</table>
+
+## Quick start
+
+### Install the app
+
+Open the DMG, drag Anmir into Applications and open it.
 
 <details>
-<summary>查看无线连接与设置</summary>
+<summary>If macOS blocks the first launch</summary>
 
-<img src="doc/images/zh-Hans/wireless.png" alt="Anmir 简体中文无线连接界面" width="500" />
+1. Double-click the **Privacy & Security** shortcut in the DMG window or extracted ZIP folder.
+2. In Privacy & Security, choose **Open Anyway** for Anmir.
 
-<img src="doc/images/zh-Hans/settings.png" alt="Anmir 简体中文设置界面" width="620" />
+The app is not notarized; see [Apple's instructions](https://support.apple.com/102445).
 
 </details>
 
-## 快速开始
+### USB connection · Android 5.0+
 
-1. 打开 DMG，将 Anmir 拖入“应用程序”并打开。
-2. 在手机上开启“开发者选项 → USB 调试”。
-3. 用支持数据传输的 USB 线连接，在手机上允许调试授权。一台可用设备时直接投屏，多台设备时从列表选择。
+1. Enable **Developer options → USB debugging** on your Android device.
+2. Connect it to your Mac with a USB data cable and allow USB debugging on the device.
 
-**无线连接**：手机与 Mac 连到同一网络，开启手机“开发者选项 → 无线调试”，点击设备列表的 Wi-Fi 加号。用手机的“使用二维码配对设备”扫码，或切换配对码；已配对的设备也可输入地址连接。
+A single ready device opens directly; with multiple devices, choose one from the device list.
 
-**日常操作**：在投屏窗口旁使用工具栏截图、录屏或返回主页。设备列表和投屏窗口右上角的齿轮均可打开设置，也支持 `⌘,`。
+### Wireless connection · Android 11+
 
-首次打开若被 macOS 拦截，双击安装包中的 **Privacy & Security**，在系统页选择“仍要打开”。当前版本未经 Apple 公证，详见 [Apple 说明](https://support.apple.com/102445)。
+1. Connect your device and Mac to the same network. Enable **Developer options → Wireless debugging** on the Android device.
+2. Click the **Wi-Fi add button** in Anmir and choose a connection method:
 
-## 命令行
+| Method | Action |
+| --- | --- |
+| QR pairing | Select **Pair device with QR code** on the Android device and scan the code shown in Anmir. |
+| Pairing code | Select the discovered device and enter its pairing code. If discovery fails, enter the pairing address and port manually. |
+| Already paired device | Enter the device's IP address and connection port manually. |
 
-应用内的 `anmir` 命令兼容 scrcpy 参数：
+### Everyday controls
+
+| Action | Where |
+| --- | --- |
+| Back, Home and Recents | Floating toolbar beside the mirror window. |
+| Screenshots and recording | Floating toolbar. Screenshots go to your Mac's clipboard; recordings can be saved to a chosen location. |
+| Appearance, language and toolbar settings | Gear in the device list or mirror window, or `⌘,`. |
+
+## Command line
+
+The bundled `anmir` command accepts scrcpy options:
 
 ```sh
 /Applications/Anmir.app/Contents/MacOS/anmir --help
 /Applications/Anmir.app/Contents/MacOS/anmir --serial DEVICE_SERIAL
 ```
 
-## 文档与反馈
+## Documentation and feedback
 
-[构建与 LGPL 重新链接](doc/build-anmir.md) · [快捷键](doc/shortcuts.md) · [连接](doc/connection.md) · [音频](doc/audio.md) · [macOS 架构](doc/macos-architecture.md)
+- User guides: [Shortcuts](doc/shortcuts.md) · [Connections](doc/connection.md) · [Audio](doc/audio.md)
+- Developer docs: [Building and LGPL relinking](doc/build-anmir.md) · [macOS architecture](doc/macos-architecture.md)
 
-反馈请到 [Issues](https://github.com/laobie/Anmir/issues)，附上版本、系统和连接方式。
+Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
 
-## 更新记录
+- Anmir version, Mac processor and macOS version.
+- Android version, connection method and steps to reproduce.
 
-| 版本 | 日期 | 更新内容 | 发布页 |
+## Release history
+
+| Version | Date | Changes | Release |
 | --- | --- | --- | --- |
-| v0.1.0 | 2026-10-25 | 首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。 | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
+| v0.1.0 | 2026-10-25 | Initial release: native device management, USB/wireless mirroring, screenshots, recording and localization. | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
 
-## 开源许可
+## Special thanks
 
-基于 scrcpy v4.1 独立维护，非 Genymobile 官方项目。
+Special thanks to [@ztygalaxy](https://github.com/ztygalaxy) for early testing and helpful suggestions.
 
-采用 [Apache 2.0](LICENSE)，保留[上游署名](NOTICE)；依赖许可证见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+## License
+
+Independently maintained, based on upstream scrcpy v4.1. Not an official Genymobile project.
+
+Licensed under [Apache 2.0](LICENSE), with [upstream attribution](NOTICE) preserved. Dependency licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 Android is a trademark of Google LLC.
