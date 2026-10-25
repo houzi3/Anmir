@@ -4,11 +4,9 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-Pronounced **AN-mir** (/ˈæn.mɪr/), with the stress on the first syllable.
-
-Anmir combines **An** from Android and **mir** from mirror, expressing its purpose: bringing your Android screen to your Mac.
-
 Anmir is an independently maintained macOS application based on [scrcpy](https://github.com/Genymobile/scrcpy). It brings Android mirroring, control and device connections into a native Mac interface.
+
+> Anmir is pronounced AN-mir (/ˈæn.mɪr/), with stress on the first syllable. The name blends An(droid) and mir(ror): bringing your Android screen to your Mac.
 
 ## Highlights
 
