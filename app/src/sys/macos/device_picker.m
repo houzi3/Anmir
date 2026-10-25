@@ -3,6 +3,7 @@
 #import <AppKit/AppKit.h>
 #import "localization.h"
 #import "settings_ui.h"
+#import "updater.h"
 #import "device_picker_ui.h"
 #import "device_support.h"
 #import "device_ui.h"
@@ -1103,10 +1104,11 @@ static void
 sc_device_picker_run_windows(void) {
     // The manager may be created later by the Devices action while Settings
     // is already open. Read the shared manager on every iteration.
-    while (deviceManager.window.visible || SCSettingsWindowVisible() || deviceManager.pendingPreparations) {
+    while (deviceManager.window.visible || SCSettingsWindowVisible() || SCAboutWindowVisible() || SCUpdaterBusy() || deviceManager.pendingPreparations) {
         @autoreleasepool {
             SDL_Event event;
             if (SDL_WaitEventTimeout(&event, 100) && event.type == SDL_EVENT_QUIT) {
+                SCUpdaterCancel();
                 [deviceManager.window close];
                 for (NSWindow *window in NSApp.windows.copy) { [window close]; }
             }

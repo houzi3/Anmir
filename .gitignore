@@ -8,3 +8,7 @@ build/
 /x/
 local.properties
 /scrcpy-server
+
+# Local build tools, dependency sources and products
+/release/work/
+/app/deps/work/

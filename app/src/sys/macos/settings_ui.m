@@ -1,5 +1,7 @@
 #include "util/log.h"
 #import "settings_ui.h"
+#import "updater.h"
+#import "about_window.h"
 #import "settings_window.h"
 #import "settings.h"
 #import "localization.h"
@@ -8,6 +10,7 @@
 
 @interface SCSettingsActions : NSObject
 @property(nonatomic, strong) SCSettingsWindowController *controller;
+@property(nonatomic, strong) SCAboutWindowController *about;
 - (void)show:(id)sender;
 - (void)refresh:(NSNotification *)notification;
 - (void)refreshMenus:(NSNotification *)notification;
@@ -21,7 +24,7 @@ void SCLocalizeApplicationMenus(void) {
     NSString *name = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: @"Anmir";
     NSDictionary *titles = @{@"terminate:":@"Quit %@", @"hide:":@"Hide %@",
         @"hideOtherApplications:":@"Hide Others", @"unhideAllApplications:":@"Show All",
-        @"orderFrontStandardAboutPanel:":@"About %@", @"performMiniaturize:":@"Minimize",
+        @"orderFrontStandardAboutPanel:":@"About %@", @"showAbout:":@"About %@", @"performMiniaturize:":@"Minimize",
         @"performZoom:":@"Zoom", @"performClose:":@"Close", @"arrangeInFront:":@"Bring All to Front"};
     NSMutableArray *menus = [NSMutableArray array];
     if (NSApp.mainMenu) { [menus addObject:NSApp.mainMenu]; }
@@ -33,7 +36,7 @@ void SCLocalizeApplicationMenus(void) {
                 key = NSApp.keyWindow.styleMask & NSWindowStyleMaskFullScreen ? @"Exit Full Screen" : @"Enter Full Screen";
             }
             if (key) {
-                if ([key containsString:@"%@"]) { SCBindFormat(item, @"title", key, @[name]); }
+                if ([key containsString:@"%@"]) { SCBindFormat(item, @"title", key, @[[key isEqual:@"About %@"] ? @"Anmir" : name]); }
                 else { SCBind(item, @"title", key); }
             }
             if (item.submenu == NSApp.windowsMenu) {
@@ -47,6 +50,14 @@ void SCLocalizeApplicationMenus(void) {
 }
 
 @implementation SCSettingsActions
+- (void)showAbout:(id)sender {
+    (void)sender;
+    if (!self.about) { self.about = [[SCAboutWindowController alloc] initWithBundle:SCMirrorHostBundle()]; }
+    [self.about showWindow:nil];
+    [self.about.window makeKeyAndOrderFront:nil];
+    if (@available(macOS 14.0, *)) { [NSApp activate]; }
+    else { [NSApp activateIgnoringOtherApps:YES]; }
+}
 - (void)show:(id)sender {
     (void)sender;
     NSBundle *host = SCMirrorHostBundle();
@@ -113,6 +124,7 @@ static void SCSettingsEnsureActions(void) {
 }
 void SCSettingsShow(void) { SCSettingsEnsureActions(); [actions show:nil]; }
 BOOL SCSettingsWindowVisible(void) { return actions.controller.window.visible; }
+BOOL SCAboutWindowVisible(void) { return actions.about.anyWindowVisible; }
 
 NSButton *SCSettingsButton(void) {
     SCSettingsEnsureActions();
@@ -135,5 +147,11 @@ void SCSettingsInstallMenu(void) {
         item.tag = 0x53435345; item.target = actions; item.action = @selector(show:);
         SCBind(item, @"title", @"Settings…");
     }
+    for (NSMenuItem *item in menu.itemArray) {
+        if (item.action == @selector(orderFrontStandardAboutPanel:)) {
+            item.target = actions; item.action = @selector(showAbout:);
+        }
+    }
+    SCUpdaterInstallMenu(menu);
     SCLocalizeApplicationMenus();
 }

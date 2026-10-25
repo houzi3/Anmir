@@ -170,3 +170,51 @@
 "Copy serial number" = "Copy serial number";
 "Copy IP address" = "Copy IP address";
 "Copied" = "Copied";
+
+/* Software updates */
+"Check for Updates…" = "Check for Updates…";
+"Checking for updates…" = "Checking for updates…";
+"Could not contact GitHub. Please try again later." = "Could not contact GitHub. Please try again later.";
+"The release information is invalid." = "The release information is invalid.";
+"You’re up to date" = "You’re up to date";
+"No verified update package is available for this Mac." = "No verified update package is available for this Mac.";
+"An update is available" = "An update is available";
+"Download and Install" = "Download and Install";
+"Later" = "Later";
+"Close all mirroring windows before installing an update." = "Close all mirroring windows before installing an update.";
+"Move Anmir to a writable Applications folder before updating." = "Move Anmir to a writable Applications folder before updating.";
+"Downloading update…" = "Downloading update…";
+"Preparing update…" = "Preparing update…";
+"The update download failed." = "The update download failed.";
+"The update checksum does not match." = "The update checksum does not match.";
+"The downloaded application is invalid." = "The downloaded application is invalid.";
+"This update requires a newer version of macOS." = "This update requires a newer version of macOS.";
+"The update could not be prepared." = "The update could not be prepared.";
+"Ready to install" = "Ready to install";
+"Anmir will quit, install the update, and reopen. The previous version will be kept next to the application." = "Anmir will quit, install the update, and reopen. The previous version will be kept next to the application.";
+"Install and Restart" = "Install and Restart";
+"The update installer is missing." = "The update installer is missing.";
+"Update failed" = "Update failed";
+"A new version of Anmir is available" = "A new version of Anmir is available";
+"Anmir %@ is available. You’re currently using %@. Would you like to download and install it now?" = "Anmir %@ is available. You’re currently using %@. Would you like to download and install it now?";
+"Release Notes:" = "Release Notes:";
+"Install Update" = "Install Update";
+"Install Later" = "Install Later";
+"Skip This Version" = "Skip This Version";
+"You skipped this version" = "You skipped this version";
+"You skipped Anmir %@. You can still view and install it manually." = "You skipped Anmir %@. You can still view and install it manually.";
+"View Update" = "View Update";
+
+/* About Anmir */
+"Version %@" = "Version %@";
+"Version %@ (Build %@)" = "Version %@ (Build %@)";
+"Mirror and control Android devices from your Mac." = "Mirror and control Android devices from your Mac.";
+"Project Home" = "Project Home";
+"Report an Issue" = "Report an Issue";
+"Open Source Licenses" = "Open Source Licenses";
+"Anmir is licensed under Apache 2.0. Third-party components retain their own licenses." = "Anmir is licensed under Apache 2.0. Third-party components retain their own licenses.";
+"Anmir License" = "Anmir License";
+"Upstream Notices" = "Upstream Notices";
+"Third-Party Notices" = "Third-Party Notices";
+"License files are unavailable in this build." = "License files are unavailable in this build.";
+"OK" = "OK";

@@ -278,6 +278,7 @@ sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
     -e "s/@SCRCPY_APP_NAME@/$APP_NAME/g" \
     "$ROOT_DIR/app/Info.plist.in" \
     > "$APP/Contents/Info.plist"
+cp "$ROOT_DIR/app/data/install-update.sh" "$APP/Contents/Resources/install-update.sh"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 SIGNING_STATUS="未签名，未经过 Apple 公证。"
