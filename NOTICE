@@ -14,6 +14,12 @@ packaging. Modified source files identify their downstream changes.
 Anmir is not affiliated with or endorsed by Genymobile or scrcpy's maintainers.
 Android is a trademark of Google LLC.
 
+The Android robot in the app icon is adapted from artwork created and shared
+by Google under the Creative Commons Attribution 3.0 License (CC BY 3.0).
+Original artwork: https://developer.android.com/distribute/marketing-tools/brand-guidelines
+License: https://creativecommons.org/licenses/by/3.0/
+Changes: the robot is incorporated into a desktop monitor illustration.
+
 The toolbar SVGs derive from Google Material Icons under Apache License 2.0.
 Their modifications are described in app/data/toolbar-icons/README.md.
 
