@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Run scrcpy generated in the specified BUILDDIR.
+# Modified for Anmir; see NOTICE for downstream changes.
+# Run Anmir generated in the specified BUILDDIR.
 #
 # This provides the same feature as "ninja run", except that it is possible to
-# pass arguments to scrcpy.
+# pass arguments to Anmir.
 #
-# Syntax: ./run BUILDDIR <scrcpy options ...>
+# Syntax: ./run BUILDDIR <anmir options ...>
 if [[ $# = 0 ]]
 then
-    echo "Syntax: $0 BUILDDIR <scrcpy options>" >&2
+    echo "Syntax: $0 BUILDDIR <anmir options>" >&2
     exit 1
 fi
 
@@ -22,4 +23,4 @@ fi
 
 SCRCPY_ICON_DIR="app/data" \
 SCRCPY_SERVER_PATH="$BUILDDIR/server/scrcpy-server" \
-"$BUILDDIR/app/scrcpy" "$@"
+"$BUILDDIR/app/anmir" "$@"

@@ -19,7 +19,7 @@
 #include "util/file.h"
 #include "util/log.h"
 
-#define SCRCPY_DEFAULT_ICON_DIR PREFIX "/share/icons/hicolor/256x256/apps"
+#define SCRCPY_DEFAULT_ICON_DIR PREFIX "/share/anmir"
 
 static char *
 get_icon_path(const char *filename) {

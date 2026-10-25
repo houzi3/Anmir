@@ -88,8 +88,8 @@ jobs:
           bash release/build_macos_app.sh --dmg --zip \
             --server "$PWD/release/work/build-server/scrcpy-server" \
             'release/work/build-macos-${{ matrix.arch }}'
-          test "$(lipo -archs dist/Anmir.app/Contents/MacOS/scrcpy)" = '${{ matrix.arch }}'
-          dist/Anmir.app/Contents/MacOS/scrcpy --version
+          test "$(lipo -archs dist/Anmir.app/Contents/MacOS/anmir)" = '${{ matrix.arch }}'
+          dist/Anmir.app/Contents/MacOS/anmir --version
           codesign --verify --deep --strict dist/Anmir.app
           (cd dist && shasum -a 256 -c SHA256SUMS)
       - name: Package complete source

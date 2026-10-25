@@ -36,8 +36,8 @@ Anmir @VERSION@ — macOS @ARCH@
 Apple 官方说明：https://support.apple.com/102445
 
 命令行
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --help
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --serial <设备序列号>
+  /Applications/Anmir.app/Contents/MacOS/anmir --help
+  /Applications/Anmir.app/Contents/MacOS/anmir --serial <设备序列号>
 显式指定设备、ANDROID_SERIAL、无窗口模式和独立命令行版本保留原有选择行为。
 
 Anmir 基于 scrcpy 开源项目开发。

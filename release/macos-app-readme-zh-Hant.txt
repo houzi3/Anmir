@@ -34,8 +34,8 @@ Anmir @VERSION@ — macOS @ARCH@
 Apple 說明：https://support.apple.com/102445
 
 指令列
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --help
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --serial <裝置序號>
+  /Applications/Anmir.app/Contents/MacOS/anmir --help
+  /Applications/Anmir.app/Contents/MacOS/anmir --serial <裝置序號>
 指定裝置、ANDROID_SERIAL 與無視窗模式維持原有行為。獨立 CLI 的指令介面維持英文。
 
 Anmir 以 scrcpy 開源專案為基礎。授權條款請見 Contents/Resources/LICENSE。

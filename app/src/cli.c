@@ -152,7 +152,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_ALWAYS_ON_TOP,
         .longopt = "always-on-top",
-        .text = "Make scrcpy window always on top (above other windows).",
+        .text = "Make anmir window always on top (above other windows).",
     },
     {
         .longopt_id = OPT_ANGLE,
@@ -305,7 +305,7 @@ static const struct sc_option options[] = {
         .argdesc = "id",
         .text = "Specify the device camera id to mirror.\n"
                 "The available camera ids can be listed by:\n"
-                "    scrcpy --list-cameras",
+                "    anmir --list-cameras",
     },
     {
         .longopt_id = OPT_CAMERA_SIZE,
@@ -358,7 +358,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_DISABLE_SCREENSAVER,
         .longopt = "disable-screensaver",
-        .text = "Disable screensaver while scrcpy is running.",
+        .text = "Disable screensaver while anmir is running.",
     },
     {
         .longopt_id = OPT_DISPLAY_ID,
@@ -366,7 +366,7 @@ static const struct sc_option options[] = {
         .argdesc = "id",
         .text = "Specify the device display id to mirror.\n"
                 "The available display ids can be listed by:\n"
-                "    scrcpy --list-displays\n"
+                "    anmir --list-displays\n"
                 "Default is 0.",
     },
     {
@@ -475,7 +475,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_KILL_ADB_ON_CLOSE,
         .longopt = "kill-adb-on-close",
-        .text = "Kill adb when scrcpy terminates.",
+        .text = "Kill adb when anmir terminates.",
     },
     {
         .longopt_id = OPT_LEGACY_PASTE,
@@ -626,7 +626,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_NO_CLEANUP,
         .longopt = "no-cleanup",
-        .text = "By default, scrcpy removes the server binary from the device "
+        .text = "By default, anmir removes the server binary from the device "
                 "and restores the device state (show touches, stay awake and "
                 "power mode) on exit.\n"
                 "This option disables this cleanup."
@@ -634,7 +634,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_NO_CLIPBOARD_AUTOSYNC,
         .longopt = "no-clipboard-autosync",
-        .text = "By default, scrcpy automatically synchronizes the computer "
+        .text = "By default, anmir automatically synchronizes the computer "
                 "clipboard to the device clipboard before injecting Ctrl+v, "
                 "and the device clipboard to the computer clipboard whenever "
                 "it changes.\n"
@@ -643,7 +643,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_NO_DOWNSIZE_ON_ERROR,
         .longopt = "no-downsize-on-error",
-        .text = "By default, on MediaCodec error, scrcpy automatically tries "
+        .text = "By default, on MediaCodec error, anmir automatically tries "
                 "again with a lower definition.\n"
                 "This option disables this behavior.",
     },
@@ -708,7 +708,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_NO_WINDOW,
         .longopt = "no-window",
-        .text = "Disable scrcpy window. Implies --no-video-playback.",
+        .text = "Disable anmir window. Implies --no-video-playback.",
     },
     {
         .longopt_id = OPT_NO_WINDOW_ASPECT_RATIO_LOCK,
@@ -762,7 +762,7 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_POWER_OFF_ON_CLOSE,
         .longopt = "power-off-on-close",
-        .text = "Turn the device screen off when closing scrcpy.",
+        .text = "Turn the device screen off when closing anmir.",
     },
     {
         .longopt_id = OPT_PREFER_TEXT,
@@ -846,8 +846,8 @@ static const struct sc_option options[] = {
     {
         .longopt_id = OPT_REQUIRE_AUDIO,
         .longopt = "require-audio",
-        .text = "By default, scrcpy mirrors only the video when audio capture "
-                "fails on the device. This option makes scrcpy fail if audio "
+        .text = "By default, anmir mirrors only the video when audio capture "
+                "fails on the device. This option makes anmir fail if audio "
                 "is enabled but does not work."
     },
     {
@@ -866,19 +866,19 @@ static const struct sc_option options[] = {
         .longopt_id = OPT_SCREEN_OFF_TIMEOUT,
         .longopt = "screen-off-timeout",
         .argdesc = "seconds",
-        .text = "Set the screen off timeout while scrcpy is running (restore "
+        .text = "Set the screen off timeout while anmir is running (restore "
                 "the initial value on exit).",
     },
     {
         .longopt_id = OPT_SHORTCUT_MOD,
         .longopt = "shortcut-mod",
         .argdesc = "key[+...][,...]",
-        .text = "Specify the modifiers to use for scrcpy shortcuts.\n"
+        .text = "Specify the modifiers to use for anmir shortcuts.\n"
                 "Possible keys are \"lctrl\", \"rctrl\", \"lalt\", \"ralt\", "
                 "\"lsuper\" and \"rsuper\".\n"
                 "Several shortcut modifiers can be specified, separated by "
                 "','.\n"
-                "For example, to use either LCtrl or LSuper for scrcpy "
+                "For example, to use either LCtrl or LSuper for anmir "
                 "shortcuts, pass \"lctrl,lsuper\".\n"
                 "Default is \"lalt,lsuper\" (left-Alt or left-Super).",
     },
@@ -890,18 +890,18 @@ static const struct sc_option options[] = {
                 "Add a '?' prefix to select an app whose name starts with the "
                 "given name, case-insensitive (retrieving app names on the "
                 "device may take some time):\n"
-                "    scrcpy --start-app=?firefox\n"
+                "    anmir --start-app=?firefox\n"
                 "Add a '+' prefix to force-stop before starting the app:\n"
-                "    scrcpy --new-display --start-app=+org.mozilla.firefox\n"
+                "    anmir --new-display --start-app=+org.mozilla.firefox\n"
                 "Both prefixes can be used, in that order:\n"
-                "    scrcpy --start-app=+?firefox",
+                "    anmir --start-app=+?firefox",
     },
     {
         .shortopt = 't',
         .longopt = "show-touches",
         .text = "Enable \"show touches\" on start, restore the initial value "
                 "on exit.\n"
-                "It only shows physical touches (not clicks from scrcpy).",
+                "It only shows physical touches (not clicks from anmir).",
     },
     {
         .longopt_id = OPT_TCPIP,
@@ -909,10 +909,10 @@ static const struct sc_option options[] = {
         .argdesc = "[+]ip[:port]",
         .optional_arg = true,
         .text = "Configure and connect the device over TCP/IP.\n"
-                "If a destination address is provided, then scrcpy connects to "
+                "If a destination address is provided, then anmir connects to "
                 "this address before starting. The device must listen on the "
                 "given TCP port (default is 5555).\n"
-                "If no destination address is provided, then scrcpy attempts "
+                "If no destination address is provided, then anmir attempts "
                 "to find the IP address of the current device (typically "
                 "connected over USB), enables TCP/IP mode, then connects to "
                 "this address before starting.\n"
@@ -928,7 +928,7 @@ static const struct sc_option options[] = {
         .longopt_id = OPT_TUNNEL_HOST,
         .longopt = "tunnel-host",
         .argdesc = "ip",
-        .text = "Set the IP address of the adb tunnel to reach the scrcpy "
+        .text = "Set the IP address of the adb tunnel to reach the anmir "
                 "server. This option automatically enables "
                 "--force-adb-forward.\n"
                 "Default is localhost.",
@@ -937,7 +937,7 @@ static const struct sc_option options[] = {
         .longopt_id = OPT_TUNNEL_PORT,
         .longopt = "tunnel-port",
         .argdesc = "port",
-        .text = "Set the TCP port of the adb tunnel to reach the scrcpy "
+        .text = "Set the TCP port of the adb tunnel to reach the anmir "
                 "server. This option automatically enables "
                 "--force-adb-forward.\n"
                 "Default is 0 (not forced): the local port used for "
@@ -946,7 +946,7 @@ static const struct sc_option options[] = {
     {
         .shortopt = 'v',
         .longopt = "version",
-        .text = "Print the version of scrcpy.",
+        .text = "Print the version of anmir.",
     },
     {
         .shortopt = 'V',
@@ -1024,7 +1024,7 @@ static const struct sc_option options[] = {
     {
         .shortopt = 'w',
         .longopt = "stay-awake",
-        .text = "Keep the device on while scrcpy is running, when the device "
+        .text = "Keep the device on while anmir is running, when the device "
                 "is plugged in.",
     },
     {

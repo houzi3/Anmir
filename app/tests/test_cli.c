@@ -14,7 +14,7 @@ static void test_flag_version(void) {
         .version = false,
     };
 
-    char *argv[] = {"scrcpy", "-v"};
+    char *argv[] = {"anmir", "-v"};
 
     bool ok = scrcpy_parse_args(&args, 2, argv);
     assert(ok);
@@ -29,7 +29,7 @@ static void test_flag_help(void) {
         .version = false,
     };
 
-    char *argv[] = {"scrcpy", "-v"};
+    char *argv[] = {"anmir", "-v"};
 
     bool ok = scrcpy_parse_args(&args, 2, argv);
     assert(ok);
@@ -45,7 +45,7 @@ static void test_options(void) {
     };
 
     char *argv[] = {
-        "scrcpy",
+        "anmir",
         "--always-on-top",
         "--video-bit-rate", "5M",
         "--crop", "100:200:300:400",
@@ -107,7 +107,7 @@ static void test_options2(void) {
     };
 
     char *argv[] = {
-        "scrcpy",
+        "anmir",
         "--no-control",
         "--no-playback",
         "--record", "file.mp4", // cannot enable --no-playback without recording
@@ -155,7 +155,7 @@ static void test_parse_shortcut_mods(void) {
 static void test_explicit_background_color(void) {
     struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
     assert(!args.opts.background_color_explicit);
-    char *argv[] = {"scrcpy", "--background-color=000000"};
+    char *argv[] = {"anmir", "--background-color=000000"};
     assert(scrcpy_parse_args(&args, ARRAY_LEN(argv), argv));
     assert(args.opts.background_color == 0);
     assert(args.opts.background_color_explicit);

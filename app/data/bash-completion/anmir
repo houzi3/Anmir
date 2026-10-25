@@ -1,4 +1,5 @@
-_scrcpy() {
+# Modified for Anmir; see NOTICE for downstream changes.
+_anmir() {
     local cur prev words cword
     local opts="
         --always-on-top
@@ -245,4 +246,4 @@ _scrcpy() {
     [[ $COMPREPLY == *= ]] && compopt -o nospace
 }
 
-complete -F _scrcpy scrcpy
+complete -F _anmir anmir

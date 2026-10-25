@@ -37,7 +37,7 @@ int main(int argc, const char *argv[]) {
             assert([SCMirrorHostBundleIdentifier() isEqualToString:host.bundleIdentifier]);
             return 0;
         }
-        NSArray *arguments = SCMirrorArguments(@[@"scrcpy", @"-s", @"old", @"--serial=other",
+        NSArray *arguments = SCMirrorArguments(@[@"anmir", @"-s", @"old", @"--serial=other",
             @"-d", @"--tcpip=192.0.2.1", @"--no-audio"], @"new");
         assert(([arguments isEqualToArray:@[@"--serial", @"new", @"--no-audio"]]));
         NSFileManager *files = NSFileManager.defaultManager;
@@ -49,10 +49,10 @@ int main(int argc, const char *argv[]) {
         NSURL *resources = [contents URLByAppendingPathComponent:@"Resources"];
         assert([files createDirectoryAtURL:macOS withIntermediateDirectories:YES attributes:nil error:nil]);
         assert([files createDirectoryAtURL:resources withIntermediateDirectories:YES attributes:nil error:nil]);
-        NSURL *binary = [macOS URLByAppendingPathComponent:@"scrcpy"];
+        NSURL *binary = [macOS URLByAppendingPathComponent:@"anmir"];
         assert([files copyItemAtURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:argv[0]]]
                              toURL:binary error:nil]);
-        NSDictionary *info = @{@"CFBundleExecutable":@"scrcpy", @"CFBundlePackageType":@"APPL",
+        NSDictionary *info = @{@"CFBundleExecutable":@"anmir", @"CFBundlePackageType":@"APPL",
             @"CFBundleIdentifier":@"org.scrcpy.mirror.testhost", @"CFBundleName":@"Host"};
         assert([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]);
         NSData *original = [NSData dataWithContentsOfURL:binary];
@@ -62,6 +62,8 @@ int main(int argc, const char *argv[]) {
             hostBundle:[NSBundle bundleWithURL:hostURL] error:&error];
         assert(launch && !error);
         NSBundle *mirror = [NSBundle bundleWithURL:launch.bundleURL];
+        assert([launch.executableURL.lastPathComponent isEqualToString:@"anmir"]);
+        assert([[mirror objectForInfoDictionaryKey:@"CFBundleExecutable"] isEqualToString:@"anmir"]);
         assert([launch.bundleURL.lastPathComponent isEqualToString:@"Google Pixel 7.app"]);
         assert([[mirror objectForInfoDictionaryKey:@"CFBundleDisplayName"] isEqualToString:@"Google Pixel 7"]);
         assert([[mirror objectForInfoDictionaryKey:@"AnmirDeviceSerial"]

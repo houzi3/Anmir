@@ -37,8 +37,8 @@ System Settings > Privacy & Security > Open Anyway if you trust its source.
 Apple guidance: https://support.apple.com/102445
 
 Command line
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --help
-  /Applications/Anmir.app/Contents/MacOS/scrcpy --serial <serial>
+  /Applications/Anmir.app/Contents/MacOS/anmir --help
+  /Applications/Anmir.app/Contents/MacOS/anmir --serial <serial>
 Explicit selectors, ANDROID_SERIAL and headless modes retain their behavior.
 The standalone CLI keeps its English command-line interface.
 

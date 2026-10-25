@@ -164,7 +164,7 @@ The bundle embeds `adb` and `scrcpy-server`, so it does not depend on the
 started from Finder; run the executable directly instead:
 
 ```bash
-/Applications/Anmir.app/Contents/MacOS/scrcpy --help
+/Applications/Anmir.app/Contents/MacOS/anmir --help
 ```
 
 Only the native executables are placed in `Contents/MacOS`; the Android server,

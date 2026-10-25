@@ -14,7 +14,8 @@ binary does not produce an Intel build.
 ```sh
 git clone https://github.com/laobie/Anmir.git
 cd Anmir
-git checkout v0.1.3
+git checkout main
+# To reproduce the published 0.1.3 release instead, use: git checkout v0.1.3
 
 python3 -m venv release/work/dmgbuild-env
 release/work/dmgbuild-env/bin/pip install dmgbuild==1.6.7
@@ -33,7 +34,9 @@ bash release/build_macos_app.sh --dmg --zip \
 ```
 
 The output is `dist/Anmir.app`, architecture-specific DMG and ZIP files, and
-`dist/SHA256SUMS`. Bundles use a local ad hoc signature unless a signing identity
+`dist/SHA256SUMS`. Current-source bundles launch
+`Contents/MacOS/anmir`; the published v0.1.3 tag uses `Contents/MacOS/scrcpy`.
+Bundles use a local ad hoc signature unless a signing identity
 is supplied. An ad hoc signature is not Apple notarization.
 
 ## Rebuild with modified LGPL libraries

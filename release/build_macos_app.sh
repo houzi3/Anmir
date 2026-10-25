@@ -18,8 +18,8 @@ usage() {
 Usage: $0 [options] <build-dir|dist-dir>
 
 Build an Anmir.app bundle from:
- - a meson build directory (containing app/scrcpy), or
- - a portable distribution directory (containing scrcpy, adb and
+ - a meson build directory (containing app/anmir), or
+ - a portable distribution directory (containing anmir, adb and
    scrcpy-server, as in a release archive).
 
 Options:
@@ -138,14 +138,14 @@ fi
 [[ -d "$SRC" ]] || die "directory not found: $SRC"
 SRC="$(cd "$SRC" && pwd)"
 
-if [[ -x "$SRC/app/scrcpy" ]]; then
+if [[ -x "$SRC/app/anmir" ]]; then
     MODE=build
-    BIN="$SRC/app/scrcpy"
-elif [[ -x "$SRC/scrcpy" ]]; then
+    BIN="$SRC/app/anmir"
+elif [[ -x "$SRC/anmir" ]]; then
     MODE=dist
-    BIN="$SRC/scrcpy"
+    BIN="$SRC/anmir"
 else
-    die "no scrcpy executable found in $SRC (expected app/scrcpy or scrcpy)"
+    die "no anmir executable found in $SRC (expected app/anmir or anmir)"
 fi
 
 VERSION="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" "$ROOT_DIR/meson.build" | head -n 1)"
@@ -210,7 +210,7 @@ APP="$OUTPUT_DIR/$APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-install -m 755 "$BIN" "$APP/Contents/MacOS/scrcpy"
+install -m 755 "$BIN" "$APP/Contents/MacOS/anmir"
 install -m 755 "$ADB" "$APP/Contents/MacOS/adb"
 install -m 644 "$SERVER" "$APP/Contents/Resources/scrcpy-server"
 install -m 644 "$ROOT_DIR/NOTICE" "$ROOT_DIR/THIRD_PARTY.md" "$APP/Contents/Resources/"
@@ -232,13 +232,13 @@ if [[ "$MODE" = dist ]]; then
     copy_data "$SRC/scrcpy.png" "$APP/Contents/Resources"
     copy_data "$SRC/disconnected.png" "$APP/Contents/Resources"
     copy_data "$SRC/toolbar-icons" "$APP/Contents/Resources"
-    copy_data "$SRC/scrcpy.1" "$APP/Contents/Resources"
+    copy_data "$SRC/anmir.1" "$APP/Contents/Resources"
     copy_data "$SRC/LICENSE" "$APP/Contents/Resources"
 else
     copy_data "$ROOT_DIR/app/data/scrcpy.png" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/data/disconnected.png" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/data/toolbar-icons" "$APP/Contents/Resources"
-    copy_data "$ROOT_DIR/app/scrcpy.1" "$APP/Contents/Resources"
+    copy_data "$ROOT_DIR/app/anmir.1" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/LICENSE" "$APP/Contents/Resources"
 fi
 
@@ -336,7 +336,7 @@ echo "Minimum macOS: $MINIMUM_SYSTEM_VERSION"
 if $CREATE_ZIP; then
     ZIP="$OUTPUT_DIR/$APP_NAME-$VERSION-$ARCH.zip"
     rm -f "$ZIP"
-    ZIP_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/scrcpy-zip.XXXXXX")"
+    ZIP_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/anmir-zip.XXXXXX")"
     trap 'rm -rf "$ZIP_STAGE"' EXIT
     ditto "$APP" "$ZIP_STAGE/$APP_NAME.app"
     cp "$OUTPUT_DIR/README.txt" "$ZIP_STAGE/README.txt"

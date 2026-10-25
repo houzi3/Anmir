@@ -13,7 +13,7 @@
     <key>CFBundleDisplayName</key>
     <string>@SCRCPY_APP_NAME@</string>
     <key>CFBundleExecutable</key>
-    <string>scrcpy</string>
+    <string>anmir</string>
     <key>CFBundleIconFile</key>
     <string>scrcpy</string>
     <key>CFBundleIdentifier</key>

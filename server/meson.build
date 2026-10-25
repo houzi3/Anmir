@@ -1,3 +1,4 @@
+# Modified for Anmir; see NOTICE for downstream changes.
 # It may be useful to use a prebuilt server, so that no Android SDK is required
 # to build. If the 'prebuilt_server' option is set, just copy the file as is.
 prebuilt_server = get_option('prebuilt_server')
@@ -10,7 +11,7 @@ if prebuilt_server == ''
                   command: [find_program('./scripts/build-wrapper.sh'), meson.current_source_dir(), '@OUTPUT@', get_option('buildtype')],
                   console: true,
                   install: true,
-                  install_dir: 'share/scrcpy')
+                  install_dir: 'share/anmir')
 else
     if not prebuilt_server.startswith('/')
         # prebuilt server path is relative to the root scrcpy directory
@@ -21,7 +22,7 @@ else
                   output: 'scrcpy-server',
                   command: ['cp', '@INPUT@', '@OUTPUT@'],
                   install: true,
-                  install_dir: 'share/scrcpy')
+                  install_dir: 'share/anmir')
 endif
 
 if meson.version().version_compare('>= 0.58.0')

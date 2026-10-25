@@ -153,7 +153,7 @@ NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) {
     launch.bundleURL = [launch.root URLByAppendingPathComponent:[filename stringByAppendingPathExtension:@"app"] isDirectory:YES];
     NSURL *contents = [launch.bundleURL URLByAppendingPathComponent:@"Contents" isDirectory:YES];
     NSURL *macOS = [contents URLByAppendingPathComponent:@"MacOS" isDirectory:YES];
-    launch.executableURL = [macOS URLByAppendingPathComponent:@"scrcpy"];
+    launch.executableURL = [macOS URLByAppendingPathComponent:@"anmir"];
     if (![files createDirectoryAtURL:macOS withIntermediateDirectories:YES attributes:nil error:error]
             || ![files copyItemAtURL:host.executableURL toURL:launch.executableURL error:error]
             || ![files copyItemAtURL:host.resourceURL toURL:[contents URLByAppendingPathComponent:@"Resources"] error:error]) {
@@ -162,7 +162,7 @@ NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) {
     NSMutableDictionary *info = [host.infoDictionary mutableCopy];
     info[@"CFBundleName"] = displayName;
     info[@"CFBundleDisplayName"] = displayName;
-    info[@"CFBundleExecutable"] = @"scrcpy";
+    info[@"CFBundleExecutable"] = @"anmir";
     info[@"CFBundleIdentifier"] = [NSString stringWithFormat:@"%@.mirror.%@", host.bundleIdentifier, token];
     info[SCHostPath] = host.bundlePath;
     info[SCHostIdentifier] = host.bundleIdentifier;

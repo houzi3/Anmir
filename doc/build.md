@@ -264,7 +264,7 @@ The server only works with a matching client version (this server works with the
 
 ### Install
 
-After a successful build, you can install _scrcpy_ on the system:
+After a successful build, you can install Anmir on the system:
 
 ```bash
 sudo ninja -Cx install    # without sudo on Windows
@@ -272,20 +272,20 @@ sudo ninja -Cx install    # without sudo on Windows
 
 This installs several files:
 
- - `/usr/local/bin/scrcpy` (main app)
- - `/usr/local/share/scrcpy/scrcpy-server` (server to push to the device)
- - `/usr/local/share/man/man1/scrcpy.1` (manpage)
- - `/usr/local/share/icons/hicolor/256x256/apps/scrcpy.png` (app icon)
- - `/usr/local/share/icons/hicolor/256x256/apps/disconnected.png` (device
+ - `/usr/local/bin/anmir` (main app)
+ - `/usr/local/share/anmir/scrcpy-server` (server to push to the device)
+ - `/usr/local/share/man/man1/anmir.1` (manpage)
+ - `/usr/local/share/icons/hicolor/256x256/apps/anmir.png` (app icon)
+ - `/usr/local/share/anmir/disconnected.png` (device
    disconnected icon)
- - `/usr/local/share/zsh/site-functions/_scrcpy` (zsh completion)
- - `/usr/local/share/bash-completion/completions/scrcpy` (bash completion)
- - `/usr/local/share/applications/scrcpy.desktop` (app-without-console desktop
+ - `/usr/local/share/zsh/site-functions/_anmir` (zsh completion)
+ - `/usr/local/share/bash-completion/completions/anmir` (bash completion)
+ - `/usr/local/share/applications/anmir.desktop` (app-without-console desktop
    entry file)
- - `/usr/local/share/applications/scrcpy-console.desktop` (app-with-console
+ - `/usr/local/share/applications/anmir-console.desktop` (app-with-console
    desktop entry file)
 
-You can then run `scrcpy`.
+You can then run `anmir`. These paths are separate from an upstream scrcpy installation.
 
 
 ### Uninstall

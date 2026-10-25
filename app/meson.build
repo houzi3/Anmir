@@ -236,7 +236,7 @@ configure_file(configuration: conf, output: 'config.h')
 
 src_dir = include_directories('src')
 
-executable('scrcpy', src,
+executable('anmir', src,
            dependencies: dependencies,
            include_directories: src_dir,
            install: true,
@@ -245,15 +245,17 @@ executable('scrcpy', src,
 # <https://mesonbuild.com/Builtin-options.html#directories>
 datadir = get_option('datadir') # by default 'share'
 
-install_man('scrcpy.1')
+install_man('anmir.1')
 
 # Native bundles copy these directories into Contents/Resources.
-install_subdir('data/locales', install_dir: get_option('datadir') / 'scrcpy')
+install_subdir('data/locales', install_dir: datadir / 'anmir')
 install_data('data/scrcpy.png',
-             install_dir: datadir / 'icons/hicolor/256x256/apps')
+             install_dir: datadir / 'icons/hicolor/256x256/apps',
+             rename: 'anmir.png')
+install_data('data/scrcpy.png', install_dir: datadir / 'anmir')
 install_data('data/disconnected.png',
-             install_dir: datadir / 'icons/hicolor/256x256/apps')
-toolbar_icon_dir = datadir / 'icons/hicolor/256x256/apps/toolbar-icons'
+             install_dir: datadir / 'anmir')
+toolbar_icon_dir = datadir / 'anmir/toolbar-icons'
 install_data(
     'data/toolbar-icons/home-20.png',
     'data/toolbar-icons/home-40.png',
@@ -274,17 +276,17 @@ install_data(
     'data/toolbar-icons/stop-40.png',
     'data/toolbar-icons/stop-60.png',
     install_dir: toolbar_icon_dir)
-install_data('data/zsh-completion/_scrcpy',
+install_data('data/zsh-completion/_anmir',
              install_dir: datadir / 'zsh/site-functions')
-install_data('data/bash-completion/scrcpy',
+install_data('data/bash-completion/anmir',
              install_dir: datadir / 'bash-completion/completions')
 
 # Desktop entry file for application launchers
 if host_machine.system() == 'linux'
-    # Install a launcher (ex: /usr/local/share/applications/scrcpy.desktop)
-    install_data('data/scrcpy.desktop',
+    # Install launchers alongside the upstream application.
+    install_data('data/anmir.desktop',
                  install_dir: datadir / 'applications')
-    install_data('data/scrcpy-console.desktop',
+    install_data('data/anmir-console.desktop',
                  install_dir: datadir / 'applications')
 endif
 
