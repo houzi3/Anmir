@@ -1,6 +1,7 @@
 #import "device_support.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <signal.h>
 
 NSString *SCDeviceExecutable(const char *path) {
@@ -199,6 +200,16 @@ static void SCStopTask(NSTask *task) {
     task.standardError = output;
     NSPipe *inputPipe = input ? [NSPipe pipe] : nil;
     task.standardInput = inputPipe ?: NSFileHandle.fileHandleWithNullDevice;
+    // Pairing may be cancelled, or ADB may exit, before the worker writes its
+    // input. Suppress SIGPIPE only on this descriptor, so EPIPE is catchable.
+    if (inputPipe && fcntl(inputPipe.fileHandleForWriting.fileDescriptor,
+            F_SETNOSIGPIPE, 1) == -1) {
+        command.finished = YES;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(@"Could not prepare ADB input.", -1);
+        });
+        return command;
+    }
     NSError *error = nil;
     if (![task launchAndReturnError:&error]) {
         command.finished = YES;
@@ -218,9 +229,12 @@ static void SCStopTask(NSTask *task) {
         NSData *data = nil;
         @try {
             if (inputPipe) {
-                [inputPipe.fileHandleForWriting writeData:
-                    [input dataUsingEncoding:NSUTF8StringEncoding]];
-                [inputPipe.fileHandleForWriting closeFile];
+                @try {
+                    [inputPipe.fileHandleForWriting writeData:
+                        [input dataUsingEncoding:NSUTF8StringEncoding]];
+                } @finally {
+                    [inputPipe.fileHandleForWriting closeFile];
+                }
             }
             data = [output.fileHandleForReading readDataToEndOfFile];
         } @catch (NSException *exception) {

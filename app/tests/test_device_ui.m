@@ -146,7 +146,9 @@ static NSBitmapImageRep *SCIconBitmap(NSImage *image, NSInteger size) {
     bitmap.size = NSMakeSize(size, size);
     [NSGraphicsContext saveGraphicsState];
     NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
-    [image drawInRect:NSMakeRect(0, 0, size, size)];
+    NSRect bounds = NSMakeRect(0, 0, size, size);
+    NSRectFillUsingOperation(bounds, NSCompositingOperationClear);
+    [image drawInRect:bounds];
     [NSGraphicsContext restoreGraphicsState];
     return bitmap;
 }
@@ -191,11 +193,18 @@ static void SCCheckMirrorIcon(NSString *iconPath) {
             CGFloat actual = [first colorAtX:x y:size / 2].alphaComponent;
             assert(fabs(expected - actual) <= 1.0 / 255);
         }
-        // Downsampling can leave a faint badge shadow in the corner pixel.
-        assert([first colorAtX:0 y:0].alphaComponent < 0.1);
-        assert([first colorAtX:size - 1 y:0].alphaComponent < 0.1);
-        assert([first colorAtX:0 y:size - 1].alphaComponent < 0.1);
-        assert([first colorAtX:size - 1 y:size - 1].alphaComponent < 0.1);
+        // System icon masks vary by macOS version. Preserve the host's actual
+        // corners; downsampling may add a faint badge shadow at those pixels.
+        for (NSValue *corner in @[
+            [NSValue valueWithPoint:NSMakePoint(0, 0)],
+            [NSValue valueWithPoint:NSMakePoint(size - 1, 0)],
+            [NSValue valueWithPoint:NSMakePoint(0, size - 1)],
+            [NSValue valueWithPoint:NSMakePoint(size - 1, size - 1)]]) {
+            NSPoint pixel = corner.pointValue;
+            CGFloat expected = [reference colorAtX:pixel.x y:pixel.y].alphaComponent;
+            CGFloat actual = [first colorAtX:pixel.x y:pixel.y].alphaComponent;
+            assert(fabs(expected - actual) < 0.1);
+        }
         assert([first colorAtX:size / 2 y:size / 2].alphaComponent == 1);
     }
     assert([files removeItemAtURL:root error:nil]);

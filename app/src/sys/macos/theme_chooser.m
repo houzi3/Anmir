@@ -24,6 +24,10 @@ static NSImage *SCThemeTintedIcon(NSImage *source, NSColor *color) {
 @implementation SCThemeRow
 + (Class)cellClass { return SCDeviceCardCell.class; }
 - (BOOL)isFlipped { return NO; }
+- (NSEdgeInsets)alignmentRectInsets {
+    // This row paints its entire bounds, independently of native radio bezels.
+    return NSEdgeInsetsMake(0, 0, 0, 0);
+}
 - (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     if (self) {

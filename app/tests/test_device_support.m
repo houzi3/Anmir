@@ -94,6 +94,15 @@ static void testCommands(NSString *executable) {
     }];
     waitFor(^BOOL { return done; }, 3);
     done = NO;
+    // A child may close stdin before a pairing secret reaches the pipe. A
+    // payload larger than the pipe buffer makes this failure deterministic.
+    [SCDeviceCommand run:executable arguments:@[@"--fixture", @"closed-input"]
+        input:[@"x" stringByPaddingToLength:131072 withString:@"x" startingAtIndex:0]
+        timeout:2 completion:^(NSString *output, int status) {
+            (void)output; assert(status == 7); done = YES;
+        }];
+    waitFor(^BOOL { return done; }, 3);
+    done = NO;
     [SCDeviceCommand run:executable arguments:@[@"--fixture", @"large"] input:nil timeout:2 completion:^(NSString *output, int status) {
         assert(!status && output.length == 131072); done = YES;
     }];
@@ -141,6 +150,7 @@ static void testWatcher(NSString *executable) {
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc >= 3 && !strcmp(argv[1], "--fixture")) {
+            if (!strcmp(argv[2], "closed-input")) { close(STDIN_FILENO); return 7; }
             if (!strcmp(argv[2], "echo")) { char line[64]; if (fgets(line, sizeof(line), stdin)) { fputs(line, stdout); } }
             else if (!strcmp(argv[2], "large")) { for (int i = 0; i < 131072; ++i) { putchar('x'); } }
             else if (!strcmp(argv[2], "hang")) { sleep(30); }

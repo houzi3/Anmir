@@ -3,8 +3,10 @@
 #include <assert.h>
 
 static NSButton *findButton(NSView *view, NSString *title) {
+    // Popup implementation details can contain buttons with the same title
+    // as the theme rows. Do not search inside the language control.
+    if ([view isKindOfClass:NSPopUpButton.class]) { return nil; }
     if ([view isKindOfClass:NSButton.class] &&
-            ![view isKindOfClass:NSPopUpButton.class] &&
             [((NSButton *)view).title isEqualToString:title]) {
         return (NSButton *)view;
     }
@@ -40,6 +42,7 @@ int main(void) {
         chooser.change = ^(NSString *choice) { (void)choice; ++changes; };
         for (NSUInteger i = 0; i < rows.count; ++i) {
             NSButton *row = rows[i];
+            assert([row.identifier hasPrefix:@"Theme."]);
             assert(NSEqualSizes(row.bounds.size, NSMakeSize(360, 36)));
             assert([row.accessibilityRole isEqualToString:NSAccessibilityRadioButtonRole]);
             for (NSValue *value in @[

@@ -48,6 +48,21 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '11.0'
     steps:
       - uses: actions/checkout@v6
+      - name: Check native compatibility before building dependencies
+        run: |
+          xcrun clang -fobjc-arc -Iapp/src -framework AppKit \
+            app/tests/test_theme_chooser.m app/src/sys/macos/theme_chooser.m \
+            app/src/sys/macos/device_ui.m app/src/sys/macos/localization.m \
+            -o "$RUNNER_TEMP/anmir-test-theme"
+          "$RUNNER_TEMP/anmir-test-theme"
+          xcrun clang -fobjc-arc -Iapp/src -framework AppKit \
+            app/tests/test_device_ui.m app/src/sys/macos/device_ui.m \
+            app/src/sys/macos/localization.m -o "$RUNNER_TEMP/anmir-test-icons"
+          "$RUNNER_TEMP/anmir-test-icons" "$PWD/app/data/scrcpy.icns"
+          xcrun clang -fobjc-arc -Iapp/src -framework Foundation \
+            app/tests/test_device_support.m app/src/sys/macos/device_support.m \
+            -o "$RUNNER_TEMP/anmir-test-pipes"
+          "$RUNNER_TEMP/anmir-test-pipes"
       - name: Install build dependencies
         run: brew install meson ninja cmake nasm pkg-config zlib automake autoconf libtool wget
       - name: Install installer builder
