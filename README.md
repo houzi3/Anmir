@@ -6,6 +6,8 @@
 
 读音：**/ˈæn.mɪr/**，近似“**安米尔**”，重音在前。谐音仅用于帮助发音，品牌名统一为 **Anmir**。
 
+Anmir 由 Android 的 **An** 和 mirror（镜像）的 **mir** 组合而成，寓意“把 Android 映到 Mac 上”。
+
 Anmir 是基于 [scrcpy](https://github.com/Genymobile/scrcpy) 开发的独立 macOS 应用。它将 Android 投屏、控制和设备连接整合到原生 Mac 界面中。
 
 ## 特色功能
