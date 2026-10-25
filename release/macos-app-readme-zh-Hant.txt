@@ -29,6 +29,7 @@ Anmir @VERSION@ — macOS @ARCH@
 
 首次開啟
 簽署狀態：@SIGNING_STATUS@
+DMG 或 ZIP 資料夾中的「Privacy & Security」捷徑可直接開啟「隱私權與安全性」。
 若 macOS 無法驗證開發者，請先嘗試開啟，再前往「系統設定 → 隱私權與安全性」。
 確認信任應用程式來源後，按一下「強制打開」。無須關閉系統整體安全性保護。
 Apple 說明：https://support.apple.com/102445

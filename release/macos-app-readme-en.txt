@@ -32,6 +32,7 @@ file dialog controls follow the system language.
 
 First opening
 Signing: @SIGNING_STATUS@
+Double-click the Privacy & Security shortcut in the DMG or extracted ZIP to open security settings.
 If macOS cannot verify the developer, first try opening the app, then use
 System Settings > Privacy & Security > Open Anyway if you trust its source.
 Apple guidance: https://support.apple.com/102445

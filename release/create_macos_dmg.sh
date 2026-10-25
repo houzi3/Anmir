@@ -35,6 +35,8 @@ hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$MOUNT" \
     "$WORK/installer.dmg" >/dev/null
 MOUNTED=true
 [[ "$(readlink "$MOUNT/Applications")" = /Applications ]]
+[[ "$(readlink "$MOUNT/Privacy & Security")" = \
+    /System/Library/PreferencePanes/Security.prefPane ]]
 [[ -s "$MOUNT/.DS_Store" ]]
 diff -qr "$APP" "$MOUNT/$(basename "$APP")" >/dev/null
 if [[ -d "$APP/Contents/_CodeSignature" ]]; then

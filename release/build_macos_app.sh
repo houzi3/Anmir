@@ -339,10 +339,14 @@ if $CREATE_ZIP; then
     ZIP_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/anmir-zip.XXXXXX")"
     trap 'rm -rf "$ZIP_STAGE"' EXIT
     ditto "$APP" "$ZIP_STAGE/$APP_NAME.app"
+    ln -s /System/Library/PreferencePanes/Security.prefPane \
+        "$ZIP_STAGE/Privacy & Security"
     cp "$OUTPUT_DIR/README.txt" "$ZIP_STAGE/README.txt"
     ditto -c -k --norsrc --noextattr "$ZIP_STAGE" "$ZIP"
     if $SIGN; then
         ditto -x -k "$ZIP" "$ZIP_STAGE/verification"
+        [[ "$(readlink "$ZIP_STAGE/verification/Privacy & Security")" = \
+            /System/Library/PreferencePanes/Security.prefPane ]]
         codesign --verify --deep --strict \
             "$ZIP_STAGE/verification/$APP_NAME.app"
     fi

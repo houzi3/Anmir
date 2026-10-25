@@ -14,8 +14,7 @@ binary does not produce an Intel build.
 ```sh
 git clone https://github.com/laobie/Anmir.git
 cd Anmir
-git checkout main
-# To reproduce the published 0.1.3 release instead, use: git checkout v0.1.3
+git checkout v0.1.0
 
 python3 -m venv release/work/dmgbuild-env
 release/work/dmgbuild-env/bin/pip install dmgbuild==1.6.7
@@ -34,14 +33,18 @@ bash release/build_macos_app.sh --dmg --zip \
 ```
 
 The output is `dist/Anmir.app`, architecture-specific DMG and ZIP files, and
-`dist/SHA256SUMS`. Current-source bundles launch
-`Contents/MacOS/anmir`; the published v0.1.3 tag uses `Contents/MacOS/scrcpy`.
+`dist/SHA256SUMS`. The bundled command is `Contents/MacOS/anmir`.
 Bundles use a local ad hoc signature unless a signing identity
 is supplied. An ad hoc signature is not Apple notarization.
 
+The DMG and ZIP include a **Privacy & Security** shortcut. If the first launch
+is blocked, double-click it to open macOS security settings, then choose
+**Open Anyway** for Anmir. The shortcut only navigates to settings; approval
+remains in the system dialog.
+
 ## Rebuild with modified LGPL libraries
 
-Download `Anmir-0.1.3-source.tar.gz` from the release and extract it. This source
+Download `Anmir-0.1.0-source.tar.gz` from the release and extract it. This source
 package includes the application and the original source archives for FFmpeg,
 libusb, SDL and dav1d at `app/deps/work/sources/`. Each dependency script verifies
 its archive checksum before extraction. Dependency patches are under
@@ -61,5 +64,5 @@ matching build directory under `app/deps/work/build/` before rebuilding. The
 source archive includes no private application code or unavailable link inputs.
 ADB is a separate executable; its upstream notices are included in the app.
 
-The Android helper's version must match the client version. Both are `0.1.3`
+The Android helper's version must match the client version. Both are `0.1.0`
 for this release. Its Java namespace remains `com.genymobile.scrcpy`.
