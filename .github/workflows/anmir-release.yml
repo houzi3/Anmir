@@ -230,7 +230,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
-          RELEASE_SHA: ${{ steps.payload.outputs.source_sha }}
         run: |
           tag="v$VERSION"
           jq -r '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
@@ -243,19 +242,14 @@ jobs:
             "dist/SHA256SUMS"
             "dist/AnmirConnect-$VERSION.apk"
           )
-          if gh release view "$tag" >/dev/null 2>&1; then
-            if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != true ]]; then
-              echo "Release $tag is already published; refusing to replace its assets." >&2
-              exit 1
-            fi
-            gh release upload "$tag" "${release_files[@]}" --clobber
-            gh release upload "$tag" dist/update.json --clobber
-          else
-            gh release create "$tag" "${release_files[@]}" dist/update.json \
-              --target "$RELEASE_SHA" --title "Anmir $VERSION" \
-              --notes-file "$RUNNER_TEMP/release-notes.md" --draft
+          if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != true ]]; then
+            echo "Release $tag is already published; refusing to replace its assets." >&2
+            exit 1
           fi
-          gh release edit "$tag" --draft=false --prerelease=false
+          gh release upload "$tag" "${release_files[@]}" --clobber
+          gh release upload "$tag" dist/update.json --clobber
+          gh release edit "$tag" --title "Anmir $VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --draft=false --prerelease=false --latest
 
   bump-version:
     needs: publish

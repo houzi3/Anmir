@@ -28,7 +28,7 @@ public final class ReconnectTest {
     }
     public static void main(String[] args) throws Exception {
         String token = "0123456789abcdef0123456789abcdef";
-        ReconnectTarget valid = ReconnectTarget.create("10.74.224.69", 37899, token, "adb-phone");
+        ReconnectTarget valid = ReconnectTarget.create("192.0.2.69", 37899, token, "adb-phone");
         assert valid != null && valid.path().equals("/v1/reconnect/" + token);
         for (String host : new String[]{"127.0.0.1", "0.1.2.3", "224.0.0.251", "1.2.3.256", "10.01.2.3", "example.com", "::1", "1.2.3.4\r\n"}) {
             assert ReconnectTarget.create(host, 37899, token, "adb-phone") == null : host;
