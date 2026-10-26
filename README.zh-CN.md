@@ -1,8 +1,14 @@
-# Anmir
+<p align="center">
+  <img src="app/data/anmir.png" alt="Anmir 应用图标" width="128" height="128" />
+</p>
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+<h1 align="center">Anmir</h1>
 
-**在 Mac 上投屏并控制安卓设备。**
+<p align="center"><strong>在 Mac 上投屏并控制安卓设备。</strong></p>
+
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 基于 [scrcpy](https://github.com/Genymobile/scrcpy)，将扫码配对、设备管理与悬浮操作集成到原生 macOS 界面。
 

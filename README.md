@@ -1,8 +1,14 @@
-# Anmir
+<p align="center">
+  <img src="app/data/anmir.png" alt="Anmir app icon" width="128" height="128" />
+</p>
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+<h1 align="center">Anmir</h1>
 
-**Mirror and control Android devices on your Mac.**
+<p align="center"><strong>Mirror and control Android devices on your Mac.</strong></p>
+
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 Built on [scrcpy](https://github.com/Genymobile/scrcpy), with QR pairing, device management and floating controls in a native macOS interface.
 
