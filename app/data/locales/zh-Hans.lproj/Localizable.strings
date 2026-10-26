@@ -175,6 +175,7 @@
 "Check for Updates…" = "检查更新…";
 "Checking for updates…" = "正在检查更新…";
 "Could not contact GitHub. Please try again later." = "无法连接 GitHub，请稍后重试。";
+"Could not open Anmir to check for updates: %@" = "无法打开 Anmir 检查更新：%@";
 "The release information is invalid." = "版本信息无效。";
 "You’re up to date" = "当前已是最新版本";
 "No verified update package is available for this Mac." = "此 Mac 暂无可校验的更新包，请稍后重试。";

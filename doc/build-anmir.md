@@ -85,17 +85,35 @@ while mirroring. It bypasses the daily limit and can adopt an in-flight
 background request instead of duplicating it. Installation still requires all
 mirror windows to close and an explicit user choice.
 
-Release metadata comes from
-`https://api.github.com/repos/houzi3/Anmir/releases/latest`. Only stable
-`vMAJOR.MINOR.PATCH` or `MAJOR.MINOR.PATCH` tags are accepted; numeric comparison
-prevents downgrades.
+Release metadata comes from the static manifest at
+`https://github.com/houzi3/Anmir/releases/latest/download/update.json`, avoiding
+GitHub REST API rate limits. Only strict `MAJOR.MINOR.PATCH` versions are
+accepted; numeric comparison prevents downgrades. The manifest contains no
+download URLs. The updater constructs version-pinned URLs in the fixed
+`houzi3/Anmir` repository after validating the architecture-specific filename
+and SHA-256 checksum.
 
-Publish `Anmir-VERSION-arm64.zip` and `Anmir-VERSION-x86_64.zip` as Release
-assets (the existing CI publishes both DMG and ZIP). The updater requires the
-asset's GitHub API `digest` to contain a SHA-256 checksum; missing hashes or
-packages fail closed. It uses HTTPS metadata from the fixed repository and
-verifies the downloaded ZIP hash, bundle identity, version, minimum macOS and
-code signature integrity. Ad hoc signatures remain supported: this is not a
+Publish `Anmir-VERSION-arm64.zip`, `Anmir-VERSION-x86_64.zip` and `update.json`
+as assets of every stable `vVERSION` Release. After both ZIP files are in one directory,
+generate the manifest with optional Markdown release notes:
+
+```sh
+bash release/generate_update_manifest.sh dist release-notes.md
+```
+
+The `anmir-release` CI artifact combines both architectures and generates the
+manifest automatically. In `houzi3/Anmir`, the workflow creates or updates the
+matching stable `vVERSION` GitHub Release. Existing binary assets are replaced
+first and `update.json` last, so the public manifest never points at packages
+that have not been uploaded yet. After publication succeeds, the workflow runs
+`bump_version` and commits the next patch version to `main` (for example,
+`0.1.1` becomes `0.1.2`). Forks still build the combined artifact but never
+publish or change their branches.
+
+Drafts and prereleases are not selected by GitHub's `releases/latest` redirect.
+Missing, malformed or incomplete manifests fail closed. The updater verifies
+the downloaded ZIP hash, bundle identity, version, minimum macOS and code
+signature integrity. Ad hoc signatures remain supported: this is not a
 publisher-signature trust mechanism independent of GitHub. A compromised
 publisher account is outside this update trust model.
 

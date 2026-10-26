@@ -175,6 +175,7 @@
 "Check for Updates…" = "Check for Updates…";
 "Checking for updates…" = "Checking for updates…";
 "Could not contact GitHub. Please try again later." = "Could not contact GitHub. Please try again later.";
+"Could not open Anmir to check for updates: %@" = "Could not open Anmir to check for updates: %@";
 "The release information is invalid." = "The release information is invalid.";
 "You’re up to date" = "You’re up to date";
 "No verified update package is available for this Mac." = "No verified update package is available for this Mac.";

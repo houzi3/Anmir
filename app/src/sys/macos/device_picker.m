@@ -1126,13 +1126,15 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         return SC_DEVICE_PICKER_CONTINUE;
     }
     @autoreleasepool {
-        if (getenv("ANMIR_SHOW_SETTINGS")) {
+        if (getenv("ANMIR_SHOW_SETTINGS") || getenv("ANMIR_CHECK_UPDATES")) {
             if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-                LOGE("Could not initialize settings: %s", SDL_GetError());
+                LOGE("Could not initialize application UI: %s", SDL_GetError());
                 return SC_DEVICE_PICKER_ERROR;
             }
             sc_device_picker_install_menu(NULL);
-            SCSettingsShow();
+            // Settings keeps precedence if both variables were inherited.
+            if (getenv("ANMIR_SHOW_SETTINGS")) { SCSettingsShow(); }
+            else { SCUpdaterCheck(); }
             sc_device_picker_run_windows();
             return SC_DEVICE_PICKER_FINISHED;
         }

@@ -11,30 +11,32 @@ NSString *SCUpdateVersion(id value) {
     return match ? [value substringWithRange:[match rangeAtIndex:1]] : nil;
 }
 
-static BOOL SCStableRelease(id release) {
-    return [release isKindOfClass:NSDictionary.class]
-        && [release[@"draft"] isKindOfClass:NSNumber.class]
-        && [release[@"prerelease"] isKindOfClass:NSNumber.class]
-        && ![release[@"draft"] boolValue] && ![release[@"prerelease"] boolValue];
+static NSString *SCUpdateManifestVersion(id manifest) {
+    if (![manifest isKindOfClass:NSDictionary.class]
+            || ![manifest[@"schema"] isKindOfClass:NSNumber.class]
+            || [manifest[@"schema"] integerValue] != 1
+            || (manifest[@"notes"] && ![manifest[@"notes"] isKindOfClass:NSString.class])
+            || ![manifest[@"assets"] isKindOfClass:NSDictionary.class]) {
+        return nil;
+    }
+    NSString *version = SCUpdateVersion(manifest[@"version"]);
+    return version && [manifest[@"version"] isEqual:version] ? version : nil;
 }
 
-NSDictionary *SCUpdateAsset(NSDictionary *release, NSString *architecture) {
-    if (!SCStableRelease(release)) { return nil; }
-    NSString *version = SCUpdateVersion(release[@"tag_name"]);
-    if (!version || ![release[@"assets"] isKindOfClass:NSArray.class]) { return nil; }
+NSDictionary *SCUpdateAsset(NSDictionary *manifest, NSString *architecture) {
+    NSString *version = SCUpdateManifestVersion(manifest);
+    if (!version || ![architecture isKindOfClass:NSString.class]) { return nil; }
     NSString *name = [NSString stringWithFormat:@"Anmir-%@-%@.zip", version, architecture];
-    for (id asset in release[@"assets"]) {
-        if (![asset isKindOfClass:NSDictionary.class] || ![asset[@"name"] isEqual:name]) { continue; }
-        id digest = asset[@"digest"], address = asset[@"browser_download_url"];
-        if (![digest isKindOfClass:NSString.class] || ![address isKindOfClass:NSString.class]) { continue; }
-        NSRegularExpression *hash = [NSRegularExpression regularExpressionWithPattern:@"^sha256:[0-9a-f]{64}\\z" options:0 error:nil];
-        NSURL *url = [NSURL URLWithString:address];
-        NSString *expectedPath = [NSString stringWithFormat:@"/houzi3/Anmir/releases/download/%@/%@", release[@"tag_name"], name];
-        if ([hash numberOfMatchesInString:digest options:0 range:NSMakeRange(0, [digest length])] == 1
-            && [url.scheme isEqual:@"https"] && [url.host isEqual:@"github.com"]
-            && [url.path isEqual:expectedPath] && !url.user && !url.password && !url.query && !url.fragment) { return asset; }
-    }
-    return nil;
+    id asset = manifest[@"assets"][architecture];
+    if (![asset isKindOfClass:NSDictionary.class] || ![asset[@"name"] isEqual:name]
+            || ![asset[@"sha256"] isKindOfClass:NSString.class]) { return nil; }
+    NSString *checksum = asset[@"sha256"];
+    NSRegularExpression *hash = [NSRegularExpression regularExpressionWithPattern:@"^[0-9a-f]{64}\\z" options:0 error:nil];
+    if ([hash numberOfMatchesInString:checksum options:0 range:NSMakeRange(0, checksum.length)] != 1) { return nil; }
+    NSString *address = [NSString stringWithFormat:
+        @"https://github.com/houzi3/Anmir/releases/download/v%@/%@", version, name];
+    return @{@"name":name, @"digest":[@"sha256:" stringByAppendingString:checksum],
+        @"browser_download_url":address};
 }
 
 static NSError *SCUpdateError(NSString *message) {
@@ -228,6 +230,21 @@ BOOL SCUpdaterBusy(void) { return updater.busy; }
 void SCUpdaterCancel(void) { [updater cancel:nil]; }
 
 @implementation SCUpdater
+- (BOOL)isHost {
+    return [SCMirrorHostBundleIdentifier() isEqual:NSBundle.mainBundle.bundleIdentifier];
+}
+- (NSString *)checkNotification {
+    return [SCMirrorHostBundleIdentifier() stringByAppendingString:@".CheckForUpdates"];
+}
+- (instancetype)init {
+    self = [super init];
+    if (self && self.isHost) {
+        [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(check:)
+            name:self.checkNotification object:nil
+            suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
+    }
+    return self;
+}
 - (NSDate *)now { return NSDate.date; }
 - (NSCalendar *)calendar { return NSCalendar.currentCalendar; }
 - (NSUserDefaults *)preferences { return NSUserDefaults.standardUserDefaults; }
@@ -238,7 +255,7 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     return launched ? MAX(0, 7 - [[self now] timeIntervalSinceDate:launched]) : 7;
 }
 - (void)scheduleAutomaticCheck {
-    if (self.startupScheduled || getenv("ANMIR_SHOW_SETTINGS")) { return; }
+    if (self.startupScheduled || getenv("ANMIR_SHOW_SETTINGS") || getenv("ANMIR_CHECK_UPDATES")) { return; }
     self.startupScheduled = YES;
     self.startupTimer = [NSTimer scheduledTimerWithTimeInterval:[self startupDelay] repeats:NO block:^(NSTimer *timer) {
         (void)timer;
@@ -274,8 +291,33 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     NSButton *cancel = [NSButton buttonWithTitle:SCLocalized(@"Cancel") target:self action:@selector(cancel:)]; cancel.frame = NSMakeRect(260, 15, 100, 32);
     [self.panel.contentView addSubview:cancel]; [self.panel center]; [self.panel makeKeyAndOrderFront:nil];
 }
+- (void)forwardCheckToHost {
+    NSBundle *host = SCMirrorHostBundle();
+    NSArray *running = [NSRunningApplication runningApplicationsWithBundleIdentifier:host.bundleIdentifier];
+    if (running.count) {
+        NSRunningApplication *application = running.firstObject;
+        if (@available(macOS 14.0, *)) { [NSApp yieldActivationToApplication:application]; }
+        else { [application activateWithOptions:NSApplicationActivateIgnoringOtherApps]; }
+        [NSDistributedNotificationCenter.defaultCenter postNotificationName:self.checkNotification
+            object:nil userInfo:nil deliverImmediately:YES];
+    } else {
+        NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+        configuration.environment = @{@"ANMIR_CHECK_UPDATES":@"1"};
+        [NSWorkspace.sharedWorkspace openApplicationAtURL:host.bundleURL configuration:configuration
+            completionHandler:^(NSRunningApplication *application, NSError *error) {
+                (void)application;
+                if (error) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        [self message:@"Update failed" detail:[NSString stringWithFormat:
+                            SCLocalized(@"Could not open Anmir to check for updates: %@"), error.localizedDescription]];
+                    });
+                }
+            }];
+    }
+}
 - (void)check:(id)sender {
     (void)sender;
+    if (!self.isHost) { [self forwardCheckToHost]; return; }
     [self.startupTimer invalidate]; self.startupTimer = nil;
     if (self.busy && self.automatic) {
         // A manual request adopts the in-flight background check.
@@ -297,10 +339,12 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     NSURLSessionConfiguration *configuration = [self sessionConfiguration];
     configuration.timeoutIntervalForRequest = 30; configuration.timeoutIntervalForResource = 600;
     self.session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:NSOperationQueue.mainQueue];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://api.github.com/repos/houzi3/Anmir/releases/latest"]];
-    [request setValue:@"application/vnd.github+json" forHTTPHeaderField:@"Accept"];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:
+        [NSURL URLWithString:@"https://github.com/houzi3/Anmir/releases/latest/download/update.json"]
+        cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
     [request setValue:@"Anmir-Updater" forHTTPHeaderField:@"User-Agent"];
-    [request setValue:@"2022-11-28" forHTTPHeaderField:@"X-GitHub-Api-Version"];
+    [request setValue:@"no-cache" forHTTPHeaderField:@"Cache-Control"];
     if (!automatic) { [self showProgress:@"Checking for updates…"]; }
     self.requestTask = [self.session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -308,10 +352,11 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
             if (self.cancelled) { [self finish:nil]; return; }
             NSInteger status = [(NSHTTPURLResponse *)response statusCode];
             if (error || status != 200) { [self finish:error ?: SCUpdateError(@"Could not contact GitHub. Please try again later.")]; return; }
-            id release = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
-            NSString *latest = [release isKindOfClass:NSDictionary.class] ? SCUpdateVersion(release[@"tag_name"]) : nil;
+            id release = data.length <= 1024 * 1024
+                ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+            NSString *latest = SCUpdateManifestVersion(release);
             NSString *current = [self currentVersion];
-            if (!latest || !current || !SCStableRelease(release)) {
+            if (!latest || !current) {
                 [self finish:SCUpdateError(@"The release information is invalid.")]; return;
             }
             if ([latest compare:current options:NSNumericSearch] != NSOrderedDescending) {
@@ -335,7 +380,7 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     [self.requestTask resume];
 }
 - (void)showRelease:(NSDictionary *)release current:(NSString *)current latest:(NSString *)latest {
-    NSString *notes = [release[@"body"] isKindOfClass:NSString.class] ? release[@"body"] : @"";
+    NSString *notes = [release[@"notes"] isKindOfClass:NSString.class] ? release[@"notes"] : @"";
     if ([[[self preferences] stringForKey:SCSkippedUpdateVersionKey] isEqual:latest]) {
         NSAlert *skipped = [NSAlert new];
         skipped.messageText = SCLocalized(@"You skipped this version");
@@ -430,10 +475,15 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
 @end
 
 void SCUpdaterInstallMenu(NSMenu *menu) {
-    if (![SCMirrorHostBundleIdentifier() isEqual:NSBundle.mainBundle.bundleIdentifier]) { return; }
-    if (!updater) { updater = [SCUpdater new]; [updater scheduleAutomaticCheck]; }
+    if (!updater) { updater = [SCUpdater new]; }
+    if (updater.isHost) { [updater scheduleAutomaticCheck]; }
     if ([menu itemWithTag:0x53435550]) { return; }
     NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:@selector(check:) keyEquivalent:@""];
     item.target = updater; item.tag = 0x53435550; SCBind(item, @"title", @"Check for Updates…");
     [menu insertItem:item atIndex:MIN(1, menu.numberOfItems)];
+}
+
+void SCUpdaterCheck(void) {
+    if (!updater) { updater = [SCUpdater new]; }
+    [updater check:nil];
 }
