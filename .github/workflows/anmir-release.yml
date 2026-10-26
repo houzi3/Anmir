@@ -253,7 +253,7 @@ jobs:
 
   bump-version:
     needs: publish
-    if: github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
+    if: always() && !cancelled() && needs.publish.result == 'success' && github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
