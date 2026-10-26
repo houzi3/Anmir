@@ -686,7 +686,7 @@ sc_screen_init(struct sc_screen *screen,
         goto error_destroy_texture;
     }
 
-    SDL_Surface *icon = sc_icon_load(SC_ICON_FILENAME_SCRCPY);
+    SDL_Surface *icon = sc_icon_load(SC_ICON_FILENAME_ANMIR);
     if (icon) {
         if (!sc_window_ui_has_bundle_icon()
                 && !SDL_SetWindowIcon(screen->window, icon)) {

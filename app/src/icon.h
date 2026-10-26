@@ -5,7 +5,7 @@
 
 #include <SDL3/SDL_surface.h>
 
-#define SC_ICON_FILENAME_SCRCPY "scrcpy.png"
+#define SC_ICON_FILENAME_ANMIR "anmir.png"
 #define SC_ICON_FILENAME_DISCONNECTED "disconnected.png"
 
 SDL_Surface *

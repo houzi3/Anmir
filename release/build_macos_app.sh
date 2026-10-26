@@ -240,20 +240,20 @@ copy_data() {
 }
 
 if [[ "$MODE" = dist ]]; then
-    copy_data "$SRC/scrcpy.png" "$APP/Contents/Resources"
+    copy_data "$SRC/anmir.png" "$APP/Contents/Resources"
     copy_data "$SRC/disconnected.png" "$APP/Contents/Resources"
     copy_data "$SRC/toolbar-icons" "$APP/Contents/Resources"
     copy_data "$SRC/anmir.1" "$APP/Contents/Resources"
     copy_data "$SRC/LICENSE" "$APP/Contents/Resources"
 else
-    copy_data "$ROOT_DIR/app/data/scrcpy.png" "$APP/Contents/Resources"
+    copy_data "$ROOT_DIR/app/data/anmir.png" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/data/disconnected.png" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/data/toolbar-icons" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/app/anmir.1" "$APP/Contents/Resources"
     copy_data "$ROOT_DIR/LICENSE" "$APP/Contents/Resources"
 fi
 
-install -m 644 "$ROOT_DIR/app/data/scrcpy.icns" "$APP/Contents/Resources/scrcpy.icns"
+install -m 644 "$ROOT_DIR/app/data/anmir.icns" "$APP/Contents/Resources/anmir.icns"
 
 # Language-specific resources are also copied into every mirror launcher.
 for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do
