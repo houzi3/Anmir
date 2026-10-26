@@ -7,6 +7,7 @@
 NSString *SCLocalized(NSString *key) { return key; }
 void SCBind(id target, NSString *property, NSString *key) { (void)target; (void)property; (void)key; }
 NSString *SCMirrorHostBundleIdentifier(void) { return @"io.github.laobie.anmir"; }
+NSBundle *SCMirrorHostBundle(void) { return NSBundle.mainBundle; }
 NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) { return @[]; }
 
 int main(void) { @autoreleasepool {
@@ -45,5 +46,8 @@ int main(void) { @autoreleasepool {
     assert(!SCUpdateVerifyArchive(file, @"sha256:0000000000000000000000000000000000000000000000000000000000000000"));
     [NSFileManager.defaultManager removeItemAtURL:file error:nil];
     assert(!SCUpdateVerifyArchive(file, digest));
+    NSMenu *menu = [NSMenu new];
+    SCUpdaterInstallMenu(menu);
+    assert([menu itemWithTag:0x53435550]); // Mirror menus expose the forwarded action too.
     puts("Updater policy and checksum tests passed");
 } return 0; }

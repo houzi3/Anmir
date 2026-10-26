@@ -175,6 +175,7 @@
 "Check for Updates…" = "檢查更新…";
 "Checking for updates…" = "正在檢查更新…";
 "Could not contact GitHub. Please try again later." = "無法連線 GitHub，請稍後重試。";
+"Could not open Anmir to check for updates: %@" = "無法開啟 Anmir 檢查更新：%@";
 "The release information is invalid." = "版本資訊無效。";
 "You’re up to date" = "目前已是最新版本";
 "No verified update package is available for this Mac." = "此 Mac 暫無可驗證的更新套件，請稍後重試。";

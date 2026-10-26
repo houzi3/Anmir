@@ -228,6 +228,21 @@ BOOL SCUpdaterBusy(void) { return updater.busy; }
 void SCUpdaterCancel(void) { [updater cancel:nil]; }
 
 @implementation SCUpdater
+- (BOOL)isHost {
+    return [SCMirrorHostBundleIdentifier() isEqual:NSBundle.mainBundle.bundleIdentifier];
+}
+- (NSString *)checkNotification {
+    return [SCMirrorHostBundleIdentifier() stringByAppendingString:@".CheckForUpdates"];
+}
+- (instancetype)init {
+    self = [super init];
+    if (self && self.isHost) {
+        [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(check:)
+            name:self.checkNotification object:nil
+            suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
+    }
+    return self;
+}
 - (NSDate *)now { return NSDate.date; }
 - (NSCalendar *)calendar { return NSCalendar.currentCalendar; }
 - (NSUserDefaults *)preferences { return NSUserDefaults.standardUserDefaults; }
@@ -238,7 +253,7 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     return launched ? MAX(0, 7 - [[self now] timeIntervalSinceDate:launched]) : 7;
 }
 - (void)scheduleAutomaticCheck {
-    if (self.startupScheduled || getenv("ANMIR_SHOW_SETTINGS")) { return; }
+    if (self.startupScheduled || getenv("ANMIR_SHOW_SETTINGS") || getenv("ANMIR_CHECK_UPDATES")) { return; }
     self.startupScheduled = YES;
     self.startupTimer = [NSTimer scheduledTimerWithTimeInterval:[self startupDelay] repeats:NO block:^(NSTimer *timer) {
         (void)timer;
@@ -274,8 +289,33 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     NSButton *cancel = [NSButton buttonWithTitle:SCLocalized(@"Cancel") target:self action:@selector(cancel:)]; cancel.frame = NSMakeRect(260, 15, 100, 32);
     [self.panel.contentView addSubview:cancel]; [self.panel center]; [self.panel makeKeyAndOrderFront:nil];
 }
+- (void)forwardCheckToHost {
+    NSBundle *host = SCMirrorHostBundle();
+    NSArray *running = [NSRunningApplication runningApplicationsWithBundleIdentifier:host.bundleIdentifier];
+    if (running.count) {
+        NSRunningApplication *application = running.firstObject;
+        if (@available(macOS 14.0, *)) { [NSApp yieldActivationToApplication:application]; }
+        else { [application activateWithOptions:NSApplicationActivateIgnoringOtherApps]; }
+        [NSDistributedNotificationCenter.defaultCenter postNotificationName:self.checkNotification
+            object:nil userInfo:nil deliverImmediately:YES];
+    } else {
+        NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+        configuration.environment = @{@"ANMIR_CHECK_UPDATES":@"1"};
+        [NSWorkspace.sharedWorkspace openApplicationAtURL:host.bundleURL configuration:configuration
+            completionHandler:^(NSRunningApplication *application, NSError *error) {
+                (void)application;
+                if (error) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        [self message:@"Update failed" detail:[NSString stringWithFormat:
+                            SCLocalized(@"Could not open Anmir to check for updates: %@"), error.localizedDescription]];
+                    });
+                }
+            }];
+    }
+}
 - (void)check:(id)sender {
     (void)sender;
+    if (!self.isHost) { [self forwardCheckToHost]; return; }
     [self.startupTimer invalidate]; self.startupTimer = nil;
     if (self.busy && self.automatic) {
         // A manual request adopts the in-flight background check.
@@ -430,10 +470,15 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
 @end
 
 void SCUpdaterInstallMenu(NSMenu *menu) {
-    if (![SCMirrorHostBundleIdentifier() isEqual:NSBundle.mainBundle.bundleIdentifier]) { return; }
-    if (!updater) { updater = [SCUpdater new]; [updater scheduleAutomaticCheck]; }
+    if (!updater) { updater = [SCUpdater new]; }
+    if (updater.isHost) { [updater scheduleAutomaticCheck]; }
     if ([menu itemWithTag:0x53435550]) { return; }
     NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:@selector(check:) keyEquivalent:@""];
     item.target = updater; item.tag = 0x53435550; SCBind(item, @"title", @"Check for Updates…");
     [menu insertItem:item atIndex:MIN(1, menu.numberOfItems)];
+}
+
+void SCUpdaterCheck(void) {
+    if (!updater) { updater = [SCUpdater new]; }
+    [updater check:nil];
 }

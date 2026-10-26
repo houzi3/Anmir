@@ -7,6 +7,7 @@
 NSString *SCLocalized(NSString *key) { return key; }
 void SCBind(id target, NSString *property, NSString *key) { (void)target; (void)property; (void)key; }
 NSString *SCMirrorHostBundleIdentifier(void) { return @"io.github.laobie.anmir"; }
+NSBundle *SCMirrorHostBundle(void) { return NSBundle.mainBundle; }
 static BOOL mirroring;
 NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) { return mirroring ? (id)@[@1] : @[]; }
 
@@ -46,6 +47,7 @@ static NSTimeInterval responseDelay;
 @property BOOL sawSkipped;
 @end
 @implementation SCUpdateFixture
+- (BOOL)isHost { return YES; }
 - (instancetype)init {
     self = [super init];
     if (self) {
@@ -79,6 +81,14 @@ static NSTimeInterval responseDelay;
 - (void)dealloc { [self.store removePersistentDomainForName:self.domain]; }
 @end
 
+@interface SCUpdateForwardFixture : SCUpdater
+@property NSUInteger forwarded;
+@end
+@implementation SCUpdateForwardFixture
+- (BOOL)isHost { return NO; }
+- (void)forwardCheckToHost { ++self.forwarded; }
+@end
+
 static void setRelease(NSString *version) {
     NSMutableArray *assets = [NSMutableArray array];
     for (NSString *arch in @[@"arm64", @"x86_64"]) {
@@ -100,6 +110,10 @@ static void waitFor(SCUpdateFixture *test, NSUInteger count) {
     assert(test.completed == count);
 }
 int main(void) { @autoreleasepool {
+    SCUpdateForwardFixture *forward = [SCUpdateForwardFixture new];
+    [forward check:nil];
+    assert(forward.forwarded == 1 && !forward.busy);
+
     // Startup is scheduled once for seven seconds, and a manual check cancels it.
     SCUpdateFixture *test = fixture(); test.clock = NSDate.date;
     NSTimeInterval delay = [test startupDelay];
