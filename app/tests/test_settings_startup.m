@@ -186,11 +186,17 @@ static int lifecycleFixture(NSString *mirrorBinary) {
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:15];
     NSTimer *timer = [NSTimer timerWithTimeInterval:.15 repeats:YES block:^(NSTimer *tick) {
         if (deadline.timeIntervalSinceNow <= 0) {
-            fprintf(stderr, "Dock lifecycle timed out in phase %lu\n", (unsigned long)phase);
+            fprintf(stderr, "Dock lifecycle timed out in phase %lu (activation policy %ld)\n",
+                (unsigned long)phase, (long)NSApp.activationPolicy);
+            for (NSWindow *window in NSApp.windows) {
+                fprintf(stderr, "Window %s: visible=%d minimized=%d\n", window.title.UTF8String,
+                    window.visible, window.miniaturized);
+            }
             abort();
         }
         if (phase == 0) {
-            manager = windowNamed(@"Anmir"); assert(manager.visible);
+            manager = windowNamed(@"Anmir");
+            if (!manager.visible || NSApp.activationPolicy != NSApplicationActivationPolicyRegular) { return; }
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             [manager miniaturize:nil];
         } else if (phase == 1) {
@@ -211,13 +217,14 @@ static int lifecycleFixture(NSString *mirrorBinary) {
             assert(settings.visible && NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             [settings close];
         } else if (phase == 4) {
+            if (SCApplicationHasWindows() || NSApp.activationPolicy != NSApplicationActivationPolicyAccessory) { return; }
             assert(!SCApplicationHasWindows());
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyAccessory);
             for (NSDictionary *route in saved) { assert(relayListening(route)); }
             opener = [[NSTask alloc] init]; opener.executableURL = [NSURL fileURLWithPath:@"/usr/bin/open"];
             opener.arguments = @[@"-a", NSBundle.mainBundle.bundlePath]; assert([opener launchAndReturnError:nil]);
         } else if (phase == 5) {
-            if (opener.running || !manager.visible) { return; }
+            if (opener.running || !manager.visible || NSApp.activationPolicy != NSApplicationActivationPolicyRegular) { return; }
             assert(opener.terminationStatus == 0 && windowNamed(@"Anmir") == manager);
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             NSUInteger count = NSApp.windows.count;
@@ -229,10 +236,14 @@ static int lifecycleFixture(NSString *mirrorBinary) {
             assert(mirror); SDL_ShowWindow(mirror);
             SDL_SetPointerProperty(SDL_GetGlobalProperties(), "anmir.test.mirror", mirror);
         } else if (phase == 6) {
+            if (NSApp.activationPolicy != NSApplicationActivationPolicyRegular) { return; }
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             SDL_Window *mirror = SDL_GetPointerProperty(SDL_GetGlobalProperties(), "anmir.test.mirror", NULL);
             SDL_DestroyWindow(mirror);
         } else if (phase == 7) {
+            // SDL teardown and the queued activation-policy update can span
+            // multiple AppKit event-loop iterations as well.
+            if (SCApplicationHasWindows() || NSApp.activationPolicy != NSApplicationActivationPolicyAccessory) { return; }
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyAccessory);
             mirrorProcess = [[NSTask alloc] init];
             mirrorProcess.executableURL = [NSURL fileURLWithPath:mirrorBinary];
