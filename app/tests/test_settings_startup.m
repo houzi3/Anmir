@@ -185,19 +185,25 @@ static int lifecycleFixture(NSString *mirrorBinary) {
     __block NSTask *mirrorProcess;
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:15];
     NSTimer *timer = [NSTimer timerWithTimeInterval:.15 repeats:YES block:^(NSTimer *tick) {
-        assert(deadline.timeIntervalSinceNow > 0);
+        if (deadline.timeIntervalSinceNow <= 0) {
+            fprintf(stderr, "Dock lifecycle timed out in phase %lu\n", (unsigned long)phase);
+            abort();
+        }
         if (phase == 0) {
             manager = windowNamed(@"Anmir"); assert(manager.visible);
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             [manager miniaturize:nil];
         } else if (phase == 1) {
+            // Miniaturization completes asynchronously; its animation is slower
+            // than one polling interval on some Intel runners.
+            if (!manager.miniaturized) { return; }
             assert(manager.miniaturized && SCApplicationHasWindows());
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyRegular);
             // A real LaunchServices reopen, shared by Finder and Spotlight.
             opener = [[NSTask alloc] init]; opener.executableURL = [NSURL fileURLWithPath:@"/usr/bin/open"];
             opener.arguments = @[@"-a", NSBundle.mainBundle.bundlePath]; assert([opener launchAndReturnError:nil]);
         } else if (phase == 2) {
-            if (opener.running || manager.miniaturized) { return; }
+            if (opener.running || manager.miniaturized || !manager.visible) { return; }
             assert(opener.terminationStatus == 0 && windowNamed(@"Anmir") == manager && manager.visible);
             SCSettingsShow(); settings = windowNamed(@"Anmir Settings"); assert(settings.visible);
             [manager close];
