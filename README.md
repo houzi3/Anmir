@@ -89,20 +89,13 @@ A single ready device opens directly; with multiple devices, choose one from the
 
 ### Company-network QR pairing · Android 11+
 
-If QR pairing spins indefinitely because a company network blocks mDNS discovery between subnets, use **Anmir Connect**. No IP address or port needs to be typed for each connection:
+If QR pairing keeps spinning on a company network, use **Anmir Connect** without entering an IP address or port. The phone and Mac must be reachable over the network.
 
-The phone and Mac must allow connections in both directions. Use standard QR pairing on normal networks; use this flow when company-network discovery is blocked between subnets.
+1. Switch to the company-network option in the Mac QR window, then [download and install Anmir Connect](https://github.com/houzi3/Anmir/releases/tag/v0.1.2) on your phone.
+2. Open Anmir Connect on your phone, tap **Start helper**, and wait for Developer options to open.
+3. Open **Wireless debugging → Pair device with QR code** and scan the Mac’s QR code to start mirroring.
 
-1. In the Mac QR window, choose **Pairing stuck on a company network? Try this option**. Click **Download APK** beside the installation instruction to open the [GitHub download page](https://github.com/houzi3/Anmir/releases/tag/v0.1.2), then install the APK on your phone.
-2. Open Anmir Connect on your phone and tap **Start helper**. Once the helper is ready, a success popup appears, then Developer options opens automatically and attempts to bring Wireless debugging into view.
-3. Open **Wireless debugging → Pair device with QR code** and scan the Mac’s QR code. Mirroring opens after pairing.
-
-If you installed an earlier preview APK, uninstall it before installing the release APK: the release uses a fixed release signing key. Later release updates can be installed normally.
-
-Keep wireless debugging enabled and use its system scanner. Each QR expires after five minutes. After the first successful pairing, Anmir Connect remembers this Mac and keeps its foreground helper running: when Wi-Fi returns, it reports the current debugging port and Anmir reconnects. Interrupted mirrors resume; closing a mirror yourself keeps it closed. **Retry now** skips the retry wait. **Stop helper** pauses reconnection; **Forget saved Mac** removes the saved callback credentials.
-
-Keep both apps running. If Android turns wireless debugging off, enable it manually. If the Mac’s address changes, scan a new company-network QR code. Restarting the helper retains the saved Mac; phone reboot or force-stop requires starting it again. Before the first pairing, an unregistered helper still stops after five minutes.
-The phone and Mac must still be reachable by IP. See [company-network setup and troubleshooting](doc/company-network.md).
+Keep both apps running and wireless debugging enabled to reconnect when Wi-Fi returns. See [company-network setup](doc/company-network.md) for details.
 
 ### Everyday controls
 
