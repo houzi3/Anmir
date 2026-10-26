@@ -1,0 +1,43 @@
+apply plugin: 'com.android.application'
+
+// Private signing material stays in the user's directory, never in the repository.
+def signingFile = System.getenv('ANMIR_CONNECT_SIGNING_PROPERTIES')
+        ? new File(System.getenv('ANMIR_CONNECT_SIGNING_PROPERTIES'))
+        : new File(System.getProperty('user.home'), 'important_key/android_keystore/signing.properties')
+def releaseProperties = new Properties()
+if (System.getenv('ANMIR_UNSIGNED_BUILD') != 'true' && signingFile.isFile()) {
+    signingFile.withInputStream { releaseProperties.load(it) }
+}
+def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+    releaseProperties.getProperty(it)
+}
+
+android {
+    namespace = 'io.github.houzi3.anmir.connect'
+    compileSdk = 36
+    defaultConfig {
+        applicationId = 'io.github.houzi3.anmir.connect'
+        minSdk = 30
+        targetSdk = 36
+        versionCode = 102
+        versionName = '0.1.2'
+        testInstrumentationRunner = 'io.github.houzi3.anmir.connect.CompanionSmokeTest'
+    }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                def keyFile = new File(releaseProperties.getProperty('storeFile'))
+                storeFile = keyFile.isAbsolute() ? keyFile : new File(signingFile.parentFile, keyFile.path)
+                storePassword = releaseProperties.getProperty('storePassword')
+                storeType = releaseProperties.getProperty('storeType', 'PKCS12')
+                keyAlias = releaseProperties.getProperty('keyAlias')
+                keyPassword = releaseProperties.getProperty('keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (hasReleaseSigning) { signingConfig = signingConfigs.release }
+        }
+    }
+}

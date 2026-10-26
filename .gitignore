@@ -12,3 +12,11 @@ local.properties
 # Local build tools, dependency sources and products
 /release/work/
 /app/deps/work/
+
+# Android signing material must remain outside source control.
+*.keystore
+*.jks
+keystore.properties
+signing.properties
+signing.properties.original
+__pycache__/

@@ -22,6 +22,7 @@ typedef NS_ENUM(NSUInteger, SCDeviceConnectionPhase) {
 @property(nonatomic, readonly) BOOL busy, paired, error;
 @property(nonatomic, copy, readonly) NSString *message;
 @property(nonatomic, copy, readonly, nullable) NSString *serial;
+@property(nonatomic, copy, readonly, nullable) NSString *pairedGUID;
 @property(nonatomic, copy, readonly) NSDictionary<NSString *, NSString *> *properties;
 @property(nonatomic, copy, nullable) void (^changed)(void);
 - (instancetype)initWithExecutable:(NSString *)executable;

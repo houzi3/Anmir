@@ -7,6 +7,15 @@ on:
         description: Release notes embedded in update.json
         required: false
         type: string
+      publish:
+        description: Publish a completed build after the APK was signed locally
+        required: false
+        type: boolean
+        default: false
+      build_run_id:
+        description: Completed build run to publish (skip rebuilding)
+        required: false
+        type: string
   push:
     branches: [main]
     paths: [.github/workflows/anmir-release.yml]
@@ -20,6 +29,7 @@ concurrency:
 
 jobs:
   server:
+    if: inputs.build_run_id == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -32,7 +42,16 @@ jobs:
           packages: platform-tools
       - name: Install Android SDK components
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-      - name: Build Android helper
+      - name: Test companion protocol
+        run: bash release/test_companion.sh
+      - name: Build unsigned Anmir Connect
+        run: bash release/build_companion.sh release/work/build-companion
+      - uses: actions/upload-artifact@v7
+        with:
+          name: anmir-companion
+          path: release/work/build-companion/AnmirConnect-unsigned.apk
+          if-no-files-found: error
+      - name: Build mirroring server
         run: |
           mkdir -p release/work/build-server
           BUILD_DIR="$PWD/release/work/build-server" bash server/build_without_gradle.sh
@@ -123,12 +142,22 @@ jobs:
           pattern: anmir-macos-*
           path: dist
           merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: anmir-companion
+          path: dist
       - name: Generate static update manifest and checksums
         env:
           RELEASE_NOTES: ${{ inputs.release_notes || '' }}
         run: |
-          bash release/generate_update_manifest.sh dist
-          (cd dist && sha256sum Anmir-*.dmg Anmir-*.zip Anmir-*-source.tar.gz > SHA256SUMS)
+          version="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
+          mv dist/AnmirConnect-unsigned.apk "dist/AnmirConnect-$version-unsigned.apk"
+          if [[ -z "$RELEASE_NOTES" && -f "release/notes/$version.md" ]]; then
+            bash release/generate_update_manifest.sh dist "release/notes/$version.md"
+          else
+            bash release/generate_update_manifest.sh dist
+          fi
+          (cd dist && sha256sum Anmir-*.dmg Anmir-*.zip Anmir-*-source.tar.gz AnmirConnect-*.apk update.json > SHA256SUMS)
           jq . dist/update.json
       - uses: actions/upload-artifact@v7
         with:
@@ -139,17 +168,28 @@ jobs:
             dist/Anmir-*-source.tar.gz
             dist/SHA256SUMS
             dist/update.json
+            dist/AnmirConnect-*.apk
           if-no-files-found: error
 
   publish:
     needs: release-artifacts
-    if: github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
+    if: always() && !cancelled() && github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main' && inputs.publish && (needs.release-artifacts.result == 'success' || inputs.build_run_id != '')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'build-tools;36.0.0'
       - name: Show required repository permission
         run: |
           message="Release publishing and the automatic version bump require Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
@@ -163,6 +203,16 @@ jobs:
         with:
           name: anmir-release
           path: dist
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.build_run_id || github.run_id }}
+      - name: Validate source build and signed APK
+        id: payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id || github.run_id }}
+        run: |
+          bash release/prepare_signed_release.sh dist "$BUILD_RUN_ID"
       - name: Validate release payload
         id: version
         run: |
@@ -172,12 +222,15 @@ jobs:
           test -f "dist/Anmir-$version-arm64.dmg"
           test -f "dist/Anmir-$version-x86_64.dmg"
           test -f "dist/Anmir-$version-source.tar.gz"
+          test -f "dist/AnmirConnect-$version.apk"
+          (cd dist && sha256sum -c SHA256SUMS)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_SHA: ${{ steps.payload.outputs.source_sha }}
         run: |
           tag="v$VERSION"
           jq -r '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
@@ -188,13 +241,18 @@ jobs:
             "dist/Anmir-$VERSION-x86_64.zip"
             "dist/Anmir-$VERSION-source.tar.gz"
             "dist/SHA256SUMS"
+            "dist/AnmirConnect-$VERSION.apk"
           )
           if gh release view "$tag" >/dev/null 2>&1; then
+            if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != true ]]; then
+              echo "Release $tag is already published; refusing to replace its assets." >&2
+              exit 1
+            fi
             gh release upload "$tag" "${release_files[@]}" --clobber
             gh release upload "$tag" dist/update.json --clobber
           else
             gh release create "$tag" "${release_files[@]}" dist/update.json \
-              --target "$GITHUB_SHA" --title "Anmir $VERSION" \
+              --target "$RELEASE_SHA" --title "Anmir $VERSION" \
               --notes-file "$RUNNER_TEMP/release-notes.md" --draft
           fi
           gh release edit "$tag" --draft=false --prerelease=false
@@ -225,6 +283,6 @@ jobs:
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add meson.build server/build.gradle server/build_without_gradle.sh app/scrcpy-windows.rc
+          git add meson.build server/build.gradle server/build_without_gradle.sh companion/build.gradle app/scrcpy-windows.rc
           git commit -m "chore: prepare Anmir $next"
           git push origin HEAD:main

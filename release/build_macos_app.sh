@@ -29,6 +29,7 @@ Options:
         --app-only        Build only the .app bundle
         --adb <path>      Use this adb executable
         --server <path>   Use this scrcpy-server
+        --companion <apk> Bundle the optional Anmir Connect phone companion
         --identity <id>   Code signing identity (default: \$CODESIGN_IDENTITY
                           or "-" for ad-hoc signing)
         --no-sign         Do not code sign the bundle
@@ -72,6 +73,7 @@ SIGN=true
 IDENTITY="${CODESIGN_IDENTITY:--}"
 ADB=""
 SERVER=""
+COMPANION=""
 SRC=""
 
 while [[ $# -gt 0 ]]; do
@@ -101,6 +103,11 @@ while [[ $# -gt 0 ]]; do
         --server)
             [[ $# -ge 2 ]] || die "missing value for $1"
             SERVER="$2"
+            shift 2
+            ;;
+        --companion)
+            [[ $# -ge 2 ]] || die "missing value for $1"
+            COMPANION="$2"
             shift 2
             ;;
         --identity)
@@ -213,6 +220,10 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 install -m 755 "$BIN" "$APP/Contents/MacOS/anmir"
 install -m 755 "$ADB" "$APP/Contents/MacOS/adb"
 install -m 644 "$SERVER" "$APP/Contents/Resources/scrcpy-server"
+if [[ -n "$COMPANION" ]]; then
+    [[ -f "$COMPANION" ]] || die "companion APK not found: $COMPANION"
+    install -m 644 "$COMPANION" "$APP/Contents/Resources/AnmirConnect.apk"
+fi
 install -m 644 "$ROOT_DIR/NOTICE" "$ROOT_DIR/THIRD_PARTY.md" "$APP/Contents/Resources/"
 if [[ -d "$SRC/licenses" ]]; then
     cp -R "$SRC/licenses" "$APP/Contents/Resources/"

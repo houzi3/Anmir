@@ -84,12 +84,13 @@ if host_machine.system() == 'darwin'
         'src/sys/macos/device_connection.m',
         'src/sys/macos/device_support.m',
         'src/sys/macos/device_ui.m',
-        'src/sys/macos/device_wifi.m',
+        'src/sys/macos/device_wifi.m', 'src/sys/macos/device_relay.m', 'src/sys/macos/device_reconnect.m',
         'src/sys/macos/file.m',
         'src/sys/macos/mirror_session.m',
         'src/sys/macos/theme.m',
         'src/sys/macos/localization.m',
         'src/sys/macos/settings.m',
+        'src/sys/macos/application_lifecycle.m',
         'src/sys/macos/settings_window.m',
         'src/sys/macos/settings_ui.m',
         'src/sys/macos/about_window.m',
@@ -399,15 +400,16 @@ if get_option('buildtype') == 'debug'
         test('test_updater_automatic', updater_automatic_test, timeout: 20)
         settings_startup_test = executable('test_settings_startup',
             ['tests/test_settings_startup.m', 'src/sys/macos/device_picker.m',
+             'src/sys/macos/application_lifecycle.m',
              'src/sys/macos/settings_ui.m', 'src/sys/macos/about_window.m', 'src/sys/macos/updater.m', 'src/sys/macos/settings_window.m',
              'src/sys/macos/settings.m', 'src/sys/macos/localization.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/mirror_session.m',
-             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_connection.m',
+             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_relay.m', 'src/sys/macos/device_reconnect.m', 'src/sys/macos/device_connection.m',
              'src/sys/macos/device_support.m', 'src/sys/macos/device_pairing.m'],
             include_directories: src_dir,
             dependencies: dependencies + [dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics'])],
             objc_args: ['-UNDEBUG'])
-        test('test_settings_startup', settings_startup_test, timeout: 20)
+        test('test_settings_startup', settings_startup_test, timeout: 35)
         localization_test = executable('test_localization',
             ['tests/test_localization.m', 'src/sys/macos/localization.m'],
             include_directories: src_dir,
@@ -423,7 +425,7 @@ if get_option('buildtype') == 'debug'
         settings_test = executable('test_settings_window',
             ['tests/test_settings_window.m', 'src/sys/macos/settings_window.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m',
-             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_connection.m',
+             'src/sys/macos/device_wifi.m', 'src/sys/macos/device_relay.m', 'src/sys/macos/device_reconnect.m', 'src/sys/macos/device_connection.m',
              'src/sys/macos/device_support.m', 'src/sys/macos/device_pairing.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
@@ -435,6 +437,21 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['Foundation']),
             objc_args: ['-UNDEBUG'])
         test('test_device_support', device_test, timeout: 20)
+        relay_test = executable('test_device_relay',
+            ['tests/test_device_relay.m', 'src/sys/macos/device_relay.m',
+             'src/sys/macos/device_pairing.m', 'src/sys/macos/device_support.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
+            objc_args: ['-UNDEBUG'])
+        test('test_device_relay', relay_test, timeout: 20)
+        reconnect_test = executable('test_device_reconnect',
+            ['tests/test_device_reconnect.m', 'src/sys/macos/device_reconnect.m',
+             'src/sys/macos/device_relay.m', 'src/sys/macos/device_connection.m',
+             'src/sys/macos/device_pairing.m', 'src/sys/macos/device_support.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics']),
+            objc_args: ['-UNDEBUG'])
+        test('test_device_reconnect', reconnect_test, timeout: 30)
         pairing_test = executable('test_device_pairing',
             ['tests/test_device_pairing.m', 'src/sys/macos/device_pairing.m',
              'src/sys/macos/device_support.m'],
@@ -443,7 +460,7 @@ if get_option('buildtype') == 'debug'
             objc_args: ['-UNDEBUG'])
         test('test_device_pairing', pairing_test, timeout: 20)
         wifi_test = executable('test_device_wifi',
-            ['tests/test_device_wifi.m', 'src/sys/macos/device_wifi.m',
+            ['tests/test_device_wifi.m', 'src/sys/macos/device_wifi.m', 'src/sys/macos/device_relay.m', 'src/sys/macos/device_reconnect.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m',
              'src/sys/macos/device_connection.m', 'src/sys/macos/device_pairing.m',
              'src/sys/macos/device_support.m'],

@@ -1,0 +1,42 @@
+name: Anmir PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anmir-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: python3 -m unittest discover -s release/tests
+      - run: bash release/test_companion.sh
+      - run: ./gradlew :companion:assembleDebug :companion:lintDebug --console=plain
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - run: brew install meson ninja pkg-config ffmpeg sdl3 libusb
+      - run: meson setup build-pr --buildtype=debug -Dcompile_server=false
+      - run: meson test -C build-pr --num-processes 1 --print-errorlogs

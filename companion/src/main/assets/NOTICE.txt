@@ -1,0 +1,7 @@
+Anmir Connect
+Copyright 2026 Anmir contributors.
+
+This distribution includes the check icon from the Android Open Source Project:
+Copyright (C) 2022 The Android Open Source Project.
+The icon and Anmir Connect are distributed under the Apache License, Version 2.0.
+See LICENSE.txt in this directory.

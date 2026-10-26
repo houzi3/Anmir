@@ -22,7 +22,7 @@
 
 ## 下载
 
-[最新版本](https://github.com/laobie/Anmir/releases/latest) · macOS 11+ · Apple Silicon / Intel
+[最新版本](https://github.com/houzi3/Anmir/releases/latest) · macOS 11+ · Apple Silicon / Intel
 
 安装包架构：Apple Silicon 选择 **arm64**，Intel 选择 **x86_64**。
 
@@ -64,7 +64,7 @@
 
 ### 无线连接 · Android 11+
 
-1. 设备与 Mac 连到同一网络，在设备上开启“开发者选项 → 无线调试”。
+1. 设备与 Mac 连到可互通的网络，在设备上开启“开发者选项 → 无线调试”。
 2. 点击 Anmir 的 **Wi-Fi 加号**，选择连接方式：
 
 <table>
@@ -86,6 +86,23 @@
   </tr>
 </table>
 
+### 公司内网扫码 · Android 11+
+
+公司网络禁用 mDNS，或跨网段导致扫码一直转圈时，可安装 **Anmir Connect** 辅助连接，无需每次输入 IP 和端口：
+
+手机与 Mac 必须能通过 IP 互通，支持双向连接。普通网络可继续使用标准二维码；仅在公司网络禁用 mDNS、跨网段发现失败时使用此流程。
+
+1. 在 Mac 的扫码窗口选择 **公司网络扫码一直转圈？试试这个方案**。点击安装说明同一行的 **下载 APK**，在浏览器打开 [GitHub 安装包下载页](https://github.com/houzi3/Anmir/releases/tag/v0.1.2)，下载并在手机上安装。
+2. 在手机打开 Anmir Connect，点击 **启动辅助连接**。服务就绪后弹出成功提示，随后自动打开开发者选项并尝试定位“无线调试”。
+3. 进入 **无线调试 → 使用二维码配对设备**，扫描 Mac 上的二维码，配对完成后自动投屏。
+
+已安装早期测试 APK 的用户，请先卸载旧 Anmir Connect 再安装正式版；正式版采用固定发布签名。之后正常版本更新可覆盖安装。
+
+请保持无线调试开启，并使用系统无线调试的扫码入口。二维码有效期为 5 分钟。首次配对成功后，Anmir Connect 会记住这台 Mac，辅助连接持续在前台服务中运行；Wi-Fi 恢复后回传新调试端口，Mac 自动重连，恢复因断网中断的投屏。主动关闭的投屏不会自动重开。点击 **立即重试** 可跳过重试等待，**停止辅助连接** 暂停重连，**忘记已保存的 Mac** 清除保存的回传凭据。
+
+请保持两端 App 运行。系统关闭无线调试时需手动开启；Mac 地址变化时需重新扫码。重新启动辅助组件会保留已保存的 Mac；手机重启或 App 被强行停止后需再次启动。首次配对前，尚未记住 Mac 的辅助服务仍会在 5 分钟后停止。
+手机与 Mac 仍需可以互通。完整安装步骤与故障处理见[公司网络扫码连接](doc/company-network.zh-CN.md)。
+
 ### 常用操作
 
 | 操作 | 入口 |
@@ -93,6 +110,10 @@
 | 返回、主页、最近任务 | 投屏窗口旁的悬浮工具栏。 |
 | 截图、录屏 | 悬浮工具栏；截图复制到 Mac 剪贴板，录屏可选择保存位置。 |
 | 外观、语言、工具栏设置 | 设备列表或投屏窗口右上角的齿轮，或按 `⌘,`。 |
+| 重新打开窗口 | 从 Spotlight 或访达打开 Anmir；已有窗口会恢复并置前，否则显示设备列表。 |
+| 完全退出 | 按 `⌘Q`，关闭 Anmir 和投屏窗口，同时停止后台重连。 |
+
+关闭全部窗口后，Anmir 隐藏 Dock 图标并继续后台重连；最小化窗口会保留 Dock 图标。
 
 ## 命令行
 
@@ -108,7 +129,7 @@
 - 使用指南：[快捷键](doc/shortcuts.md) · [连接](doc/connection.md) · [音频](doc/audio.md)
 - 开发文档：[构建与 LGPL 重新链接](doc/build-anmir.md) · [macOS 架构](doc/macos-architecture.md)
 
-反馈请到 [Issues](https://github.com/laobie/Anmir/issues)，附上：
+反馈请到 [Issues](https://github.com/houzi3/Anmir/issues)，附上：
 
 - Anmir 版本、Mac 芯片与 macOS 版本。
 - 安卓设备的系统版本、连接方式及复现步骤。
@@ -123,6 +144,12 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.2</td>
+    <td nowrap>2026-10-26</td>
+    <td>新增 Anmir Connect，支持公司内网跨网段扫码与自动重连；修复 Dock 和窗口恢复；改进更新检查，使用静态更新清单。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.2">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.1</td>
     <td nowrap>2026-10-26</td>
     <td>支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。</td>
@@ -132,7 +159,7 @@
     <td nowrap>v0.1.0</td>
     <td nowrap>2026-10-25</td>
     <td>首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。</td>
-    <td><a href="https://github.com/laobie/Anmir/releases/tag/v0.1.0">Release</a></td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.0">Release</a></td>
   </tr>
 </table>
 

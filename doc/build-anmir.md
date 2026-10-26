@@ -14,7 +14,7 @@ binary does not produce an Intel build.
 ```sh
 git clone https://github.com/houzi3/Anmir.git
 cd Anmir
-git checkout v0.1.1
+git checkout v0.1.2
 
 python3 -m venv release/work/dmgbuild-env
 release/work/dmgbuild-env/bin/pip install dmgbuild==1.6.7
@@ -26,8 +26,10 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 mkdir -p release/work/build-server
 BUILD_DIR="$PWD/release/work/build-server" bash server/build_without_gradle.sh
 
+./gradlew :companion:assembleDebug
 bash release/build_macos.sh "$(uname -m)"
 bash release/build_macos_app.sh --dmg --zip \
+    --companion "$PWD/companion/build/outputs/apk/debug/companion-debug.apk" \
     --server "$PWD/release/work/build-server/scrcpy-server" \
     "release/work/build-macos-$(uname -m)"
 ```
@@ -44,7 +46,7 @@ remains in the system dialog.
 
 ## Rebuild with modified LGPL libraries
 
-Download `Anmir-0.1.1-source.tar.gz` from the release and extract it. This source
+Download `Anmir-0.1.2-source.tar.gz` from the release and extract it. This source
 package includes the application and the original source archives for FFmpeg,
 libusb, SDL and dav1d at `app/deps/work/sources/`. Each dependency script verifies
 its archive checksum before extraction. Dependency patches are under
@@ -64,7 +66,7 @@ matching build directory under `app/deps/work/build/` before rebuilding. The
 source archive includes no private application code or unavailable link inputs.
 ADB is a separate executable; its upstream notices are included in the app.
 
-The Android helper's version must match the client version. Both are `0.1.1`
+The Android helper's version must match the client version. Both are `0.1.2`
 for this release. Its Java namespace remains `com.genymobile.scrcpy`.
 
 ## In-app updates
@@ -101,14 +103,31 @@ generate the manifest with optional Markdown release notes:
 bash release/generate_update_manifest.sh dist release-notes.md
 ```
 
-The `anmir-release` CI artifact combines both architectures and generates the
-manifest automatically. In `houzi3/Anmir`, the workflow creates or updates the
-matching stable `vVERSION` GitHub Release. Existing binary assets are replaced
-first and `update.json` last, so the public manifest never points at packages
-that have not been uploaded yet. After publication succeeds, the workflow runs
-`bump_version` and commits the next patch version to `main` (for example,
-`0.1.1` becomes `0.1.2`). Forks still build the combined artifact but never
-publish or change their branches.
+The `anmir-release` CI artifact combines both architectures, the unsigned companion APK,
+and the static update manifest. CI does not receive the Android signing key and does not
+publish automatically: the key is shared with other applications and remains on the
+maintainer's machine.
+
+After the PR merges, let the main-branch build complete. Download its `anmir-release`
+artifact and sign its APK locally:
+
+```sh
+python3 release/sign_companion.py \
+  release-artifacts/AnmirConnect-0.1.2-unsigned.apk \
+  release-artifacts/AnmirConnect-0.1.2.apk
+```
+
+Create a **draft** `vVERSION` release targeting that successful build's exact commit,
+and upload only the signed APK to the draft. Then dispatch `anmir-release.yml` on
+`main` with `publish=true` and `build_run_id=THE_COMPLETED_RUN_ID`. This reuses the
+completed build instead of rebuilding. The publisher requires a successful main
+build, a matching release tag, an unchanged APK payload and the pinned release
+certificate before uploading the Mac packages, APK, checksums and `update.json`.
+Published releases are never overwritten.
+
+After publication succeeds, the workflow runs `bump_version` and commits the next
+patch version to `main`, including both Android modules. Forks still build artifacts
+but never publish or change their branches.
 
 Drafts and prereleases are not selected by GitHub's `releases/latest` redirect.
 Missing, malformed or incomplete manifests fail closed. The updater verifies
@@ -137,3 +156,24 @@ python3 app/tests/test_update_installer.py
 The installer tests replace only the OS launch and move entry points with
 fixtures; all application folders are disposable. A real released ZIP, GUI
 confirmation and relaunch still require an end-to-end manual test.
+
+
+## Anmir Connect release signing
+
+The maintainer's signing material stays outside this repository at
+`~/important_key/android_keystore/`, with directory permissions `700` and file
+permissions `600`. `signing.properties` specifies `storeFile`, `storeType`,
+`storePassword`, `keyAlias` and `keyPassword`; a relative `storeFile` is resolved
+beside that properties file. `ANMIR_CONNECT_SIGNING_PROPERTIES` may point to a
+different local properties file for Gradle builds.
+
+Gradle release builds use this local configuration when available. CI explicitly
+sets `ANMIR_UNSIGNED_BUILD=true` and builds an unsigned APK. Local signing uses
+`release/sign_companion.py`; verification compares every APK payload file before
+and after signing and pins the public certificate digest recorded in
+`companion/release-certificate.sha256`. Private keys and passwords are never
+committed, uploaded as artifacts, or stored as GitHub Actions secrets.
+
+Back up the private signing directory securely. Future APK updates must use the
+same signing key. Earlier debug-signed preview APKs must be uninstalled once before
+installing the official APK. The package ID remains `io.github.houzi3.anmir.connect`.

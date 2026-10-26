@@ -206,8 +206,8 @@ sc_screen_set_paused(struct sc_screen *screen, bool paused);
 void
 sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event);
 
-// run the event loop once the device is disconnected
-void
+// Run the disconnected window loop; true means the user explicitly closed it.
+bool
 sc_screen_handle_disconnection(struct sc_screen *screen);
 
 // convert point from window coordinates to frame coordinates

@@ -1,0 +1,10 @@
+<resources>
+    <color name="page">#101412</color>
+    <color name="surface">#242B27</color>
+    <color name="mint">#46E698</color>
+    <color name="text">#F4F6F5</color>
+    <color name="muted">#A1A8A3</color>
+    <color name="divider">#343C37</color>
+    <color name="error">#FFB4AB</color>
+    <color name="danger">#FF6B6B</color>
+</resources>

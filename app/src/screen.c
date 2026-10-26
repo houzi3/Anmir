@@ -1497,16 +1497,16 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
     sc_input_manager_handle_event(&screen->im, event);
 }
 
-void
+bool
 sc_screen_handle_disconnection(struct sc_screen *screen) {
     if (!screen->window_shown) {
         // No window open, quit immediately
-        return;
+        return false;
     }
 
     if (!screen->disconnect_started) {
         // If sc_disconnect_start() failed, quit immediately
-        return;
+        return false;
     }
 
     SDL_Event event;
@@ -1535,15 +1535,16 @@ sc_screen_handle_disconnection(struct sc_screen *screen) {
             }
             case SC_EVENT_DISCONNECTED_TIMEOUT:
                 LOGD("Closing after device disconnection");
-                return;
+                return false;
             case SDL_EVENT_QUIT:
                 LOGD("User requested to quit");
                 sc_screen_interrupt_disconnect(screen);
-                return;
+                return true;
             default:
                 sc_input_manager_handle_event(&screen->im, &event);
         }
     }
+    return false;
 }
 
 struct sc_point
