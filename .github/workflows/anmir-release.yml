@@ -86,7 +86,7 @@ jobs:
           xcrun clang -fobjc-arc -Iapp/src -framework AppKit \
             app/tests/test_device_ui.m app/src/sys/macos/device_ui.m \
             app/src/sys/macos/localization.m -o "$RUNNER_TEMP/anmir-test-icons"
-          "$RUNNER_TEMP/anmir-test-icons" "$PWD/app/data/scrcpy.icns"
+          "$RUNNER_TEMP/anmir-test-icons" "$PWD/app/data/anmir.icns"
           xcrun clang -fobjc-arc -Iapp/src -framework Foundation \
             app/tests/test_device_support.m app/src/sys/macos/device_support.m \
             -o "$RUNNER_TEMP/anmir-test-pipes"

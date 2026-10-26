@@ -41,7 +41,7 @@ static NSTextField *SCAboutLabel(NSString *identifier, CGFloat size, NSFontWeigh
     ]];
     NSImageView *icon = [NSImageView new];
     icon.identifier = @"About.icon";
-    NSString *iconPath = [bundle pathForResource:@"scrcpy" ofType:@"icns"];
+    NSString *iconPath = [bundle pathForResource:@"anmir" ofType:@"icns"];
     // Use macOS's normalized bundle icon, including its rounded mask.
     icon.image = [NSWorkspace.sharedWorkspace iconForFile:bundle.bundlePath];
     if (!icon.image) { icon.image = iconPath ? [[NSImage alloc] initWithContentsOfFile:iconPath] : NSApp.applicationIconImage; }

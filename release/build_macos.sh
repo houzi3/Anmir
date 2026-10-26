@@ -58,7 +58,7 @@ ninja -C "$MACOS_BUILD_DIR"
 # Group intermediate outputs into a 'dist' directory
 mkdir -p "$MACOS_BUILD_DIR/dist"
 cp "$MACOS_BUILD_DIR"/app/anmir "$MACOS_BUILD_DIR/dist/"
-cp app/data/scrcpy.png "$MACOS_BUILD_DIR/dist/"
+cp app/data/anmir.png "$MACOS_BUILD_DIR/dist/"
 cp app/data/disconnected.png "$MACOS_BUILD_DIR/dist/"
 cp -r app/data/toolbar-icons "$MACOS_BUILD_DIR/dist/"
 cp app/anmir.1 "$MACOS_BUILD_DIR/dist/"

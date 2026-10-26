@@ -138,6 +138,12 @@ Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
     <th>Release</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.3</td>
+    <td nowrap>2026-10-27</td>
+    <td>New macOS app icon featuring an Android robot and its reflection in a Mac display; mirroring windows retain the phone badge.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.3">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.2</td>
     <td nowrap>2026-10-26</td>
     <td>Company-network QR pairing and automatic reconnection with Anmir Connect; restored Dock/window reopening; improved update discovery and static release manifests.</td>

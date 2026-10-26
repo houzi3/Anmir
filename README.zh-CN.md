@@ -137,6 +137,12 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.3</td>
+    <td nowrap>2026-10-27</td>
+    <td>更新 macOS 应用图标，采用安卓机器人照 Mac 镜子的设计；投屏窗口保留小手机角标。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.3">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.2</td>
     <td nowrap>2026-10-26</td>
     <td>新增 Anmir Connect，支持公司内网跨网段扫码与自动重连；修复 Dock 和窗口恢复；改进更新检查，使用静态更新清单。</td>

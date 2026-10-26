@@ -15,7 +15,7 @@
     <key>CFBundleExecutable</key>
     <string>anmir</string>
     <key>CFBundleIconFile</key>
-    <string>scrcpy</string>
+    <string>anmir</string>
     <key>CFBundleIdentifier</key>
     <string>io.github.laobie.anmir</string>
     <key>CFBundleInfoDictionaryVersion</key>

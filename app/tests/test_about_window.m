@@ -18,9 +18,9 @@ static NSBundle *bundle(NSURL *root, NSString *build, NSString *icon) {
     NSFileManager *files = NSFileManager.defaultManager;
     assert(([files createDirectoryAtURL:[resources URLByAppendingPathComponent:@"licenses"] withIntermediateDirectories:YES attributes:nil error:nil]));
     NSDictionary *info = @{@"CFBundlePackageType":@"APPL", @"CFBundleIdentifier":[@"org.anmir.about." stringByAppendingString:build],
-        @"CFBundleShortVersionString":@"0.0.9", @"CFBundleVersion":build, @"CFBundleIconFile":@"scrcpy.icns"};
+        @"CFBundleShortVersionString":@"0.0.9", @"CFBundleVersion":build, @"CFBundleIconFile":@"anmir.icns"};
     assert(([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]));
-    assert(([files copyItemAtPath:icon toPath:[resources URLByAppendingPathComponent:@"scrcpy.icns"].path error:nil]));
+    assert(([files copyItemAtPath:icon toPath:[resources URLByAppendingPathComponent:@"anmir.icns"].path error:nil]));
     for (NSString *path in @[@"LICENSE", @"NOTICE", @"THIRD_PARTY.md", @"licenses/dependency.txt"]) {
         assert(([[@"Unmodified license fixture" dataUsingEncoding:NSUTF8StringEncoding] writeToURL:[resources URLByAppendingPathComponent:path] atomically:YES]));
     }

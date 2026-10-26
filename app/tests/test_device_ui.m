@@ -162,10 +162,10 @@ static void SCCheckMirrorIcon(NSString *iconPath) {
     NSURL *resources = [contents URLByAppendingPathComponent:@"Resources"];
     assert([files createDirectoryAtURL:resources withIntermediateDirectories:YES attributes:nil error:nil]);
     assert([files copyItemAtPath:iconPath toPath:
-        [resources URLByAppendingPathComponent:@"scrcpy.icns"].path error:nil]);
+        [resources URLByAppendingPathComponent:@"anmir.icns"].path error:nil]);
     NSDictionary *info = @{@"CFBundlePackageType":@"APPL",
         @"CFBundleIdentifier":[@"org.scrcpy.icontest." stringByAppendingString:NSUUID.UUID.UUIDString],
-        @"CFBundleIconFile":@"scrcpy.icns"};
+        @"CFBundleIconFile":@"anmir.icns"};
     assert([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]);
     NSBundle *bundle = [NSBundle bundleWithURL:bundleURL];
     assert(bundle);

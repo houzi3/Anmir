@@ -252,10 +252,9 @@ install_man('anmir.1')
 
 # Native bundles copy these directories into Contents/Resources.
 install_subdir('data/locales', install_dir: datadir / 'anmir')
-install_data('data/scrcpy.png',
-             install_dir: datadir / 'icons/hicolor/256x256/apps',
-             rename: 'anmir.png')
-install_data('data/scrcpy.png', install_dir: datadir / 'anmir')
+install_data('data/anmir.png',
+             install_dir: datadir / 'icons/hicolor/256x256/apps')
+install_data('data/anmir.png', install_dir: datadir / 'anmir')
 install_data('data/disconnected.png',
              install_dir: datadir / 'anmir')
 toolbar_icon_dir = datadir / 'anmir/toolbar-icons'
@@ -385,7 +384,7 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
         test('test_about_window', about_test,
-            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/scrcpy.icns'], timeout: 20)
+            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
         updater_test = executable('test_updater',
             ['tests/test_updater.m', 'src/sys/macos/updater.m'],
             include_directories: src_dir,
@@ -487,7 +486,7 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
         test('test_device_ui', device_ui_test,
-            args: [meson.current_source_dir() / 'data/scrcpy.icns'], timeout: 20)
+            args: [meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
         theme_chooser_test = executable('test_theme_chooser',
             ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
