@@ -67,11 +67,24 @@ A single ready device opens directly; with multiple devices, choose one from the
 1. Connect your device and Mac to the same network. Enable **Developer options → Wireless debugging** on the Android device.
 2. Click the **Wi-Fi add button** in Anmir and choose a connection method:
 
-| Method | Action |
-| --- | --- |
-| QR pairing | Select **Pair device with QR code** on the Android device and scan the code shown in Anmir. |
-| Pairing code | Select the discovered device and enter its pairing code. If discovery fails, enter the pairing address and port manually. |
-| Already paired device | Enter the device's IP address and connection port manually. |
+<table>
+  <tr>
+    <th nowrap>Method</th>
+    <th>Action</th>
+  </tr>
+  <tr>
+    <td nowrap>QR pairing</td>
+    <td>Select <strong>Pair device with QR code</strong> on the Android device and scan the code shown in Anmir.</td>
+  </tr>
+  <tr>
+    <td nowrap>Pairing code</td>
+    <td>Select the discovered device and enter its pairing code. If discovery fails, enter the pairing address and port manually.</td>
+  </tr>
+  <tr>
+    <td nowrap>Already paired device</td>
+    <td>Enter the device's IP address and connection port manually.</td>
+  </tr>
+</table>
 
 ### Everyday controls
 
@@ -102,10 +115,26 @@ Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
 
 ## Release history
 
-| Version | Date | Changes | Release |
-| --- | --- | --- | --- |
-| v0.1.1 | 2026-10-26 | In-app update checks, downloads and installation; improved About window with project, feedback and license links. | [Release](https://github.com/houzi3/Anmir/releases/tag/v0.1.1) |
-| v0.1.0 | 2026-10-25 | Initial release: native device management, USB/wireless mirroring, screenshots, recording and localization. | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
+<table>
+  <tr>
+    <th nowrap>Version</th>
+    <th nowrap>Date</th>
+    <th>Changes</th>
+    <th>Release</th>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.1</td>
+    <td nowrap>2026-10-26</td>
+    <td>In-app update checks, downloads and installation; improved About window with project, feedback and license links.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.1">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.0</td>
+    <td nowrap>2026-10-25</td>
+    <td>Initial release: native device management, USB/wireless mirroring, screenshots, recording and localization.</td>
+    <td><a href="https://github.com/laobie/Anmir/releases/tag/v0.1.0">Release</a></td>
+  </tr>
+</table>
 
 ## Special thanks
 

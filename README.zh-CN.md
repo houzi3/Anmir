@@ -67,11 +67,24 @@
 1. 设备与 Mac 连到同一网络，在设备上开启“开发者选项 → 无线调试”。
 2. 点击 Anmir 的 **Wi-Fi 加号**，选择连接方式：
 
-| 方式 | 操作 |
-| --- | --- |
-| 二维码配对 | 在设备上选择“使用二维码配对设备”，扫描 Anmir 显示的二维码。 |
-| 配对码配对 | 选择发现的设备并输入配对码；未发现设备时，手动输入配对地址和端口。 |
-| 连接已配对设备 | 手动输入设备的 IP 地址和连接端口。 |
+<table>
+  <tr>
+    <th nowrap>方式</th>
+    <th>操作</th>
+  </tr>
+  <tr>
+    <td nowrap>二维码配对</td>
+    <td>在设备上选择“使用二维码配对设备”，扫描 Anmir 显示的二维码。</td>
+  </tr>
+  <tr>
+    <td nowrap>配对码配对</td>
+    <td>选择发现的设备并输入配对码；未发现设备时，手动输入配对地址和端口。</td>
+  </tr>
+  <tr>
+    <td nowrap>连接已配对设备</td>
+    <td>手动输入设备的 IP 地址和连接端口。</td>
+  </tr>
+</table>
 
 ### 常用操作
 
@@ -102,10 +115,26 @@
 
 ## 更新记录
 
-| 版本 | 日期 | 更新内容 | 发布页 |
-| --- | --- | --- | --- |
-| v0.1.1 | 2026-10-26 | 支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。 | [Release](https://github.com/houzi3/Anmir/releases/tag/v0.1.1) |
-| v0.1.0 | 2026-10-25 | 首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。 | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
+<table>
+  <tr>
+    <th nowrap>版本</th>
+    <th nowrap>日期</th>
+    <th>更新内容</th>
+    <th>发布页</th>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.1</td>
+    <td nowrap>2026-10-26</td>
+    <td>支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.1">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.0</td>
+    <td nowrap>2026-10-25</td>
+    <td>首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。</td>
+    <td><a href="https://github.com/laobie/Anmir/releases/tag/v0.1.0">Release</a></td>
+  </tr>
+</table>
 
 ## 特别感谢
 
