@@ -14,7 +14,7 @@ BEGIN
       VALUE "LegalCopyright", "Romain Vimont, Genymobile"
       VALUE "OriginalFilename", "anmir.exe"
       VALUE "ProductName", "Anmir"
-      VALUE "ProductVersion", "0.1.0"
+      VALUE "ProductVersion", "0.1.1"
     END
   END
   BLOCK "VarFileInfo"

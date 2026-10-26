@@ -104,6 +104,7 @@ Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
 
 | Version | Date | Changes | Release |
 | --- | --- | --- | --- |
+| v0.1.1 | 2026-10-26 | In-app update checks, downloads and installation; improved About window with project, feedback and license links. | [Release](https://github.com/houzi3/Anmir/releases/tag/v0.1.1) |
 | v0.1.0 | 2026-10-25 | Initial release: native device management, USB/wireless mirroring, screenshots, recording and localization. | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
 
 ## Special thanks

@@ -104,6 +104,7 @@
 
 | 版本 | 日期 | 更新内容 | 发布页 |
 | --- | --- | --- | --- |
+| v0.1.1 | 2026-10-26 | 支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。 | [Release](https://github.com/houzi3/Anmir/releases/tag/v0.1.1) |
 | v0.1.0 | 2026-10-25 | 首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。 | [Release](https://github.com/laobie/Anmir/releases/tag/v0.1.0) |
 
 ## 特别感谢

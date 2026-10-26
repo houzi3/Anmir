@@ -22,7 +22,7 @@ _Also read the [FAQ] and check if your [issue][issues] already exists._
 
  - **macOS version:** [e.g. 15.0]
  - **Mac processor:** [Apple Silicon / Intel]
- - **Anmir version:** [e.g. 0.1.0]
+ - **Anmir version:** [e.g. 0.1.1]
  - **Installation method:** [DMG / ZIP / source build]
  - **Device model:**
  - **Android version:** [e.g. 14]
