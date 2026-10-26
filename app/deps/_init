@@ -68,9 +68,25 @@ get_file() {
     if [[ -f "$file" ]]
     then
         echo "$file: found"
-    else
-        echo "$file: not found, downloading..."
-        wget "$url" -O "$file"
+        if checksum "$file" "$sum"; then
+            return 0
+        fi
+        echo "$file: invalid cached download, fetching again..."
     fi
-    checksum "$file" "$sum"
+    local temporary
+    temporary="$(mktemp "$file.XXXXXX")" || return 1
+    echo "$file: downloading..."
+    if ! wget --timeout=30 --tries=2 "$url" -O "$temporary"; then
+        echo "$file: wget failed, retrying with curl..."
+        if ! curl --fail --location --retry 3 --connect-timeout 15 \
+                --max-time 300 --output "$temporary" "$url"; then
+            rm -f "$temporary"
+            return 1
+        fi
+    fi
+    if ! checksum "$temporary" "$sum"; then
+        rm -f "$temporary"
+        return 1
+    fi
+    mv -f "$temporary" "$file"
 }
