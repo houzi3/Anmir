@@ -1,0 +1,58 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/page" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true" android:clipToPadding="false">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:paddingStart="24dp" android:paddingEnd="24dp"
+        android:paddingTop="16dp" android:paddingBottom="20dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="64dp"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageView android:layout_width="64dp" android:layout_height="64dp"
+                android:src="@mipmap/ic_launcher" android:importantForAccessibility="no"/>
+            <TextView style="@style/Body" android:layout_width="wrap_content"
+                android:layout_marginStart="8dp" android:text="@string/app_name"
+                android:textSize="19sp" android:fontFamily="sans-serif-medium"/>
+        </LinearLayout>
+        <TextView android:id="@+id/heading" style="@style/Body" android:layout_marginTop="20dp"
+            android:text="@string/title" android:textSize="26sp" android:fontFamily="sans-serif-medium"
+            android:accessibilityHeading="true"/>
+        <TextView style="@style/Hint" android:layout_marginTop="10dp" android:text="@string/subtitle"/>
+        <TextView android:id="@+id/mac_step" style="@style/Step" android:layout_marginTop="36dp" android:text="@string/mac_step"/>
+        <TextView style="@style/Body" android:layout_marginTop="12dp" android:text="@string/mac_path"/>
+        <TextView style="@style/Hint" android:layout_marginTop="8dp" android:text="@string/mac_hint"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:layout_marginTop="24dp" android:layout_marginBottom="24dp" android:background="@color/divider"/>
+        <TextView style="@style/Step" android:text="@string/phone_step"/>
+        <TextView style="@style/Body" android:layout_marginTop="12dp" android:text="@string/phone_action"/>
+        <TextView style="@style/Hint" android:layout_marginTop="8dp" android:text="@string/phone_path"/>
+        <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="48dp" android:layout_marginBottom="16dp">
+            <View android:id="@+id/status_dot" android:layout_width="10dp" android:layout_height="10dp"
+                android:layout_marginEnd="10dp" android:importantForAccessibility="no"/>
+            <TextView android:id="@+id/status" style="@style/Hint" android:layout_width="0dp"
+                android:layout_weight="1" android:accessibilityLiveRegion="polite"/>
+        </LinearLayout>
+        <Button android:id="@+id/primary" android:layout_width="match_parent" android:layout_height="56dp"
+            android:background="@drawable/primary_button" android:backgroundTint="@null"
+            android:text="@string/start" android:textAllCaps="false" android:textSize="16sp"
+            android:fontFamily="sans-serif-medium" android:textColor="@color/page" android:letterSpacing="0"
+            android:paddingStart="16dp" android:paddingEnd="16dp"/>
+        <TextView android:id="@+id/footer_hint" style="@style/Hint" android:layout_marginTop="12dp"
+            android:text="@string/start_hint" android:textSize="12sp" android:gravity="center"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <Button android:id="@+id/retry" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp"
+                style="?android:attr/borderlessButtonStyle" android:text="@string/retry_now"
+                android:textAllCaps="false" android:textColor="@color/mint" android:textSize="14sp" android:visibility="gone"/>
+            <Button android:id="@+id/stop" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp"
+                android:layout_marginTop="8dp" android:layout_marginBottom="8dp"
+                style="?android:attr/borderlessButtonStyle" android:text="@string/stop"
+                android:textAllCaps="false" android:textColor="@color/danger" android:textSize="14sp" android:visibility="gone"/>
+        </LinearLayout>
+        <Button android:id="@+id/forget" android:layout_width="match_parent" android:layout_height="48dp"
+            style="?android:attr/borderlessButtonStyle" android:text="@string/forget_mac"
+            android:textAllCaps="false" android:textColor="@color/muted" android:textSize="14sp"
+            android:visibility="gone"/>
+    </LinearLayout>
+</ScrollView>

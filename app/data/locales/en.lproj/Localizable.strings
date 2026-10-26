@@ -219,3 +219,25 @@
 "Third-Party Notices" = "Third-Party Notices";
 "License files are unavailable in this build." = "License files are unavailable in this build.";
 "OK" = "OK";
+
+"Company network" = "Company network";
+"Standard QR code" = "Standard QR code";
+"Start Anmir Connect on your phone, then use the system scanner below." = "Start Anmir Connect on your phone, then use the system scanner below.";
+"Waiting for the phone companion…" = "Waiting for the phone companion…";
+"Mac network address" = "Mac network address";
+"Could not start the phone callback. Check the Mac network connection." = "Could not start the phone callback. Check the Mac network connection.";
+
+"Show phone companion" = "Show phone companion";
+"Pairing stuck on a company network? Try this option" = "Pairing stuck on a company network? Try this option";
+"Company-network QR pairing" = "Company-network QR pairing";
+"Company Wi-Fi blocks mDNS discovery? Anmir Connect helps your phone report its connection information." = "Company Wi-Fi blocks mDNS discovery? Anmir Connect helps your phone report its connection information.";
+"Install Anmir Connect on your phone once, using USB or an existing ADB connection." = "Install Anmir Connect on your phone once, using USB or an existing ADB connection.";
+"In Anmir Connect, tap Start helper. After the success message, Developer options opens." = "In Anmir Connect, tap Start helper. After the success message, Developer options opens.";
+"Show Android installer" = "Show Android installer";
+"This build has no Android installer. Use a build that includes Anmir Connect." = "This build has no Android installer. Use a build that includes Anmir Connect.";
+"First time: install Anmir Connect on your phone." = "First time: install Anmir Connect on your phone.";
+"On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open.";
+"On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below.";
+"Download APK" = "Download APK";
+
+"Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "Waiting for the phone helper. After pairing, keep it running to reconnect automatically.";

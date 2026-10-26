@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <!-- ADB may start the debug service for protocol tests. Ordinary apps
+             lack DUMP; release builds keep the service non-exported. -->
+        <service android:name=".RelayService" android:exported="true"
+            android:permission="android.permission.DUMP" tools:replace="android:exported" />
+    </application>
+</manifest>

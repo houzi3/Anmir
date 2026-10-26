@@ -13,9 +13,12 @@ static NSString *SCRandomPairingString(NSUInteger length) {
 
 @implementation SCDeviceQRPairing
 - (instancetype)init {
+    return [self initWithServiceName:[@"studio-" stringByAppendingString:SCRandomPairingString(10)]];
+}
+- (instancetype)initWithServiceName:(NSString *)name {
     self = [super init];
     if (self) {
-        _serviceName = [@"studio-" stringByAppendingString:SCRandomPairingString(10)];
+        _serviceName = [name copy];
         _password = SCRandomPairingString(20);
         _payload = [NSString stringWithFormat:@"WIFI:T:ADB;S:%@;P:%@;;", _serviceName, _password];
         CIFilter *filter = [CIFilter filterWithName:@"CIQRCodeGenerator"];

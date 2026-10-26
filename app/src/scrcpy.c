@@ -1039,7 +1039,9 @@ end:
 
     if (screen_initialized) {
         if (disconnected) {
-            sc_screen_handle_disconnection(&s->screen);
+            if (sc_screen_handle_disconnection(&s->screen)) {
+                ret = SCRCPY_EXIT_SUCCESS;
+            }
         }
         LOGD("Quit...");
 

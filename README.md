@@ -15,6 +15,7 @@ adb is included, with no separate Homebrew or Android SDK installation needed. M
 ## Highlights
 
 - **Built-in wireless pairing:** scan Anmir's QR code with your Android device, or enter a pairing code. Connect paired devices by IP address and port.
+- **Company-network pairing:** use Anmir Connect when mDNS is blocked between subnets, with reconnection after Wi-Fi returns.
 - **Unified device management:** discover Android devices and group each device's USB and wireless connections. Each mirror has its own window and Dock entry.
 - **Floating controls:** Back, Home, Recents, screenshots and recording beside the mirror window.
 - **Screenshots and recording:** copy device screenshots to your Mac's clipboard. Start and stop recording while mirroring, check elapsed time and choose a save location.
@@ -22,7 +23,7 @@ adb is included, with no separate Homebrew or Android SDK installation needed. M
 
 ## Download
 
-[Latest release](https://github.com/laobie/Anmir/releases/latest) · macOS 11+ · Apple Silicon / Intel
+[Latest release](https://github.com/houzi3/Anmir/releases/latest) · macOS 11+ · Apple Silicon / Intel
 
 Choose **arm64** for Apple Silicon or **x86_64** for Intel.
 
@@ -64,7 +65,7 @@ A single ready device opens directly; with multiple devices, choose one from the
 
 ### Wireless connection · Android 11+
 
-1. Connect your device and Mac to the same network. Enable **Developer options → Wireless debugging** on the Android device.
+1. Connect your device and Mac to networks that can reach each other. Enable **Developer options → Wireless debugging** on the Android device.
 2. Click the **Wi-Fi add button** in Anmir and choose a connection method:
 
 <table>
@@ -86,6 +87,23 @@ A single ready device opens directly; with multiple devices, choose one from the
   </tr>
 </table>
 
+### Company-network QR pairing · Android 11+
+
+If QR pairing spins indefinitely because a company network blocks mDNS discovery between subnets, use **Anmir Connect**. No IP address or port needs to be typed for each connection:
+
+The phone and Mac must allow connections in both directions. Use standard QR pairing on normal networks; use this flow when company-network discovery is blocked between subnets.
+
+1. In the Mac QR window, choose **Pairing stuck on a company network? Try this option**. Click **Download APK** beside the installation instruction to open the [GitHub download page](https://github.com/houzi3/Anmir/releases/tag/v0.1.2), then install the APK on your phone.
+2. Open Anmir Connect on your phone and tap **Start helper**. Once the helper is ready, a success popup appears, then Developer options opens automatically and attempts to bring Wireless debugging into view.
+3. Open **Wireless debugging → Pair device with QR code** and scan the Mac’s QR code. Mirroring opens after pairing.
+
+If you installed an earlier preview APK, uninstall it before installing the release APK: the release uses a fixed release signing key. Later release updates can be installed normally.
+
+Keep wireless debugging enabled and use its system scanner. Each QR expires after five minutes. After the first successful pairing, Anmir Connect remembers this Mac and keeps its foreground helper running: when Wi-Fi returns, it reports the current debugging port and Anmir reconnects. Interrupted mirrors resume; closing a mirror yourself keeps it closed. **Retry now** skips the retry wait. **Stop helper** pauses reconnection; **Forget saved Mac** removes the saved callback credentials.
+
+Keep both apps running. If Android turns wireless debugging off, enable it manually. If the Mac’s address changes, scan a new company-network QR code. Restarting the helper retains the saved Mac; phone reboot or force-stop requires starting it again. Before the first pairing, an unregistered helper still stops after five minutes.
+The phone and Mac must still be reachable by IP. See [company-network setup and troubleshooting](doc/company-network.md).
+
 ### Everyday controls
 
 | Action | Where |
@@ -93,6 +111,10 @@ A single ready device opens directly; with multiple devices, choose one from the
 | Back, Home and Recents | Floating toolbar beside the mirror window. |
 | Screenshots and recording | Floating toolbar. Screenshots go to your Mac's clipboard; recordings can be saved to a chosen location. |
 | Appearance, language and toolbar settings | Gear in the device list or mirror window, or `⌘,`. |
+| Reopen windows | Open Anmir from Spotlight or Finder. Existing windows are restored and brought forward; otherwise, the device list opens. |
+| Quit completely | Press `⌘Q` to close Anmir and its mirrors and stop background reconnection. |
+
+Closing every window hides the Dock icon while reconnection continues in the background. Minimized windows keep their Dock icon.
 
 ## Command line
 
@@ -108,7 +130,7 @@ The bundled `anmir` command accepts scrcpy options:
 - User guides: [Shortcuts](doc/shortcuts.md) · [Connections](doc/connection.md) · [Audio](doc/audio.md)
 - Developer docs: [Building and LGPL relinking](doc/build-anmir.md) · [macOS architecture](doc/macos-architecture.md)
 
-Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
+Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
 
 - Anmir version, Mac processor and macOS version.
 - Android version, connection method and steps to reproduce.
@@ -123,6 +145,12 @@ Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
     <th>Release</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.2</td>
+    <td nowrap>2026-10-26</td>
+    <td>Company-network QR pairing and automatic reconnection with Anmir Connect; restored Dock/window reopening; improved update discovery and static release manifests.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.2">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.1</td>
     <td nowrap>2026-10-26</td>
     <td>In-app update checks, downloads and installation; improved About window with project, feedback and license links.</td>
@@ -132,7 +160,7 @@ Report problems in [Issues](https://github.com/laobie/Anmir/issues), including:
     <td nowrap>v0.1.0</td>
     <td nowrap>2026-10-25</td>
     <td>Initial release: native device management, USB/wireless mirroring, screenshots, recording and localization.</td>
-    <td><a href="https://github.com/laobie/Anmir/releases/tag/v0.1.0">Release</a></td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.0">Release</a></td>
   </tr>
 </table>
 

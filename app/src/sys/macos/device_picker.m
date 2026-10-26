@@ -8,7 +8,9 @@
 #import "device_support.h"
 #import "device_ui.h"
 #import "device_wifi.h"
+#import "device_reconnect.h"
 #import "mirror_session.h"
+#import "application_lifecycle.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +18,7 @@
 #include "adb/adb.h"
 #include "adb/adb_parser.h"
 #include "options.h"
+#include "scrcpy.h"
 #include "theme.h"
 #include "device_info.h"
 #include "util/log.h"
@@ -143,6 +146,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 @property(nonatomic, strong) SCDeviceCommand *snapshot, *detailQuery;
 @property(nonatomic, strong) NSTimer *fallbackTimer;
 @property(nonatomic, strong) SCDeviceWiFiController *wifi;
+@property(nonatomic, strong) SCDeviceReconnect *reconnect;
 @property(nonatomic, strong) NSPopover *details;
 @property(nonatomic) BOOL listed, refreshPending, scheduled;
 @property(nonatomic) NSUInteger generation;
@@ -171,6 +175,17 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         _executable = SCDeviceExecutable(sc_adb_get_executable());
         _watcher = [[SCDeviceWatcher alloc] initWithExecutable:_executable];
         __weak SCDeviceManager *weakSelf = self;
+        _reconnect = [[SCDeviceReconnect alloc] initWithExecutable:_executable defaults:NSUserDefaults.standardUserDefaults];
+        _reconnect.restoreMirror = ^BOOL(NSString *serial, NSDictionary *properties) {
+            SCDeviceManager *manager = weakSelf;
+            if (!manager) { return NO; }
+            manager.metadata[serial] = properties;
+            // Let a disconnected mirror finish shutting down before preparing its replacement.
+            for (NSString *alias in [manager aliasesForSerial:serial]) {
+                if (manager.sessions[alias] || manager.preparations[alias]) { return NO; }
+            }
+            return [manager mirrorSerial:serial];
+        };
         _watcher.changed = ^{ [weakSelf scheduleRefresh]; };
         _watcher.availabilityChanged = ^{ [weakSelf updateFooter]; };
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(languageChanged:)
@@ -511,6 +526,8 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         dispatch_async(dispatch_get_main_queue(), ^{
             SCDeviceManager *manager = weakSelf;
             if (manager.sessions[serial] != completed) { return; }
+            [manager.reconnect mirrorEnded:serial properties:manager.metadata[serial] ?: @{}
+                unexpected:status == SCRCPY_EXIT_DISCONNECTED];
             [manager.sessions removeObjectForKey:serial];
             [manager.shownSessions removeObject:serial];
             if (status) { manager.failures[serial] = @"Mirroring stopped. Try again."; }
@@ -520,6 +537,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
     BOOL launched = [task launchAndReturnError:&error];
     if (launched) {
         self.sessions[serial] = task;
+        [self.reconnect mirroringSerial:serial properties:self.metadata[serial] ?: @{}];
         [self.failures removeObjectForKey:serial];
     } else {
         [launch cleanup];
@@ -542,6 +560,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
             manager.metadata[serial] = properties;
             return [manager mirrorSerial:serial];
         }];
+        self.wifi.reconnect = self.reconnect;
     }
     [self.wifi presentFrom:self.window];
 }
@@ -909,7 +928,7 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 
 - (void)show {
     if (!self.window) { [self createWindow]; }
-    BOOL wasVisible = self.window.visible;
+    BOOL wasVisible = self.window.visible || self.window.miniaturized;
     if (self.window.miniaturized) { [self.window deminiaturize:nil]; }
     [self.window makeKeyAndOrderFront:nil]; [NSApp activateIgnoringOtherApps:YES];
     if (!wasVisible) {
@@ -1033,6 +1052,7 @@ sc_device_picker_install_menu(SDL_Window *window) {
         mirrorWindow = (__bridge NSWindow *) SDL_GetPointerProperty(properties,
             SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
     }
+    SCApplicationLifecycleInstall(^{ [SCDeviceMenuController() showDevices:nil]; });
     NSMenu *mainMenu = NSApp.mainMenu;
     if (!mainMenu.numberOfItems) {
         return;
@@ -1104,11 +1124,14 @@ static void
 sc_device_picker_run_windows(void) {
     // The manager may be created later by the Devices action while Settings
     // is already open. Read the shared manager on every iteration.
-    while (deviceManager.window.visible || SCSettingsWindowVisible() || SCAboutWindowVisible() || SCUpdaterBusy() || deviceManager.pendingPreparations) {
+    while (SCApplicationHasWindows() || SCUpdaterBusy()
+            || deviceManager.pendingPreparations || deviceManager.reconnect.active) {
         @autoreleasepool {
             SDL_Event event;
             if (SDL_WaitEventTimeout(&event, 100) && event.type == SDL_EVENT_QUIT) {
+                SCApplicationRequestQuit();
                 SCUpdaterCancel();
+                [deviceManager.reconnect stop];
                 [deviceManager.window close];
                 for (NSWindow *window in NSApp.windows.copy) { [window close]; }
             }
@@ -1143,6 +1166,11 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
             && sc_adb_list_devices(intr, 0, &devices);
         if (listed && devices.size == 1 && !getenv("ANMIR_SHOW_DEVICES") &&
                 !strcmp(devices.data[0].state, "device")) {
+            if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+                sc_adb_devices_destroy(&devices);
+                return SC_DEVICE_PICKER_ERROR;
+            }
+            sc_device_picker_install_menu(NULL);
             NSString *serial = sc_device_picker_string(devices.data[0].serial);
             struct sc_device_info info;
             sc_device_info_init(&info);
@@ -1162,6 +1190,7 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
             free(name);
             sc_device_info_destroy(&info);
             sc_adb_devices_destroy(&devices);
+            if (launched && manager.reconnect.active) { sc_device_picker_run_windows(); }
             return launched ? SC_DEVICE_PICKER_FINISHED : SC_DEVICE_PICKER_ERROR;
         }
         if (!SDL_WasInit(SDL_INIT_VIDEO) &&

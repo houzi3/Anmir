@@ -219,3 +219,25 @@
 "Third-Party Notices" = "第三方软件声明";
 "License files are unavailable in this build." = "此构建中缺少许可文件。";
 "OK" = "好";
+
+"Company network" = "公司网络";
+"Standard QR code" = "标准二维码";
+"Start Anmir Connect on your phone, then use the system scanner below." = "先在手机上启动 Anmir Connect，再使用下方的系统扫码入口。";
+"Waiting for the phone companion…" = "正在等待手机辅助组件…";
+"Mac network address" = "Mac 网络地址";
+"Could not start the phone callback. Check the Mac network connection." = "无法启动手机回传服务，请检查 Mac 的网络连接。";
+
+"Show phone companion" = "显示手机辅助组件";
+"Pairing stuck on a company network? Try this option" = "公司网络扫码一直转圈？试试这个方案";
+"Company-network QR pairing" = "公司网络扫码连接";
+"Company Wi-Fi blocks mDNS discovery? Anmir Connect helps your phone report its connection information." = "公司网络禁用了 mDNS？可用 Anmir Connect 辅助扫码，无需输入 IP 和端口。";
+"Install Anmir Connect on your phone once, using USB or an existing ADB connection." = "首次使用：通过 USB 或已有 ADB 连接，在手机上安装 Anmir Connect。";
+"In Anmir Connect, tap Start helper. After the success message, Developer options opens." = "在手机上点击「启动辅助连接」，成功提示后会自动进入开发者选项。";
+"Show Android installer" = "显示 Android 安装包";
+"This build has no Android installer. Use a build that includes Anmir Connect." = "此版本未附带 Android 安装包，请使用包含 Anmir Connect 的版本。";
+"First time: install Anmir Connect on your phone." = "首次使用：在手机上安装 Anmir Connect。";
+"On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "打开手机上的 Anmir Connect，点击「启动辅助连接」，等待自动进入开发者选项。";
+"On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "在手机上：进入「无线调试 → 使用二维码配对设备」，扫描下方二维码。";
+"Download APK" = "下载 APK";
+
+"Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "正在等待辅助连接。配对后保持辅助组件运行，Wi-Fi 恢复时会自动重连。";

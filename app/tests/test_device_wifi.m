@@ -1,3 +1,4 @@
+#include "config.h"
 #import <AppKit/AppKit.h>
 #import <CoreImage/CoreImage.h>
 #import "sys/macos/device_wifi.h"
@@ -91,9 +92,24 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
                 ? NSAppearanceNameAqua : NSAppearanceNameDarkAqua];
             [content layoutSubtreeIfNeeded];
             assert(!content.hasAmbiguousLayout);
+            NSView *networkMode = find(content, @"WiFi.companyNetwork");
+            NSRect entry = [networkMode convertRect:networkMode.bounds toView:content];
+            assert(NSMaxX(entry) <= NSWidth(content.bounds) - 20);
             NSTextField *path = (NSTextField *)find(content, @"WiFi.phonePath");
             NSTextField *network = (NSTextField *)find(content, @"WiFi.network");
             assert(path && network && network.fittingSize.width <= network.bounds.size.width + 1);
+            NSButton *download = (NSButton *)find(content, @"WiFi.companionInstaller");
+            if (download) {
+                NSView *caption = find(content, @"WiFi.companionInstall");
+                NSRect textRect = [caption convertRect:caption.bounds toView:content];
+                NSRect linkRect = [download convertRect:download.bounds toView:content];
+                assert(fabs(NSMidY(textRect) - NSMidY(linkRect)) <= 1);
+                assert(NSMaxX(textRect) + 6 <= NSMinX(linkRect));
+                assert(NSMaxX(linkRect) <= NSWidth(content.bounds) - 20);
+                assert([download.toolTip isEqualToString:
+                    @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION]);
+                assert(find(content, @"WiFi.stepsDivider"));
+            }
             assert(path.bounds.size.height + 1 >= [path.attributedStringValue
                 boundingRectWithSize:NSMakeSize(path.bounds.size.width, CGFLOAT_MAX)
                 options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading].size.height);
@@ -111,6 +127,8 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
             NSButton *refresh = (NSButton *)find(content, @"WiFi.refreshQR");
             NSRect status = [find(content, @"WiFi.qrStatus") convertRect:find(content, @"WiFi.qrStatus").bounds toView:content];
             assert(NSMinY(status) >= NSMaxY(refresh.frame) + 20);
+            assert(NSMinY(status) <= NSMaxY(refresh.frame) + 44);
+            if (!download) { save(content, [NSString stringWithFormat:@"standard-%@-%@.png", language, theme]); }
             [refresh highlight:YES]; save(content, [NSString stringWithFormat:@"%@-%@-pressed.png", language, theme]);
             [refresh highlight:NO];
         }
@@ -144,6 +162,17 @@ int main(int argc, const char *argv[]) {
         [wifi presentFrom:parent]; settle(wifi);
         checkLayout(wifi);
         SCUseLanguage(@"en");
+        // Company mode carries the callback in a standard Android ADB QR code.
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.companyNetwork") performClick:nil];
+        settle(wifi);
+        assert([wifi valueForKey:@"relay"]);
+        assert([[wifi valueForKey:@"qrDeadline"] timeIntervalSinceNow] > 240);
+        assert([[[wifi valueForKey:@"qrPairing"] serviceName] hasPrefix:@"studio-anmir1-"]);
+        checkLayout(wifi); // The longer QR must decode in every supported theme/language.
+        SCUseLanguage(@"en");
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.companyNetwork") performClick:nil];
+        settle(wifi);
+        assert(![wifi valueForKey:@"relay"]);
         // An idle phone has not advertised a pairing service yet. Repeated
         // successful discovery must retain the scanner guidance, not warn.
         for (NSUInteger i = 0; i < 12; ++i) { [wifi discover]; settle(wifi); }

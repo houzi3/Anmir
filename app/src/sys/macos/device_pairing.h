@@ -10,6 +10,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy, readonly) NSString *password;
 @property(nonatomic, copy, readonly) NSString *payload;
 @property(nonatomic, strong, readonly, nullable) NSImage *image;
+- (instancetype)initWithServiceName:(NSString *)name;
 - (nullable SCDeviceService *)serviceIn:(NSArray<SCDeviceService *> *)services;
 @end
 

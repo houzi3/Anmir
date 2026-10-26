@@ -16,6 +16,7 @@
 @end
 
 @implementation SCDeviceConnection
+- (NSString *)pairedGUID { return self.paired ? self.targetName : nil; }
 - (instancetype)initWithExecutable:(NSString *)executable {
     self = [super init];
     if (self) {

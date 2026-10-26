@@ -1,0 +1,12 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:gravity="center" android:padding="28dp"
+    android:background="@drawable/dialog_surface">
+    <ImageView android:layout_width="48dp" android:layout_height="48dp"
+        android:background="@drawable/success_circle" android:padding="10dp"
+        android:src="@drawable/ic_check" android:tint="@color/page" android:importantForAccessibility="no"/>
+    <TextView style="@style/Body" android:layout_marginTop="16dp" android:gravity="center"
+        android:text="@string/start_success" android:textSize="20sp" android:fontFamily="sans-serif-medium"/>
+    <TextView style="@style/Hint" android:layout_marginTop="10dp" android:gravity="center"
+        android:text="@string/opening_settings"/>
+</LinearLayout>
