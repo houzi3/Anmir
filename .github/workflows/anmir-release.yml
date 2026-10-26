@@ -2,12 +2,21 @@ name: Anmir macOS release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_notes:
+        description: Release notes embedded in update.json
+        required: false
+        type: string
   push:
     branches: [main]
     paths: [.github/workflows/anmir-release.yml]
 
 permissions:
   contents: read
+
+concurrency:
+  group: anmir-release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   server:
@@ -103,3 +112,110 @@ jobs:
             dist/Anmir-*.zip
             dist/Anmir-*-source.tar.gz
           if-no-files-found: error
+
+  release-artifacts:
+    needs: macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: anmir-macos-*
+          path: dist
+          merge-multiple: true
+      - name: Generate static update manifest and checksums
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes || '' }}
+        run: |
+          bash release/generate_update_manifest.sh dist
+          (cd dist && sha256sum Anmir-*.dmg Anmir-*.zip Anmir-*-source.tar.gz > SHA256SUMS)
+          jq . dist/update.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: anmir-release
+          path: |
+            dist/Anmir-*.dmg
+            dist/Anmir-*.zip
+            dist/Anmir-*-source.tar.gz
+            dist/SHA256SUMS
+            dist/update.json
+          if-no-files-found: error
+
+  publish:
+    needs: release-artifacts
+    if: github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: anmir-release
+          path: dist
+      - name: Validate release payload
+        id: version
+        run: |
+          version="$(jq -er '.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' dist/update.json)"
+          test -f "dist/Anmir-$version-arm64.zip"
+          test -f "dist/Anmir-$version-x86_64.zip"
+          test -f "dist/Anmir-$version-arm64.dmg"
+          test -f "dist/Anmir-$version-x86_64.dmg"
+          test -f "dist/Anmir-$version-source.tar.gz"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="v$VERSION"
+          jq -r '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
+          release_files=(
+            "dist/Anmir-$VERSION-arm64.dmg"
+            "dist/Anmir-$VERSION-arm64.zip"
+            "dist/Anmir-$VERSION-x86_64.dmg"
+            "dist/Anmir-$VERSION-x86_64.zip"
+            "dist/Anmir-$VERSION-source.tar.gz"
+            "dist/SHA256SUMS"
+          )
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "${release_files[@]}" --clobber
+            gh release upload "$tag" dist/update.json --clobber
+          else
+            gh release create "$tag" "${release_files[@]}" dist/update.json \
+              --target "$GITHUB_SHA" --title "Anmir $VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --draft
+          fi
+          gh release edit "$tag" --draft=false --prerelease=false
+
+  bump-version:
+    needs: publish
+    if: github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Advance to the next patch version
+        env:
+          RELEASED_VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          current="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
+          if [[ "$current" != "$RELEASED_VERSION" ]]; then
+            echo "Version is already $current; released $RELEASED_VERSION, so no bump is needed."
+            exit 0
+          fi
+          IFS=. read -r major minor patch <<< "$current"
+          next="$major.$minor.$((10#$patch + 1))"
+          ./bump_version "$next"
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add meson.build server/build.gradle server/build_without_gradle.sh app/scrcpy-windows.rc
+          git commit -m "chore: prepare Anmir $next"
+          git push origin HEAD:main
