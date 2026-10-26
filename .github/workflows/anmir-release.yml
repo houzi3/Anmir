@@ -150,6 +150,15 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      - name: Show required repository permission
+        run: |
+          message="Release publishing and the automatic version bump require Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
+          echo "::notice title=GitHub Actions write access required::$message"
+          {
+            echo "### GitHub Actions write access required"
+            echo
+            echo "$message"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/download-artifact@v8
         with:
           name: anmir-release
