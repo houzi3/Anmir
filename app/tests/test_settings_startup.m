@@ -146,10 +146,14 @@ static BOOL relayListening(NSDictionary *registration) {
     close(fd); return listening;
 }
 
-static int lifecycleMirrorFixture(void) {
+static int lifecycleMirrorFixture(NSString *readyPath) {
     assert(SDL_Init(SDL_INIT_VIDEO));
+    // SDL publishes Regular activation policy before the quit observer exists.
+    // Widen that startup window so the parent must wait for actual readiness.
+    SDL_Delay(500);
     sc_device_picker_install_menu(NULL);
     SDL_Window *mirror = SDL_CreateWindow("Independent lifecycle mirror", 320, 240, 0); assert(mirror);
+    assert([@"ready" writeToFile:readyPath atomically:YES encoding:NSUTF8StringEncoding error:nil]);
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:15];
     SDL_Event event;
     while (deadline.timeIntervalSinceNow > 0) {
@@ -183,6 +187,7 @@ static int lifecycleFixture(NSString *mirrorBinary) {
     __block NSWindow *manager, *settings;
     __block NSTask *opener;
     __block NSTask *mirrorProcess;
+    NSString *mirrorReadyPath = [mirrorBinary stringByAppendingString:@".ready"];
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:15];
     NSTimer *timer = [NSTimer timerWithTimeInterval:.15 repeats:YES block:^(NSTimer *tick) {
         if (deadline.timeIntervalSinceNow <= 0) {
@@ -247,9 +252,10 @@ static int lifecycleFixture(NSString *mirrorBinary) {
             assert(NSApp.activationPolicy == NSApplicationActivationPolicyAccessory);
             mirrorProcess = [[NSTask alloc] init];
             mirrorProcess.executableURL = [NSURL fileURLWithPath:mirrorBinary];
-            mirrorProcess.arguments = @[@"lifecycle-mirror"];
+            mirrorProcess.arguments = @[@"lifecycle-mirror", mirrorReadyPath];
             assert([mirrorProcess launchAndReturnError:nil]);
         } else if (phase == 8) {
+            if (![NSFileManager.defaultManager fileExistsAtPath:mirrorReadyPath]) { return; }
             NSRunningApplication *app = [NSRunningApplication runningApplicationWithProcessIdentifier:mirrorProcess.processIdentifier];
             if (!app || app.activationPolicy != NSApplicationActivationPolicyRegular) { return; }
             assert(mirrorProcess.running && NSApp.activationPolicy == NSApplicationActivationPolicyAccessory);
@@ -282,7 +288,10 @@ static int lifecycleFixture(NSString *mirrorBinary) {
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc > 1 && !strcmp(argv[1], "request")) { return requestSettings(); }
-        if (argc > 1 && !strcmp(argv[1], "lifecycle-mirror")) { return lifecycleMirrorFixture(); }
+        if (argc > 1 && !strcmp(argv[1], "lifecycle-mirror")) {
+            assert(argc == 3);
+            return lifecycleMirrorFixture([NSString stringWithUTF8String:argv[2]]);
+        }
         if (argc > 2 && !strcmp(argv[1], "lifecycle")) { return lifecycleFixture([NSString stringWithUTF8String:argv[2]]); }
         if (argc > 2) { return fixture([NSString stringWithUTF8String:argv[2]]); }
         // Disposable UI-element bundles exercise real host and mirror identities.
