@@ -96,7 +96,7 @@
 
 公司网络扫码一直转圈时，可用 **Anmir Connect** 辅助连接，无需输入 IP 和端口。手机与 Mac 需能通过内网互通。
 
-1. 在 Mac 扫码窗口切换到公司网络方案，在手机[下载安装 Anmir Connect](https://github.com/houzi3/Anmir/releases/tag/v0.1.2)。
+1. 在 Mac 扫码窗口切换到公司网络方案，在手机[下载安装 Anmir Connect](https://github.com/houzi3/Anmir/releases)，已安装可跳过。
 2. 打开手机上的 Anmir Connect，点击 **启动辅助连接**，等待自动进入开发者选项。
 3. 进入 **无线调试 → 使用二维码配对设备**，扫描 Mac 上的二维码，即可投屏。
 

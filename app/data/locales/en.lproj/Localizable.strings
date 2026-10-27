@@ -241,3 +241,24 @@
 "Download APK" = "Download APK";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "Waiting for the phone helper. After pairing, keep it running to reconnect automatically.";
+
+/* QR connection recovery */
+"Company network connection" = "Company network connection";
+"For company networks where mDNS is restricted; phone and Mac must be reachable." = "For company networks where mDNS is restricted; phone and Mac must be reachable.";
+"Install Anmir Connect App; skip if installed" = "Install Anmir Connect App; skip if installed";
+"Open download page" = "Open download page";
+"On your phone, open the app and tap Start helper" = "On your phone, open the app and tap Start helper";
+"Wireless debugging › Pair device with QR code" = "Wireless debugging › Pair device with QR code";
+"Scan with your phone's system scanner and keep this window open." = "Scan with your phone's system scanner and keep this window open.";
+"Still not connected after scanning?" = "Still not connected after scanning?";
+"For company or guest networks; use the phone helper" = "For company or guest networks; use the phone helper";
+"Fix connection" = "Fix connection";
+"Restart the Mac connection service and scan again" = "Restart the Mac connection service and scan again";
+"Restart connection service?" = "Restart connection service?";
+"This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted." = "This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted.";
+"Restart and fix" = "Restart and fix";
+"Restarting connection service…" = "Restarting connection service…";
+"Connection service restarted. Scan the new QR code." = "Connection service restarted. Scan the new QR code.";
+"Could not restart connection service. Try again." = "Could not restart connection service. Try again.";
+"Another connection repair is already in progress." = "Another connection repair is already in progress.";
+"Back to QR code" = "Back to QR code";

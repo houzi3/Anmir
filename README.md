@@ -97,7 +97,7 @@ A single ready device opens directly; with multiple devices, choose one from the
 
 If QR pairing keeps spinning on a company network, use **Anmir Connect** without entering an IP address or port. The phone and Mac must be reachable over the network.
 
-1. Switch to the company-network option in the Mac QR window, then [download and install Anmir Connect](https://github.com/houzi3/Anmir/releases/tag/v0.1.2) on your phone.
+1. Switch to the company-network option in the Mac QR window, then [download and install Anmir Connect](https://github.com/houzi3/Anmir/releases) on your phone if it is not installed yet.
 2. Open Anmir Connect on your phone, tap **Start helper**, and wait for Developer options to open.
 3. Open **Wireless debugging → Pair device with QR code** and scan the Mac’s QR code to start mirroring.
 

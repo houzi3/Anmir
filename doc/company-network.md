@@ -15,19 +15,19 @@ accessibility service. It uses Android's system wireless-debugging scanner.
 
 ## Use
 
-The APK attached to Anmir 0.1.2 uses a fixed release signing key. Uninstall earlier preview builds once before installing the release; their debug signatures cannot update to this signing identity in place. Later release updates retain the same key.
+The release APK uses a fixed signing key. Uninstall earlier preview builds once before installing the release; their debug signatures cannot update to this signing identity in place. Later release updates retain the same key.
 
 The Android application ID is `io.github.houzi3.anmir.connect`. This is a separate
 application from the earlier `io.github.laobie.anmir.connect` test build; remove
 that old helper after installing the new one to avoid duplicate launcher icons.
 
-1. In **Pairing stuck on a company network? Try this option**, click **Download APK** on the same
-   line as the installation instruction. It opens the [GitHub download page](https://github.com/houzi3/Anmir/releases/tag/v0.1.2).
-   Transfer the downloaded APK to your phone and open it with the system file manager, allowing
+1. In Anmir's Wi-Fi dialog, choose **Company network connection** and click **Open download page**.
+   Select the Anmir Connect APK matching your Mac version from the release page, or find it in the
+   [release list](https://github.com/houzi3/Anmir/releases). Transfer the APK to your phone and open it with the system file manager, allowing
    installation from that source if prompted. Alternatively, with an existing
-   USB or Wi-Fi ADB connection, use `adb -s DEVICE install -r APK`.
-2. In Anmir's Wi-Fi dialog, choose **Pairing stuck on a company network? Try this option**. If the Mac has multiple
-   physical network addresses, select the address reachable from the phone.
+   USB or Wi-Fi ADB connection, use `adb -s DEVICE install -r APK`. Skip installation if the helper is already installed.
+2. Keep the company-network QR window open. If the Mac has multiple physical network addresses,
+   select the address reachable from the phone.
 3. On the phone, open the **Anmir Connect** app, then tap **Start helper**. After the local listener is
    ready, **Helper started** appears briefly and Developer options opens automatically.
 4. Open **Wireless debugging → Pair device with QR code**, and scan the Mac's code.
@@ -54,6 +54,12 @@ for ADB. A network that blocks incoming connections on the Mac, translates the
 phone's source address, or isolates clients can still prevent this flow. This
 version advertises a physical-interface IPv4 address. IPv6-only networks are not
 supported by the callback flow; standard pairing remains available.
+
+If standard QR pairing does not discover the phone, the waiting screen offers
+**Company network connection** and **Fix connection**. The latter asks before
+restarting the Mac's shared ADB service, which may interrupt other mirroring and
+debugging sessions. After a restart, scan the new QR code. An empty discovery
+list alone does not prove that the network blocks mDNS.
 
 ## Protocol and boundaries
 

@@ -32,7 +32,16 @@ int main(int argc, const char *argv[]) {
         SCUseLanguage(@"zh-Hans");
         assert([fixture.text isEqualToString:@"连接"]);
         assert([fixture.input isEqualToString:@"012345"]);
+        // Recovery actions and company-network guidance also update live.
+        SCBind(fixture, @"text", @"Fix connection");
+        assert([fixture.text isEqualToString:@"修复连接"]);
+        assert([SCLocalized(@"Install Anmir Connect App; skip if installed")
+            isEqualToString:@"安装 Anmir Connect App，已安装可忽略"]);
         SCUseLanguage(@"zh-Hant");
+        assert([fixture.text isEqualToString:@"修復連線"]);
+        assert([SCLocalized(@"Install Anmir Connect App; skip if installed")
+            isEqualToString:@"安裝 Anmir Connect App，已安裝可略過"]);
+        SCBind(fixture, @"text", @"Connect");
         assert([fixture.text isEqualToString:@"連線"]);
         assert(!strcmp(oldToast, "Recording saved"));
         assert(!strcmp(sc_localize("Recording saved"), "錄影已儲存"));

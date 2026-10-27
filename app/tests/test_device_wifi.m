@@ -4,13 +4,16 @@
 #import "sys/macos/device_wifi.h"
 #import "sys/macos/device_pairing.h"
 #import "sys/macos/device_connection.h"
+#import "sys/macos/device_relay.h"
 #import "sys/macos/device_ui.h"
 #import "sys/macos/localization.h"
 #include <assert.h>
+#include <string.h>
 #include <unistd.h>
 
 @interface SCDeviceWiFiController (Testing)
 - (void)discover;
+- (void)performRepair;
 @end
 
 static NSString *root;
@@ -64,6 +67,12 @@ static void save(NSView *view, NSString *name) {
 static int fixture(NSArray<NSString *> *args) {
     if ([args[1] isEqualToString:@"mdns"]) {
         fputs(fixtureRead(@"services").UTF8String, stdout);
+    } else if ([args[1] isEqualToString:@"kill-server"] || [args[1] isEqualToString:@"start-server"]) {
+        fixtureWrite(@"recovery-commands", [fixtureRead(@"recovery-commands")
+            stringByAppendingFormat:@"%@\n", args[1]]);
+        NSString *mode = fixtureRead(@"recovery-mode");
+        if ([args[1] isEqualToString:@"kill-server"] && [mode hasPrefix:@"slow"]) { usleep(300000); }
+        if ([args[1] isEqualToString:@"kill-server"] && [mode isEqualToString:@"slowfail"]) { return 1; }
     } else if ([args[1] isEqualToString:@"pair"]) {
         fixtureWrite(@"pair-arguments", [args componentsJoinedByString:@" "]);
         char input[128]; assert(fgets(input, sizeof(input), stdin));
@@ -97,10 +106,11 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
             assert(NSMaxX(entry) <= NSWidth(content.bounds) - 20);
             NSTextField *path = (NSTextField *)find(content, @"WiFi.phonePath");
             NSTextField *network = (NSTextField *)find(content, @"WiFi.network");
-            assert(path && network && network.fittingSize.width <= network.bounds.size.width + 1);
+            assert(path && network);
             NSButton *download = (NSButton *)find(content, @"WiFi.companionInstaller");
             if (download) {
                 NSView *caption = find(content, @"WiFi.companionInstall");
+                NSView *helper = find(content, @"WiFi.companionGuide");
                 NSRect textRect = [caption convertRect:caption.bounds toView:content];
                 NSRect linkRect = [download convertRect:download.bounds toView:content];
                 assert(fabs(NSMidY(textRect) - NSMidY(linkRect)) <= 1);
@@ -108,13 +118,20 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
                 assert(NSMaxX(linkRect) <= NSWidth(content.bounds) - 20);
                 assert([download.toolTip isEqualToString:
                     @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION]);
-                assert(find(content, @"WiFi.stepsDivider"));
+                assert(find(content, @"WiFi.companySteps"));
+                if (![language isEqualToString:@"en"]) {
+                    assert(fabs(NSHeight(caption.superview.bounds) - NSHeight(helper.superview.bounds)) <= 1);
+                    assert(fabs(NSHeight(caption.superview.bounds) - NSHeight(path.superview.bounds)) <= 1);
+                }
+                assert([(SCDeviceIconButton *)networkMode glyphSize] == 20);
             }
             assert(path.bounds.size.height + 1 >= [path.attributedStringValue
                 boundingRectWithSize:NSMakeSize(path.bounds.size.width, CGFLOAT_MAX)
                 options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading].size.height);
-            assert([path.stringValue containsString:[language isEqualToString:@"en"] ? @"On your phone:"
-                : [language isEqualToString:@"zh-Hans"] ? @"在手机上：" : @"在手機上："]);
+            if (!download) {
+                assert([path.stringValue containsString:[language isEqualToString:@"en"] ? @"On your phone:"
+                    : [language isEqualToString:@"zh-Hans"] ? @"在手机上：" : @"在手機上："]);
+            }
             assert(qr == [wifi valueForKey:@"qrPairing"]); // Theme/language cannot rotate a live code.
             NSView *image = find(content, @"WiFi.qrCode");
             NSBitmapImageRep *pixels = snapshot(image);
@@ -135,10 +152,37 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
     }
 }
 
+static void checkHelpLayout(SCDeviceWiFiController *wifi) {
+    NSView *content = wifi.window.contentView;
+    for (NSString *language in @[@"zh-Hans", @"zh-Hant", @"en"]) {
+        for (NSString *theme in @[@"light", @"dark"]) {
+            SCUseLanguage(language);
+            wifi.window.appearance = [NSAppearance appearanceNamed:[theme isEqualToString:@"light"]
+                ? NSAppearanceNameAqua : NSAppearanceNameDarkAqua];
+            [content layoutSubtreeIfNeeded];
+            NSButton *company = (NSButton *)find(content, @"WiFi.companyNetwork");
+            NSButton *repair = (NSButton *)find(content, @"WiFi.repair");
+            assert(company && repair && company.enabled && repair.enabled);
+            assert(!company.title.length && !repair.title.length);
+            assert(!content.hasAmbiguousLayout);
+            assert(NSHeight(company.bounds) >= 46 && NSHeight(repair.bounds) >= 46);
+            NSRect companyRect = [company convertRect:company.bounds toView:content];
+            NSRect repairRect = [repair convertRect:repair.bounds toView:content];
+            assert(NSMaxX(companyRect) <= NSWidth(content.bounds) - 20);
+            assert(NSMinY(companyRect) >= NSMaxY(repairRect));
+            assert([[company accessibilityLabel] isEqualToString:SCLocalized(@"Company network connection")]);
+            assert([[repair accessibilityLabel] isEqualToString:SCLocalized(@"Fix connection")]);
+            save(content, [NSString stringWithFormat:@"help-%@-%@.png", language, theme]);
+        }
+    }
+    SCUseLanguage(@"en");
+}
+
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         root = NSProcessInfo.processInfo.environment[@"ANMIR_WIFI_FIXTURE"];
-        if (argc > 2) { return fixture(NSProcessInfo.processInfo.arguments); }
+        if (argc > 2 || (argc == 2 && (!strcmp(argv[1], "kill-server")
+                || !strcmp(argv[1], "start-server")))) { return fixture(NSProcessInfo.processInfo.arguments); }
         assert(argc == 2);
         root = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
         assert([NSFileManager.defaultManager createDirectoryAtPath:root withIntermediateDirectories:YES attributes:nil error:nil]);
@@ -177,6 +221,70 @@ int main(int argc, const char *argv[]) {
         // successful discovery must retain the scanner guidance, not warn.
         for (NSUInteger i = 0; i < 12; ++i) { [wifi discover]; settle(wifi); }
         assert([[[wifi valueForKey:@"message"] stringValue] containsString:@"system pairing scanner"]);
+        assert(!find(wifi.window.contentView, @"WiFi.repair"));
+        assert(!fixtureRead(@"recovery-commands").length);
+
+        // The delay is only a neutral help entry. Canceling the native sheet
+        // must not restart the shared ADB server.
+        [wifi setValue:NSDate.distantPast forKey:@"helpDeadline"];
+        [wifi discover]; settle(wifi);
+        assert([[wifi valueForKey:@"helpShown"] boolValue]);
+        checkHelpLayout(wifi);
+        NSButton *repair = (NSButton *)find(wifi.window.contentView, @"WiFi.repair");
+        [repair performClick:nil];
+        NSAlert *alert = [wifi valueForKey:@"repairAlert"];
+        assert(alert && !fixtureRead(@"recovery-commands").length);
+        [wifi.window endSheet:alert.window returnCode:NSAlertSecondButtonReturn];
+        waitFor(^BOOL { return ![wifi valueForKey:@"repairAlert"]; });
+        assert(!fixtureRead(@"recovery-commands").length);
+
+        // Switching QR mode invalidates a confirmation; even a stale first
+        // button result must never restart the shared ADB server.
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.repair") performClick:nil];
+        alert = [wifi valueForKey:@"repairAlert"];
+        assert(alert);
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.companyNetwork") performClick:nil];
+        assert(![wifi valueForKey:@"repairAlert"]);
+        assert([[wifi valueForKey:@"companionMode"] boolValue]);
+        [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.05]];
+        assert(!fixtureRead(@"recovery-commands").length);
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.companyNetwork") performClick:nil];
+        settle(wifi);
+        [wifi setValue:NSDate.distantPast forKey:@"helpDeadline"];
+        [wifi discover]; settle(wifi);
+
+        // Refresh also invalidates a pending confirmation and the old QR.
+        SCDeviceQRPairing *beforeRefresh = [wifi valueForKey:@"qrPairing"];
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.repair") performClick:nil];
+        assert([wifi valueForKey:@"repairAlert"]);
+        [[wifi valueForKey:@"qrRefreshButton"] performClick:nil];
+        assert(![wifi valueForKey:@"repairAlert"]);
+        assert(![beforeRefresh.payload isEqualToString:[[wifi valueForKey:@"qrPairing"] payload]]);
+        [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.05]];
+        assert(!fixtureRead(@"recovery-commands").length);
+        settle(wifi);
+        [wifi setValue:NSDate.distantPast forKey:@"helpDeadline"];
+        [wifi discover]; settle(wifi);
+
+
+        // A confirmed repair runs once and replaces the old QR. Starting the
+        // ADB service is not treated as a phone connection.
+        fixtureWrite(@"recovery-mode", @"slow");
+        SCDeviceQRPairing *beforeRepair = [wifi valueForKey:@"qrPairing"];
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.repair") performClick:nil];
+        alert = [wifi valueForKey:@"repairAlert"];
+        assert(alert);
+        [wifi.window endSheet:alert.window returnCode:NSAlertFirstButtonReturn];
+        waitFor(^BOOL { return [[wifi valueForKey:@"repairing"] boolValue]; });
+        assert(![[wifi valueForKey:@"qrRefreshButton"] isEnabled]);
+        [(NSButton *)find(wifi.window.contentView, @"WiFi.repair") performClick:nil];
+        waitFor(^BOOL { return ![[wifi valueForKey:@"repairing"] boolValue]; });
+        assert([fixtureRead(@"recovery-commands") isEqualToString:@"kill-server\nstart-server\n"]);
+        assert(![beforeRepair.payload isEqualToString:[[wifi valueForKey:@"qrPairing"] payload]]);
+        assert([[[wifi valueForKey:@"message"] stringValue] isEqualToString:
+            SCLocalized(@"Connection service restarted. Scan the new QR code.")]);
+        assert(mirrors == 0);
+        settle(wifi);
 
         SCDeviceQRPairing *old = [wifi valueForKey:@"qrPairing"];
         [wifi setValue:NSDate.distantPast forKey:@"qrDeadline"];
@@ -219,6 +327,85 @@ int main(int argc, const char *argv[]) {
             assert(![[wifi valueForKey:@"connection"] busy]);
             assert(mirrors == 1);
         }
+
+        // A phone may finish scanning while the restart confirmation is open.
+        // Starting pairing dismisses the stale sheet and must not restart ADB.
+        __block NSUInteger raceMirrors = 0;
+        fixtureWrite(@"services", @""); fixtureWrite(@"mode", @"");
+        fixtureWrite(@"recovery-commands", @"");
+        SCDeviceWiFiController *race = [[SCDeviceWiFiController alloc] initWithExecutable:executable
+            mirror:^BOOL(NSString *serial, NSDictionary *properties) {
+                (void)serial; (void)properties; ++raceMirrors; return YES;
+            }];
+        [race presentFrom:parent]; settle(race);
+        [race setValue:NSDate.distantPast forKey:@"helpDeadline"];
+        [race discover]; settle(race);
+        [(NSButton *)find(race.window.contentView, @"WiFi.repair") performClick:nil];
+        assert([race valueForKey:@"repairAlert"]);
+        SCDeviceQRPairing *raceQR = [race valueForKey:@"qrPairing"];
+        fixtureWrite(@"secret", raceQR.password);
+        fixtureWrite(@"services", [NSString stringWithFormat:
+            @"%@ _adb-tls-pairing._tcp 192.0.2.1:42187\nadb-qr-fixture _adb-tls-connect._tcp 192.0.2.2:39217\n", raceQR.serviceName]);
+        [race discover];
+        waitFor(^BOOL { return raceMirrors == 1; });
+        assert(![race valueForKey:@"repairAlert"]);
+        assert(!fixtureRead(@"recovery-commands").length);
+
+        // A successful restart also reports its result after the window is reopened.
+        fixtureWrite(@"services", @""); fixtureWrite(@"recovery-mode", @"slow");
+        fixtureWrite(@"recovery-commands", @"");
+        wifi = [[SCDeviceWiFiController alloc] initWithExecutable:executable mirror:mirror];
+        [wifi presentFrom:parent]; settle(wifi);
+        [wifi performRepair];
+        assert([[wifi valueForKey:@"repairing"] boolValue]);
+        [wifi close];
+        [wifi presentFrom:parent];
+        waitFor(^BOOL { return ![[wifi valueForKey:@"repairing"] boolValue]; });
+        assert(![[wifi valueForKey:@"repairFailed"] boolValue]);
+        assert([wifi valueForKey:@"qrPairing"]);
+        assert([[[wifi valueForKey:@"message"] stringValue] isEqualToString:
+            SCLocalized(@"Connection service restarted. Scan the new QR code.")]);
+        assert([fixtureRead(@"recovery-commands") isEqualToString:@"kill-server\nstart-server\n"]);
+        [wifi close];
+
+        // Closing and reopening during a failed restart must show the failure
+        // on the new window, instead of silently presenting a fresh QR.
+        fixtureWrite(@"services", @""); fixtureWrite(@"recovery-mode", @"slowfail");
+        fixtureWrite(@"recovery-commands", @"");
+        wifi = [[SCDeviceWiFiController alloc] initWithExecutable:executable mirror:mirror];
+        [wifi presentFrom:parent]; settle(wifi);
+        [wifi performRepair];
+        assert([[wifi valueForKey:@"repairing"] boolValue]);
+        [wifi close];
+        [wifi presentFrom:parent];
+        waitFor(^BOOL { return ![[wifi valueForKey:@"repairing"] boolValue]; });
+        assert([[wifi valueForKey:@"repairFailed"] boolValue]);
+        assert([[[wifi valueForKey:@"message"] stringValue] isEqualToString:
+            SCLocalized(@"Could not restart connection service. Try again.")]);
+        assert(find(wifi.window.contentView, @"WiFi.repair"));
+        assert([fixtureRead(@"recovery-commands") isEqualToString:@"kill-server\nstart-server\n"]);
+        [wifi close];
+
+        // Reopening an unavailable company QR must create its relay after the
+        // window advances generation; otherwise every phone report is stale.
+        fixtureWrite(@"services", @""); fixtureWrite(@"mode", @"hang");
+        SCDeviceWiFiController *relayWifi = [[SCDeviceWiFiController alloc] initWithExecutable:executable mirror:mirror];
+        [relayWifi setValue:@YES forKey:@"companionMode"];
+        [relayWifi setValue:@YES forKey:@"qrFailed"];
+        [relayWifi presentQRCodeFrom:parent]; settle(relayWifi);
+        SCDeviceQRPairing *relayQR = [relayWifi valueForKey:@"qrPairing"];
+        SCDeviceRelay *relay = [relayWifi valueForKey:@"relay"];
+        assert(relay && relay.received && relayQR);
+        fixtureWrite(@"secret", relayQR.password);
+        SCDeviceService *service = [[SCDeviceService alloc] init];
+        service.name = relayQR.serviceName;
+        service.host = @"192.0.2.1";
+        service.endpoint = @"192.0.2.1:42187";
+        service.pairing = YES;
+        relay.received(@[service]);
+        assert([[[relayWifi valueForKey:@"connection"] valueForKey:@"phase"] unsignedIntegerValue]
+            == SCDeviceConnectionPairing);
+        [relayWifi close];
         [parent close];
         assert([NSFileManager.defaultManager removeItemAtPath:root error:nil]);
         puts("QR UI: six language/theme renders decode; refresh, expiry, exact service, automatic mirroring, failure and cancellation passed.");

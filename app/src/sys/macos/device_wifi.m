@@ -57,6 +57,86 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     return row;
 }
 
+// A single rounded surface groups the two recovery choices and the compact
+// company-network instructions without adding extra borders between rows.
+@interface SCWiFiPanel : NSView
+@end
+@implementation SCWiFiPanel
+- (void)drawRect:(NSRect)dirtyRect {
+    (void)dirtyRect;
+    NSBezierPath *shape = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect(self.bounds, .5, .5)
+        xRadius:8 yRadius:8];
+    [[NSColor.controlBackgroundColor blendedColorWithFraction:.035 ofColor:NSColor.labelColor] setFill];
+    [shape fill];
+    [NSColor.separatorColor setStroke];
+    shape.lineWidth = 1;
+    [shape stroke];
+}
+- (void)viewDidChangeEffectiveAppearance { [super viewDidChangeEffectiveAppearance]; self.needsDisplay = YES; }
+@end
+
+// Keep the complete row clickable even when its labels or glyphs are hit.
+@interface SCWiFiActionButton : NSButton
+@end
+@implementation SCWiFiActionButton
++ (Class)cellClass { return SCDeviceCardCell.class; }
+- (NSView *)hitTest:(NSPoint)point {
+    return [super hitTest:point] ? self : nil;
+}
+- (void)drawRect:(NSRect)dirtyRect {
+    if (self.enabled && self.cell.highlighted) {
+        [[NSColor.labelColor colorWithAlphaComponent:.07] setFill];
+        NSRectFill(self.bounds);
+    }
+    [super drawRect:dirtyRect];
+}
+@end
+
+static NSTextField *SCWiFiWrappingLabel(NSString *key, NSString *identifier, CGFloat size,
+                                     NSFontWeight weight, BOOL secondary) {
+    NSTextField *label = [NSTextField wrappingLabelWithString:@""];
+    label.identifier = identifier;
+    label.font = [NSFont systemFontOfSize:size weight:weight];
+    label.textColor = secondary ? NSColor.secondaryLabelColor : NSColor.labelColor;
+    label.maximumNumberOfLines = 0;
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    SCBind(label, @"stringValue", key);
+    return label;
+}
+
+static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier, NSButton *trailing) {
+    NSView *row = [[NSView alloc] init];
+    row.translatesAutoresizingMaskIntoConstraints = NO;
+    NSImageView *icon = [NSImageView imageViewWithImage:SCDeviceSymbol(
+        [NSString stringWithFormat:@"%lu.circle", (unsigned long) number])];
+    icon.contentTintColor = NSColor.secondaryLabelColor;
+    icon.accessibilityElement = NO;
+    icon.translatesAutoresizingMaskIntoConstraints = NO;
+    NSTextField *label = SCWiFiWrappingLabel(key, identifier, 11.5, NSFontWeightMedium, NO);
+    [row addSubview:icon]; [row addSubview:label];
+    [NSLayoutConstraint activateConstraints:@[
+        [row.heightAnchor constraintGreaterThanOrEqualToConstant:28],
+        [icon.leadingAnchor constraintEqualToAnchor:row.leadingAnchor],
+        [icon.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+        [icon.widthAnchor constraintEqualToConstant:16], [icon.heightAnchor constraintEqualToConstant:16],
+        [label.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:10],
+        [label.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+        [label.topAnchor constraintGreaterThanOrEqualToAnchor:row.topAnchor constant:3],
+        [label.bottomAnchor constraintLessThanOrEqualToAnchor:row.bottomAnchor constant:-3],
+    ]];
+    if (trailing) {
+        [row addSubview:trailing];
+        [NSLayoutConstraint activateConstraints:@[
+            [trailing.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
+            [trailing.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+            [label.trailingAnchor constraintLessThanOrEqualToAnchor:trailing.leadingAnchor constant:-8],
+        ]];
+    } else {
+        [label.trailingAnchor constraintEqualToAnchor:row.trailingAnchor].active = YES;
+    }
+    return row;
+}
+
 @interface SCDeviceWiFiController () <NSWindowDelegate, NSTextFieldDelegate>
 @property(nonatomic, copy) NSString *executable;
 @property(nonatomic, copy) BOOL (^mirror)(NSString *, NSDictionary<NSString *, NSString *> *);
@@ -72,6 +152,8 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 @property(nonatomic, strong) SCDeviceInput *address;
 @property(nonatomic, strong) SCDeviceInput *port;
 @property(nonatomic, strong) NSButton *modeButton;
+@property(nonatomic, strong) NSButton *companyControl, *companyDownload;
+@property(nonatomic, strong) SCWiFiActionButton *companyHelp, *repairHelp;
 @property(nonatomic, strong) SCDeviceButton *connectButton;
 @property(nonatomic, strong) SCDeviceButton *qrRefreshButton;
 @property(nonatomic, strong) SCDeviceQRPairing *qrPairing;
@@ -80,10 +162,14 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 @property(nonatomic, copy) NSString *relayHost;
 @property(nonatomic) BOOL companionMode;
 @property(nonatomic, strong) NSDate *qrDeadline;
+@property(nonatomic, strong) NSDate *helpDeadline;
+@property(nonatomic, strong) SCDeviceRecovery *recovery;
+@property(nonatomic, strong) NSAlert *repairAlert;
 @property(nonatomic) SCDeviceWiFiMode mode;
 @property(nonatomic, readonly) BOOL qrMode, manual, paired, busy;
 @property(nonatomic) BOOL qrFailed;
 @property(nonatomic) BOOL addressRequired;
+@property(nonatomic) BOOL helpShown, repairing, repairFailed;
 @property(nonatomic) NSUInteger generation;
 @property(nonatomic) NSUInteger scanCount;
 @property(nonatomic, copy) NSString *targetHost;
@@ -93,9 +179,17 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 - (BOOL)qrMode { return self.mode == SCDeviceWiFiQRCode; }
 - (BOOL)manual { return self.mode == SCDeviceWiFiManual; }
 - (BOOL)paired { return self.connection.paired; }
-- (BOOL)busy { return self.connection.busy; }
+- (BOOL)busy { return self.connection.busy || self.repairing; }
+- (void)dismissRepairConfirmation {
+    if (!self.repairAlert) { return; }
+    [self.window endSheet:self.repairAlert.window returnCode:NSAlertSecondButtonReturn];
+    self.repairAlert = nil;
+}
 - (void)connectionChanged {
     if (!self.window.visible) { return; }
+    if (self.repairAlert && self.connection.phase != SCDeviceConnectionIdle) {
+        [self dismissRepairConfirmation];
+    }
     if (self.connection.phase == SCDeviceConnectionNeedsAddress) {
         [self connectionFallback:self.connection.message];
     } else if (self.connection.phase == SCDeviceConnectionReady) {
@@ -135,6 +229,7 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
         _connection.changed = ^{ [weakSelf connectionChanged]; };
         _qrPairing = [[SCDeviceQRPairing alloc] init];
         _qrDeadline = [NSDate dateWithTimeIntervalSinceNow:120];
+        _helpDeadline = [NSDate dateWithTimeIntervalSinceNow:15];
         SCBind(window, @"title", @"Wi-Fi connection");
         window.releasedWhenClosed = NO;
         window.backgroundColor = SCDeviceBackground();
@@ -199,6 +294,8 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
         [self.body.topAnchor constraintEqualToAnchor:content.topAnchor constant:self.qrMode ? 20 : 26],
     ]];
     self.qrRefreshButton = nil;
+    self.companyControl = self.companyDownload = nil;
+    self.companyHelp = self.repairHelp = nil;
     if (self.qrMode && !self.manual && !self.paired) {
         self.code = self.address = self.port = nil;
         self.connectButton = nil;
@@ -287,62 +384,146 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     }
 }
 
+- (SCWiFiActionButton *)helpChoice:(NSString *)title detail:(NSString *)detail
+                          identifier:(NSString *)identifier action:(SEL)action {
+    SCWiFiActionButton *button = [[SCWiFiActionButton alloc] init];
+    button.identifier = identifier;
+    button.target = self;
+    button.action = action;
+    button.title = @"";
+    button.bordered = NO;
+    button.enabled = !self.busy;
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    SCBind(button, @"accessibilityLabel", title);
+    SCBind(button, @"accessibilityHelp", detail);
+    NSImageView *icon = [NSImageView imageViewWithImage:SCDeviceSymbol(@"exclamationmark.circle.fill")];
+    icon.contentTintColor = NSColor.systemYellowColor;
+    icon.accessibilityElement = NO;
+    icon.translatesAutoresizingMaskIntoConstraints = NO;
+    NSTextField *label = SCWiFiWrappingLabel(title, nil, 12.5, NSFontWeightSemibold, NO);
+    NSTextField *subtitle = SCWiFiWrappingLabel(detail, nil, 11, NSFontWeightRegular, YES);
+    label.accessibilityElement = NO;
+    subtitle.accessibilityElement = NO;
+    NSStackView *labels = SCDeviceStack(@[label, subtitle], YES, 2);
+    NSImageView *arrow = [NSImageView imageViewWithImage:SCDeviceSymbol(@"chevron.right")];
+    arrow.contentTintColor = NSColor.tertiaryLabelColor;
+    arrow.accessibilityElement = NO;
+    arrow.translatesAutoresizingMaskIntoConstraints = NO;
+    [button addSubview:icon]; [button addSubview:labels]; [button addSubview:arrow];
+    [NSLayoutConstraint activateConstraints:@[
+        [button.heightAnchor constraintGreaterThanOrEqualToConstant:46],
+        [icon.leadingAnchor constraintEqualToAnchor:button.leadingAnchor constant:12],
+        [icon.centerYAnchor constraintEqualToAnchor:button.centerYAnchor],
+        [icon.widthAnchor constraintEqualToConstant:16], [icon.heightAnchor constraintEqualToConstant:16],
+        [labels.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:10],
+        [labels.centerYAnchor constraintEqualToAnchor:button.centerYAnchor],
+        [labels.topAnchor constraintGreaterThanOrEqualToAnchor:button.topAnchor constant:5],
+        [labels.bottomAnchor constraintLessThanOrEqualToAnchor:button.bottomAnchor constant:-5],
+        [arrow.leadingAnchor constraintGreaterThanOrEqualToAnchor:labels.trailingAnchor constant:8],
+        [arrow.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-12],
+        [arrow.centerYAnchor constraintEqualToAnchor:button.centerYAnchor],
+        [arrow.widthAnchor constraintEqualToConstant:10], [arrow.heightAnchor constraintEqualToConstant:12],
+    ]];
+    return button;
+}
+
+- (void)buildHelp {
+    NSTextField *question = SCDeviceLocalizedLabel(@"Still not connected after scanning?", 11.5,
+        NSFontWeightMedium, YES);
+    [self.body addArrangedSubview:question];
+    [self.body setCustomSpacing:8 afterView:question];
+    SCWiFiActionButton *company = [self helpChoice:@"Company network connection"
+        detail:@"For company or guest networks; use the phone helper"
+        identifier:@"WiFi.companyNetwork" action:@selector(useCompanyNetwork:)];
+    SCWiFiActionButton *repair = [self helpChoice:self.repairFailed ? @"Retry" : @"Fix connection"
+        detail:@"Restart the Mac connection service and scan again"
+        identifier:@"WiFi.repair" action:@selector(confirmRepair:)];
+    self.companyHelp = company;
+    self.repairHelp = repair;
+    NSBox *separator = [[NSBox alloc] init];
+    separator.boxType = NSBoxSeparator;
+    separator.translatesAutoresizingMaskIntoConstraints = NO;
+    NSStackView *stack = SCDeviceStack(@[company, separator, repair], YES, 0);
+    SCWiFiPanel *panel = [[SCWiFiPanel alloc] init];
+    panel.translatesAutoresizingMaskIntoConstraints = NO;
+    [panel addSubview:stack];
+    [self.body addArrangedSubview:panel];
+    [NSLayoutConstraint activateConstraints:@[
+        [panel.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+        [stack.leadingAnchor constraintEqualToAnchor:panel.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:panel.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:panel.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor],
+        [company.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [separator.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [repair.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+    ]];
+}
+
 - (void)buildQRCode {
     NSView *content = self.window.contentView;
-    NSButton *networkMode = [self link:self.companionMode ? @"Standard QR code" : @"Pairing stuck on a company network? Try this option"
-        action:@selector(useCompanyNetwork:)];
-    networkMode.identifier = @"WiFi.companyNetwork";
-    networkMode.enabled = !self.busy;
-    NSStackView *heading = SCDeviceStack(@[
-        SCDeviceLocalizedLabel(self.companionMode ? @"Company-network QR pairing" : @"Pair with QR code",
-            17, NSFontWeightSemibold, NO), networkMode], NO, 18);
-    [self.body addArrangedSubview:heading];
-    NSView *networkRow = SCDeviceQRGuideRow(@"wifi",
-        @"Phone and Mac: same Wi-Fi, or a reachable company LAN.", @"WiFi.network");
-    NSView *phoneRow = SCDeviceQRGuideRow(self.companionMode ? @"3.circle" : @"iphone",
-        self.companionMode
-            ? @"On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below."
-            : @"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code",
-        @"WiFi.phonePath");
-    [self.body addArrangedSubview:networkRow];
     if (self.companionMode) {
-        NSView *explanation = SCDeviceQRGuideRow(@"network",
-            @"Company Wi-Fi blocks mDNS discovery? Anmir Connect helps your phone report its connection information.",
-            @"WiFi.companyExplanation");
-        [self.body addArrangedSubview:explanation];
-        [explanation.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
-        NSBox *divider = [[NSBox alloc] init];
-        divider.boxType = NSBoxSeparator;
-        divider.identifier = @"WiFi.stepsDivider";
-        divider.translatesAutoresizingMaskIntoConstraints = NO;
-        [self.body addArrangedSubview:divider];
-        [divider.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
-        [self.body setCustomSpacing:16 afterView:explanation];
-        [self.body setCustomSpacing:16 afterView:divider];
+        SCDeviceIconButton *back = [SCDeviceIconButton buttonWithImage:SCDeviceSymbol(@"chevron.left")
+            target:self action:@selector(useCompanyNetwork:)];
+        back.glyphSize = 20;
+        back.identifier = @"WiFi.companyNetwork";
+        self.companyControl = back;
+        back.enabled = !self.busy;
+        back.translatesAutoresizingMaskIntoConstraints = NO;
+        SCBind(back, @"accessibilityLabel", @"Back to QR code");
+        [NSLayoutConstraint activateConstraints:@[
+            [back.widthAnchor constraintEqualToConstant:22],
+            [back.heightAnchor constraintEqualToConstant:28],
+        ]];
+        NSTextField *title = SCDeviceLocalizedLabel(@"Company network connection", 17, NSFontWeightSemibold, NO);
+        NSStackView *heading = SCDeviceStack(@[back, title], NO, 11);
+        [self.body addArrangedSubview:heading];
+        NSView *network = SCDeviceQRGuideRow(@"wifi",
+            @"For company networks where mDNS is restricted; phone and Mac must be reachable.", @"WiFi.network");
+        NSView *networkRow = [[NSView alloc] init];
+        networkRow.translatesAutoresizingMaskIntoConstraints = NO;
+        [networkRow addSubview:network];
+        [self.body addArrangedSubview:networkRow];
+        [NSLayoutConstraint activateConstraints:@[
+            [networkRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+            [network.leadingAnchor constraintEqualToAnchor:networkRow.leadingAnchor constant:33],
+            [network.trailingAnchor constraintEqualToAnchor:networkRow.trailingAnchor],
+            [network.topAnchor constraintEqualToAnchor:networkRow.topAnchor],
+            [network.bottomAnchor constraintEqualToAnchor:networkRow.bottomAnchor],
+        ]];
 
-        NSImageView *installIcon = [NSImageView imageViewWithImage:SCDeviceSymbol(@"1.circle")];
-        installIcon.contentTintColor = NSColor.secondaryLabelColor;
-        installIcon.accessibilityElement = NO;
-        NSTextField *caption = SCDeviceLocalizedLabel(@"First time: install Anmir Connect on your phone.",
-            11.5, NSFontWeightRegular, YES);
-        caption.identifier = @"WiFi.companionInstall";
-        NSButton *download = [self link:@"Download APK" action:@selector(downloadCompanion:)];
+        SCDeviceButton *download = [SCDeviceButton buttonWithTitle:@"Open download page"
+            target:self action:@selector(downloadCompanion:)];
         download.identifier = @"WiFi.companionInstaller";
+        self.companyDownload = download;
         download.toolTip = SCCompanionDownloadPage;
-        NSView *space = [[NSView alloc] init];
-        [space setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
-        [caption setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-        [download setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-        NSStackView *install = SCDeviceStack(@[installIcon, caption, download, space], NO, 8);
-        [installIcon.widthAnchor constraintEqualToConstant:16].active = YES;
-        [installIcon.heightAnchor constraintEqualToConstant:16].active = YES;
-        [self.body addArrangedSubview:install];
-        [install.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
-        NSView *helper = SCDeviceQRGuideRow(@"2.circle",
-            @"On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open.",
-            @"WiFi.companionGuide");
-        [self.body addArrangedSubview:helper];
-        [helper.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
+        download.enabled = !self.busy;
+        download.font = [NSFont systemFontOfSize:12];
+        download.translatesAutoresizingMaskIntoConstraints = NO;
+        [download.heightAnchor constraintEqualToConstant:28].active = YES;
+        [download.widthAnchor constraintGreaterThanOrEqualToConstant:72].active = YES;
+        NSView *install = SCWiFiStep(1, @"Install Anmir Connect App; skip if installed",
+            @"WiFi.companionInstall", download);
+        NSView *helper = SCWiFiStep(2, @"On your phone, open the app and tap Start helper",
+            @"WiFi.companionGuide", nil);
+        NSView *phone = SCWiFiStep(3, @"Wireless debugging › Pair device with QR code",
+            @"WiFi.phonePath", nil);
+        NSStackView *steps = SCDeviceStack(@[install, helper, phone], YES, 3);
+        SCWiFiPanel *panel = [[SCWiFiPanel alloc] init];
+        panel.identifier = @"WiFi.companySteps";
+        panel.translatesAutoresizingMaskIntoConstraints = NO;
+        [panel addSubview:steps];
+        [self.body addArrangedSubview:panel];
+        [NSLayoutConstraint activateConstraints:@[
+            [panel.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+            [steps.leadingAnchor constraintEqualToAnchor:panel.leadingAnchor constant:12],
+            [steps.trailingAnchor constraintEqualToAnchor:panel.trailingAnchor constant:-12],
+            [steps.topAnchor constraintEqualToAnchor:panel.topAnchor constant:10],
+            [steps.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor constant:-10],
+            [install.widthAnchor constraintEqualToAnchor:steps.widthAnchor],
+            [helper.widthAnchor constraintEqualToAnchor:steps.widthAnchor],
+            [phone.widthAnchor constraintEqualToAnchor:steps.widthAnchor],
+        ]];
         NSArray *addresses = SCDeviceRelayAddresses();
         if (addresses.count > 1) {
             NSPopUpButton *interfaces = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
@@ -350,20 +531,41 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
             [interfaces selectItemWithTitle:self.relayHost];
             interfaces.target = self;
             interfaces.action = @selector(selectRelayHost:);
+            interfaces.enabled = !self.busy;
             SCBind(interfaces, @"accessibilityLabel", @"Mac network address");
             [self.body addArrangedSubview:interfaces];
         }
+        [self.body setCustomSpacing:16 afterView:panel];
+    } else {
+        NSTextField *title = SCDeviceLocalizedLabel(@"Pair with QR code", 17, NSFontWeightSemibold, NO);
+        if (self.helpShown) {
+            [self.body addArrangedSubview:title];
+        } else {
+            NSButton *networkMode = [self link:@"Pairing stuck on a company network? Try this option"
+                action:@selector(useCompanyNetwork:)];
+            networkMode.identifier = @"WiFi.companyNetwork";
+            self.companyControl = networkMode;
+            networkMode.enabled = !self.busy;
+            [self.body addArrangedSubview:SCDeviceStack(@[title, networkMode], NO, 18)];
+        }
+        NSView *network = SCDeviceQRGuideRow(@"wifi",
+            @"Phone and Mac: same Wi-Fi, or a reachable company LAN.", @"WiFi.network");
+        NSView *phone = SCDeviceQRGuideRow(@"iphone",
+            @"On your phone: Settings › Developer options › Wireless debugging › Pair device with QR code",
+            @"WiFi.phonePath");
+        [self.body addArrangedSubview:network];
+        [self.body addArrangedSubview:phone];
+        [NSLayoutConstraint activateConstraints:@[
+            [network.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+            [phone.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
+        ]];
+        [self.body setCustomSpacing:16 afterView:phone];
     }
-    [self.body addArrangedSubview:phoneRow];
-    [self.body setCustomSpacing:16 afterView:phoneRow];
-    [NSLayoutConstraint activateConstraints:@[
-        [networkRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
-        [phoneRow.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
-    ]];
 
     SCDeviceQRImageView *code = [[SCDeviceQRImageView alloc] init];
     code.identifier = @"WiFi.qrCode";
     code.image = self.qrPairing.image;
+    code.alphaValue = self.repairing || self.repairFailed ? .15 : 1;
     code.imageScaling = NSImageScaleProportionallyUpOrDown;
     code.translatesAutoresizingMaskIntoConstraints = NO;
     SCBind(code, @"accessibilityLabel", @"Scan with Android Wireless debugging");
@@ -401,14 +603,19 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     self.message.translatesAutoresizingMaskIntoConstraints = NO;
     [self.body addArrangedSubview:self.message];
     [self.message.widthAnchor constraintEqualToAnchor:self.body.widthAnchor].active = YES;
-    [self setMessage:self.qrPairing.image ? self.companionMode ? @"Waiting for the phone helper. After pairing, keep it running to reconnect automatically."
-        : @"Use the phone’s system pairing scanner, not Camera or other scanners."
-        : @"Could not create a QR code. Use pairing code instead." error:!self.qrPairing.image];
+    NSString *status = self.repairing ? @"Restarting connection service…"
+        : self.repairFailed ? @"Could not restart connection service. Try again."
+        : !self.qrPairing.image ? @"Could not create a QR code. Use pairing code instead."
+        : self.companionMode ? @"Scan with your phone's system scanner and keep this window open."
+        : self.helpShown ? @"" : @"Use the phone’s system pairing scanner, not Camera or other scanners.";
+    [self setMessage:status error:self.repairFailed || (!self.qrPairing.image && !self.repairing)];
+    if (!self.companionMode && self.helpShown) { [self buildHelp]; }
 
     self.modeButton = [self link:@"Use pairing code" action:@selector(usePairingCode:)];
     self.qrRefreshButton = [SCDeviceButton buttonWithTitle:@"Refresh QR code" target:self action:@selector(useQRCode:)];
     self.qrRefreshButton.identifier = @"WiFi.refreshQR";
-    SCDeviceButton *cancel = [SCDeviceButton buttonWithTitle:@"Cancel" target:self action:@selector(cancel:)];
+    SCDeviceButton *cancel = [SCDeviceButton buttonWithTitle:self.repairing ? @"Close" : @"Cancel"
+        target:self action:@selector(cancel:)];
     for (SCDeviceButton *button in @[self.qrRefreshButton, cancel]) {
         button.font = [NSFont systemFontOfSize:12];
         button.bezelStyle = NSBezelStyleRounded;
@@ -444,6 +651,7 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 - (void)useQRCode:(id)sender {
     (void)sender;
     if (self.busy) { return; }
+    [self dismissRepairConfirmation];
     ++self.generation;
     [self.scan cancel];
     [self.relay stop];
@@ -451,6 +659,8 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     self.relayServices = @[];
     self.mode = SCDeviceWiFiQRCode;
     self.qrFailed = self.addressRequired = NO;
+    self.helpShown = self.repairFailed = NO;
+    self.helpDeadline = [NSDate dateWithTimeIntervalSinceNow:15];
     [self.connection cancel];
     self.scanCount = 0;
     self.targetHost = nil;
@@ -489,6 +699,79 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     [self discover];
 }
 
+- (void)confirmRepair:(id)sender {
+    (void)sender;
+    if (!self.window.visible || self.busy || self.repairAlert) { return; }
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.alertStyle = NSAlertStyleWarning;
+    alert.messageText = SCLocalized(@"Restart connection service?");
+    alert.informativeText = SCLocalized(@"This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted.");
+    [alert addButtonWithTitle:SCLocalized(@"Restart and fix")];
+    [alert addButtonWithTitle:SCLocalized(@"Cancel")];
+    self.repairAlert = alert;
+    NSUInteger generation = self.generation;
+    __weak NSAlert *weakAlert = alert;
+    __weak SCDeviceWiFiController *weakSelf = self;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        SCDeviceWiFiController *controller = weakSelf;
+        if (!controller || controller.repairAlert != weakAlert) { return; }
+        controller.repairAlert = nil;
+        if (response == NSAlertFirstButtonReturn && controller.window.visible
+                && controller.generation == generation && !controller.busy) {
+            [controller performRepair];
+        }
+    }];
+}
+
+- (void)performRepair {
+    if (!self.window.visible || self.busy) { return; }
+    SCDeviceRecovery *recovery = [[SCDeviceRecovery alloc] initWithExecutable:self.executable];
+    NSUInteger generation = self.generation + 1;
+    __weak SCDeviceWiFiController *weakSelf = self;
+    BOOL started = [recovery start:^(SCDeviceRecoveryResult result) {
+        SCDeviceWiFiController *controller = weakSelf;
+        if (!controller) { return; }
+        controller.recovery = nil;
+        controller.repairing = NO;
+        if (!controller.window.visible) { return; }
+        if (controller.generation != generation) {
+            // The window was closed and reopened while the shared service was
+            // restarting. A successful recovery gets a fresh QR; a failure
+            // must remain visible instead of implying that service recovered.
+            if (controller.qrMode && !controller.paired && !controller.connection.busy) {
+                if (result == SCDeviceRecoverySuccess) {
+                    [controller useQRCode:nil];
+                    [controller setMessage:@"Connection service restarted. Scan the new QR code." error:NO];
+                } else {
+                    controller.repairFailed = controller.qrFailed = controller.helpShown = YES;
+                    [controller build];
+                }
+            }
+            return;
+        }
+        if (result == SCDeviceRecoverySuccess) {
+            [controller useQRCode:nil];
+            [controller setMessage:@"Connection service restarted. Scan the new QR code." error:NO];
+        } else {
+            controller.repairFailed = controller.qrFailed = controller.helpShown = YES;
+            [controller build];
+        }
+    }];
+    if (!started) {
+        [self setMessage:@"Another connection repair is already in progress." error:YES];
+        return;
+    }
+    self.recovery = recovery;
+    self.repairing = self.helpShown = YES;
+    self.repairFailed = NO;
+    ++self.generation;
+    [self.scan cancel]; self.scan = nil;
+    [self.connection cancel];
+    [self.relay stop]; self.relay = nil;
+    self.relayServices = @[];
+    [self build];
+}
+
 - (void)useCompanyNetwork:(id)sender {
     (void)sender;
     if (self.busy) { return; }
@@ -510,6 +793,7 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 - (void)usePairingCode:(id)sender {
     (void)sender;
     if (self.busy) { return; }
+    [self dismissRepairConfirmation];
     ++self.generation;
     [self.scan cancel];
     [self.relay stop];
@@ -578,14 +862,30 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 }
 
 - (void)presentQRCodeFrom:(NSWindow *)parent {
-    if (!self.qrMode || self.qrFailed || self.paired) { [self useQRCode:nil]; }
+    if ((!self.qrMode || self.qrFailed || self.paired) && !self.repairing) {
+        if (self.window.visible) {
+            [self useQRCode:nil];
+        } else {
+            // Create the relay only after presentFrom advances the session
+            // generation, so its callback remains valid in the new window.
+            self.mode = SCDeviceWiFiQRCode;
+            self.qrPairing = nil;
+            [self.connection cancel];
+        }
+    }
     [self presentFrom:parent];
 }
 
 - (void)presentFrom:(NSWindow *)parent {
     if (self.window.visible) { [self.window makeKeyAndOrderFront:nil]; return; }
     ++self.generation;
-    if (self.qrMode && !self.paired && !self.qrPairing) { [self useQRCode:nil]; }
+    if (self.qrMode && !self.paired && !self.repairing) {
+        if (!self.qrPairing || self.qrDeadline.timeIntervalSinceNow <= 0) {
+            [self useQRCode:nil];
+        } else if (!self.helpShown) {
+            self.helpDeadline = [NSDate dateWithTimeIntervalSinceNow:15];
+        }
+    }
     NSRect frame = parent.frame;
     [self.window setFrameOrigin:NSMakePoint(NSMidX(frame) - self.window.frame.size.width / 2,
         NSMidY(frame) - self.window.frame.size.height / 2)];
@@ -601,6 +901,7 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 }
 
 - (void)setMessage:(NSString *)message error:(BOOL)error {
+    self.message.hidden = !message.length;
     SCBind(self.message, @"stringValue", message);
     self.message.textColor = error ? NSColor.systemRedColor : NSColor.secondaryLabelColor;
     SCBind(self.message, @"accessibilityValue", message);
@@ -610,7 +911,14 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 }
 
 - (void)discover {
-    if (!self.window.visible || self.scan.running) { return; }
+    if (!self.window.visible || self.repairing) { return; }
+    if (self.qrMode && !self.companionMode && !self.helpShown && !self.busy && !self.paired
+            && !self.qrFailed && self.qrDeadline.timeIntervalSinceNow > 0
+            && self.helpDeadline.timeIntervalSinceNow <= 0) {
+        self.helpShown = YES;
+        [self build];
+    }
+    if (self.scan.running) { return; }
     if (self.qrMode && !self.busy && !self.paired) {
         if (self.qrFailed) { return; }
         if (self.qrDeadline.timeIntervalSinceNow <= 0) {
@@ -698,6 +1006,9 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
     self.code.enabled = self.address.enabled = self.port.enabled = !self.busy;
     self.modeButton.enabled = !self.busy;
     self.qrRefreshButton.enabled = !self.busy;
+    self.companyControl.enabled = self.companyDownload.enabled = !self.busy;
+    self.companyHelp.enabled = self.repairHelp.enabled = !self.busy;
+    self.companyHelp.alphaValue = self.repairHelp.alphaValue = self.busy ? .45 : 1;
 }
 
 - (void)controlTextDidChange:(NSNotification *)notification {
@@ -767,6 +1078,7 @@ static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *ide
 - (void)windowWillClose:(NSNotification *)notification {
     (void)notification;
     ++self.generation;
+    [self dismissRepairConfirmation];
     [self.timer invalidate];
     self.timer = nil;
     [self.scan cancel];
