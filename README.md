@@ -21,7 +21,7 @@ adb is included, with no separate Homebrew or Android SDK installation needed. M
 ## Highlights
 
 - **Built-in wireless pairing:** scan Anmir's QR code with your Android device, or enter a pairing code. Connect paired devices by IP address and port.
-- **Company-network pairing:** use Anmir Connect when mDNS is blocked between subnets, with reconnection after Wi-Fi returns.
+- **Company-network pairing:** use Anmir Connect when mDNS is restricted, with reconnection after Wi-Fi returns.
 - **Unified device management:** discover Android devices and group each device's USB and wireless connections. Each mirror has its own window and Dock entry.
 - **Floating controls:** Back, Home, Recents, screenshots and recording beside the mirror window.
 - **Screenshots and recording:** copy device screenshots to your Mac's clipboard. Start and stop recording while mirroring, check elapsed time and choose a save location.
@@ -93,6 +93,8 @@ A single ready device opens directly; with multiple devices, choose one from the
   </tr>
 </table>
 
+If scanning does not connect, the QR window offers **Company network connection** and **Fix connection**. Confirming a repair restarts the shared ADB service, which may interrupt other ADB connections; scan again afterward.
+
 ### Company-network QR pairing · Android 11+
 
 If QR pairing keeps spinning on a company network, use **Anmir Connect** without entering an IP address or port. The phone and Mac must be reachable over the network.
@@ -142,6 +144,12 @@ Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
     <th nowrap>Date</th>
     <th>Changes</th>
     <th>Release</th>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.4</td>
+    <td nowrap>2026-10-27</td>
+    <td>Added company-network guidance and connection repair for QR pairing; refined app and mirror window icons.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.4">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.3</td>

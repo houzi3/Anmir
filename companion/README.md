@@ -15,9 +15,7 @@ Native Android 11+ companion for Anmir’s company-network QR pairing.
 
 User setup: [English](../doc/company-network.md) · [中文](../doc/company-network.zh-CN.md).
 
-Release APK: [GitHub download page](https://github.com/houzi3/Anmir/releases/tag/v0.1.2).
-The phone instructions use `1.` and `2.`; the Mac download link opens this page in
-the browser beside its installation caption.
+Release APK: [latest GitHub release](https://github.com/houzi3/Anmir/releases/latest).
 
 ## Build
 
