@@ -87,15 +87,7 @@ static void SCCheckChoiceCardHitArea(void) {
     NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 260, 210)
         styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:NO];
     window.releasedWhenClosed = NO;
-    NSButton *card = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 228, 174)];
-    card.cell = [[SCDeviceCardCell alloc] init];
-    card.bordered = NO;
-    [card setButtonType:NSButtonTypeRadio];
-    card.title = @"Dark";
     SCDeviceUIActionProbe *probe = [[SCDeviceUIActionProbe alloc] init];
-    card.target = probe;
-    card.action = @selector(activate:);
-    [window.contentView addSubview:card];
     // The old stock radio cell only tracked a small native indicator/title
     // region. Check the preview, caption, center and near all four corners.
     NSArray<NSValue *> *points = @[
@@ -110,8 +102,19 @@ static void SCCheckChoiceCardHitArea(void) {
         [NSValue valueWithPoint:NSMakePoint(229, 87)],
     ];
     for (NSNumber *enabled in @[@YES, @NO]) {
-        card.enabled = enabled.boolValue;
         for (NSValue *value in points) {
+            // Each click starts with a fresh radio cell. Reusing one cell after
+            // programmatically clearing its state does not reset AppKit's
+            // internal tracking state on all macOS versions.
+            NSButton *card = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 228, 174)];
+            card.cell = [[SCDeviceCardCell alloc] init];
+            card.bordered = NO;
+            [card setButtonType:NSButtonTypeRadio];
+            card.title = @"Dark";
+            card.target = probe;
+            card.action = @selector(activate:);
+            card.enabled = enabled.boolValue;
+            [window.contentView addSubview:card];
             NSPoint point = value.pointValue;
             NSEvent *event = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown
                 location:[card convertPoint:point toView:nil] modifierFlags:0 timestamp:0
@@ -132,6 +135,7 @@ static void SCCheckChoiceCardHitArea(void) {
                 assert(probe.count == before + 1);
                 assert(card.state == NSControlStateValueOn);
             }
+            [card removeFromSuperview];
         }
     }
     [window close];
