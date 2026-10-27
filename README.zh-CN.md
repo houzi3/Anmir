@@ -148,31 +148,31 @@
   <tr>
     <td nowrap>v0.1.4</td>
     <td nowrap>2026-10-27</td>
-    <td>扫码连接遇到问题时，可查看公司网络连接引导并修复连接；优化应用和投屏窗口的图标显示。</td>
+    <td>新增扫码连接引导与修复，优化应用和投屏图标。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.4">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.3</td>
     <td nowrap>2026-10-27</td>
-    <td>更新 macOS 应用图标，采用安卓机器人照 Mac 镜子的设计；投屏窗口保留小手机角标。</td>
+    <td>更新 macOS 应用图标。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.3">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.2</td>
     <td nowrap>2026-10-26</td>
-    <td>新增 Anmir Connect，支持公司内网跨网段扫码与自动重连；修复 Dock 和窗口恢复；改进更新检查，使用静态更新清单。</td>
+    <td>新增公司网络扫码与自动重连，改进窗口恢复和更新检查。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.2">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.1</td>
     <td nowrap>2026-10-26</td>
-    <td>支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。</td>
+    <td>新增应用内更新，完善“关于”页面。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.1">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.0</td>
     <td nowrap>2026-10-25</td>
-    <td>首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。</td>
+    <td>首个版本：设备管理、有线与无线投屏、截图和录屏。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.0">Release</a></td>
   </tr>
 </table>
