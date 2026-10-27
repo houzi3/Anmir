@@ -384,7 +384,7 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
         test('test_about_window', about_test,
-            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
+            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/anmir-dock.icns'], timeout: 20)
         updater_test = executable('test_updater',
             ['tests/test_updater.m', 'src/sys/macos/updater.m'],
             include_directories: src_dir,
@@ -479,14 +479,21 @@ if get_option('buildtype') == 'debug'
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
-        test('test_mirror_session', mirror_test, timeout: 20)
+        test('test_mirror_session', mirror_test,
+            args: [meson.current_source_dir() / 'data/anmir-mirror.icns'], timeout: 20)
         device_ui_test = executable('test_device_ui',
             ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
-        test('test_device_ui', device_ui_test,
-            args: [meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
+        test('test_device_ui', device_ui_test, timeout: 20)
+        macos_icons_test = executable('test_macos_icons',
+            ['tests/test_macos_icons.m', 'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_macos_icons', macos_icons_test,
+            args: [meson.current_source_dir() / 'data'], timeout: 20)
         theme_chooser_test = executable('test_theme_chooser',
             ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],

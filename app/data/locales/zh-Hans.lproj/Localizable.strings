@@ -241,3 +241,24 @@
 "Download APK" = "下载 APK";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "正在等待辅助连接。配对后保持辅助组件运行，Wi-Fi 恢复时会自动重连。";
+
+/* QR connection recovery */
+"Company network connection" = "公司网络连接";
+"For company networks where mDNS is restricted; phone and Mac must be reachable." = "适用于 mDNS 受限的公司内网；手机与 Mac 需互通";
+"Install Anmir Connect App; skip if installed" = "安装 Anmir Connect App，已安装可忽略";
+"Open download page" = "打开下载页";
+"On your phone, open the app and tap Start helper" = "打开手机 App，点击「启动辅助连接」";
+"Wireless debugging › Pair device with QR code" = "无线调试 › 使用二维码配对设备";
+"Scan with your phone's system scanner and keep this window open." = "使用手机系统扫码，保持此窗口打开";
+"Still not connected after scanning?" = "扫码后仍未连接？";
+"For company or guest networks; use the phone helper" = "适合公司或访客网络，使用手机辅助连接";
+"Fix connection" = "修复连接";
+"Restart the Mac connection service and scan again" = "重启 Mac 的连接服务后重新扫码";
+"Restart connection service?" = "重启连接服务？";
+"This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted." = "将重启 Mac 上的 ADB 服务。其他设备的投屏和 Android Studio 等调试可能暂时中断。";
+"Restart and fix" = "重启并修复";
+"Restarting connection service…" = "正在重启连接服务…";
+"Connection service restarted. Scan the new QR code." = "连接服务已重启，请扫描新二维码。";
+"Could not restart connection service. Try again." = "修复未完成，请重试。";
+"Another connection repair is already in progress." = "另一项连接修复正在进行。";
+"Back to QR code" = "返回扫码";
