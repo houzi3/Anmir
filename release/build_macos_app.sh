@@ -287,6 +287,43 @@ while IFS= read -r binary_min_version; do
 done < <(printf '%s\n' "$BUILD_VERSIONS" |
     awk '$1 == "minos" { print $2 }')
 
+# Finder contextual menus run in a separate extension process. Build the
+# extension for every architecture carried by the host application, then
+# embed it before signing the outer bundle.
+FINDER_EXTENSION="$APP/Contents/PlugIns/AnmirFinder.appex"
+FINDER_BUILD="$ROOT_DIR/release/work/finder-extension"
+rm -rf "$FINDER_BUILD"
+mkdir -p "$FINDER_BUILD" "$FINDER_EXTENSION/Contents/MacOS" \
+    "$FINDER_EXTENSION/Contents/Resources"
+FINDER_BINARIES=()
+for extension_arch in $(lipo -archs "$BIN"); do
+    extension_binary="$FINDER_BUILD/AnmirFinder-$extension_arch"
+    xcrun clang -fobjc-arc -fmodules \
+        -fmodules-cache-path="$FINDER_BUILD/module-cache" \
+        -fapplication-extension -arch "$extension_arch" \
+        -mmacosx-version-min="$MINIMUM_SYSTEM_VERSION" \
+        -framework Cocoa -framework FinderSync \
+        -Wl,-e,_NSExtensionMain \
+        "$ROOT_DIR/app/src/sys/macos/finder_extension.m" \
+        "$ROOT_DIR/app/src/sys/macos/finder_device_menu.m" \
+        -o "$extension_binary"
+    FINDER_BINARIES+=("$extension_binary")
+done
+if [[ ${#FINDER_BINARIES[@]} -eq 1 ]]; then
+    install -m 755 "${FINDER_BINARIES[0]}" \
+        "$FINDER_EXTENSION/Contents/MacOS/AnmirFinder"
+else
+    lipo -create "${FINDER_BINARIES[@]}" \
+        -output "$FINDER_EXTENSION/Contents/MacOS/AnmirFinder"
+fi
+sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
+    -e "s/@SCRCPY_MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
+    "$ROOT_DIR/app/FinderExtension-Info.plist.in" \
+    > "$FINDER_EXTENSION/Contents/Info.plist"
+for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do
+    cp -R "$localization" "$FINDER_EXTENSION/Contents/Resources/"
+done
+
 sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
     -e "s/@SCRCPY_MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
     -e "s/@SCRCPY_APP_NAME@/$APP_NAME/g" \
@@ -332,6 +369,7 @@ done
 
 if command -v plutil >/dev/null 2>&1; then
     plutil -lint "$APP/Contents/Info.plist" >/dev/null
+    plutil -lint "$FINDER_EXTENSION/Contents/Info.plist" >/dev/null
 fi
 
 if $SIGN; then
@@ -341,6 +379,9 @@ if $SIGN; then
     fi
     codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" \
         "$APP/Contents/MacOS/adb"
+    codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" \
+        --entitlements "$ROOT_DIR/app/FinderExtension.entitlements" \
+        "$FINDER_EXTENSION"
     codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" "$APP"
     codesign --verify --deep --strict "$APP"
 fi

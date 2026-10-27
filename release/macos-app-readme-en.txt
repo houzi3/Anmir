@@ -21,6 +21,9 @@ Install and connect
 6. Use the Wi-Fi-add icon or Scan QR code → for wireless pairing on Android 11+.
    Scan with Wireless debugging > Pair device with QR code, or use pairing code.
    Paired devices can use Manual connection with the connection IP and port.
+7. In Finder, right-click one APK, choose Install on phone, then select a device
+   from the submenu. Anmir must be in Applications. If the item is missing, enable
+   Anmir Finder in System Settings > General > Login Items & Extensions > Finder.
 
 Settings
 The gear in the device list and mirror title bars, or Command-comma, opens Settings.

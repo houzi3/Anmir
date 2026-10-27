@@ -266,3 +266,13 @@
 "Could not restart connection service. Try again." = "修复未完成，请重试。";
 "Another connection repair is already in progress." = "另一项连接修复正在进行。";
 "Back to QR code" = "返回扫码";
+"Install on phone" = "安装到手机";
+"No available devices" = "没有可用设备";
+"Open Anmir…" = "打开 Anmir…";
+"USB" = "USB";
+"Installing APK…" = "正在安装 APK…";
+"APK installed" = "APK 安装成功";
+"Installed “%@” on %@." = "已将“%@”安装到 %@。";
+"APK installation failed" = "APK 安装失败";
+"ADB did not return an error message." = "ADB 未返回错误信息。";
+"Cancelling…" = "正在取消…";
