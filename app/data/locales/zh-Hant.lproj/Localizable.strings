@@ -239,6 +239,10 @@
 "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "開啟手機上的 Anmir Connect，點選「啟動輔助連線」，等待自動進入開發人員選項。";
 "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "在手機上：進入「無線偵錯 → 使用 QR 圖碼配對裝置」，掃描下方 QR 圖碼。";
 "Download APK" = "下載 APK";
+"or" = "或";
+"Scan to install" = "掃碼安裝";
+"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install." = "請使用手機相機掃碼下載 APK（不是無線偵錯掃碼），下載後開啟安裝。";
+"Scan with your phone’s camera to download Anmir Connect" = "使用手機相機掃碼下載 Anmir Connect";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "正在等待輔助連線。配對後保持輔助元件執行，Wi-Fi 恢復時會自動重新連線。";
 

@@ -239,6 +239,10 @@
 "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open.";
 "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below.";
 "Download APK" = "Download APK";
+"or" = "or";
+"Scan to install" = "Scan to install";
+"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install." = "Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install.";
+"Scan with your phone’s camera to download Anmir Connect" = "Scan with your phone’s camera to download Anmir Connect";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "Waiting for the phone helper. After pairing, keep it running to reconnect automatically.";
 

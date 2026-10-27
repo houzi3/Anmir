@@ -111,13 +111,15 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
             if (download) {
                 NSView *caption = find(content, @"WiFi.companionInstall");
                 NSView *helper = find(content, @"WiFi.companionGuide");
-                NSRect textRect = [caption convertRect:caption.bounds toView:content];
-                NSRect linkRect = [download convertRect:download.bounds toView:content];
-                assert(fabs(NSMidY(textRect) - NSMidY(linkRect)) <= 1);
-                assert(NSMaxX(textRect) + 6 <= NSMinX(linkRect));
-                assert(NSMaxX(linkRect) <= NSWidth(content.bounds) - 20);
+                NSButton *scan = (NSButton *)find(content, @"WiFi.companionInstallQRButton");
+                NSTextField *alternative = (NSTextField *)find(content, @"WiFi.companionInstallAlternative");
+                assert(scan);
+                assert(alternative);
                 assert([download.toolTip isEqualToString:
                     @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION]);
+                assert([scan.toolTip isEqualToString:
+                    @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
+                    "/AnmirConnect-" SCRCPY_VERSION ".apk"]);
                 assert(find(content, @"WiFi.companySteps"));
                 if (![language isEqualToString:@"en"]) {
                     assert(fabs(NSHeight(caption.superview.bounds) - NSHeight(helper.superview.bounds)) <= 1);
@@ -214,6 +216,23 @@ int main(int argc, const char *argv[]) {
         assert([[[wifi valueForKey:@"qrPairing"] serviceName] hasPrefix:@"studio-anmir1-"]);
         checkLayout(wifi); // The longer QR must decode in every supported theme/language.
         SCUseLanguage(@"en");
+        NSButton *installerQRButton = (NSButton *)find(wifi.window.contentView, @"WiFi.companionInstallQRButton");
+        [installerQRButton performClick:nil];
+        NSPopover *installerPopover = [wifi valueForKey:@"companionDownloadPopover"];
+        assert(installerPopover.shown);
+        NSView *installerQR = find(installerPopover.contentViewController.view, @"WiFi.companionInstallQR");
+        NSBitmapImageRep *installerPixels = snapshot(installerQR);
+        CIDetector *installerDetector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:nil
+            options:@{CIDetectorAccuracy:CIDetectorAccuracyHigh}];
+        NSArray *installerFeatures = [installerDetector featuresInImage:
+            [CIImage imageWithCGImage:installerPixels.CGImage]];
+        assert(installerFeatures.count == 1);
+        assert([((CIQRCodeFeature *)installerFeatures.firstObject).messageString isEqualToString:
+            @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
+            "/AnmirConnect-" SCRCPY_VERSION ".apk"]);
+        assert(find(installerPopover.contentViewController.view, @"WiFi.companionInstallQRHint"));
+        save(installerPopover.contentViewController.view, @"companion-installer.png");
+        [installerPopover close];
         [(NSButton *)find(wifi.window.contentView, @"WiFi.companyNetwork") performClick:nil];
         settle(wifi);
         assert(![wifi valueForKey:@"relay"]);

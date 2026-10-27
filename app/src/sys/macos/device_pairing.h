@@ -3,6 +3,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NSImage * _Nullable SCDeviceQRCodeImage(NSString *payload);
+
 // Each QR code names one pairing service and carries a fresh shared secret.
 // Neither value is persisted or passed on the adb command line.
 @interface SCDeviceQRPairing : NSObject
