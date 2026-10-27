@@ -19,8 +19,8 @@ android {
         applicationId = 'io.github.houzi3.anmir.connect'
         minSdk = 30
         targetSdk = 36
-        versionCode = 103
-        versionName = '0.1.3'
+        versionCode = 104
+        versionName = '0.1.4'
         testInstrumentationRunner = 'io.github.houzi3.anmir.connect.CompanionSmokeTest'
     }
     signingConfigs {
