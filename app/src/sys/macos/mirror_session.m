@@ -164,6 +164,27 @@ NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) {
     info[@"CFBundleDisplayName"] = displayName;
     info[@"CFBundleExecutable"] = @"anmir";
     info[@"CFBundleIdentifier"] = [NSString stringWithFormat:@"%@.mirror.%@", host.bundleIdentifier, token];
+    // The Dock can read the bundle before AppKit starts or after discarding a
+    // runtime override. Its on-disk icon must already include the phone badge.
+    for (NSString *name in @[@"anmir-mirror.icns", @"anmir-mirror-bundle.icns"]) {
+        NSURL *icon = [contents URLByAppendingPathComponent:[@"Resources" stringByAppendingPathComponent:name]];
+        if (![files fileExistsAtPath:icon.path]) {
+            if (error) { *error = [NSError errorWithDomain:NSCocoaErrorDomain
+                code:NSFileReadNoSuchFileError userInfo:@{NSFilePathErrorKey:icon.path}]; }
+            [launch cleanup]; return nil;
+        }
+    }
+    // macOS 26+ masks full-bleed bundle artwork itself. Feeding it a Dock-ready
+    // image adds a gray plate and shrinks it a second time. Older systems need
+    // the baked transparent silhouette. Both resources contain the phone.
+    if (@available(macOS 26.0, *)) {
+        info[@"CFBundleIconFile"] = @"anmir-mirror-bundle.icns";
+    } else {
+        info[@"CFBundleIconFile"] = @"anmir-mirror.icns";
+    }
+    [info removeObjectForKey:@"CFBundleIconName"];
+    [info removeObjectForKey:@"CFBundleIconFiles"];
+    [info removeObjectForKey:@"CFBundleIcons"];
     info[SCHostPath] = host.bundlePath;
     info[SCHostIdentifier] = host.bundleIdentifier;
     info[SCMirrorRoot] = launch.root.path;

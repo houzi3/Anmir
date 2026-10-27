@@ -41,10 +41,13 @@ static NSTextField *SCAboutLabel(NSString *identifier, CGFloat size, NSFontWeigh
     ]];
     NSImageView *icon = [NSImageView new];
     icon.identifier = @"About.icon";
-    NSString *iconPath = [bundle pathForResource:@"anmir" ofType:@"icns"];
-    // Use macOS's normalized bundle icon, including its rounded mask.
-    icon.image = [NSWorkspace.sharedWorkspace iconForFile:bundle.bundlePath];
-    if (!icon.image) { icon.image = iconPath ? [[NSImage alloc] initWithContentsOfFile:iconPath] : NSApp.applicationIconImage; }
+    NSString *iconName = [bundle objectForInfoDictionaryKey:@"CFBundleIconFile"];
+    NSString *iconPath = [bundle pathForResource:@"anmir-dock" ofType:@"icns"];
+    if (!iconPath && iconName.length) {
+        iconPath = [bundle pathForResource:iconName.stringByDeletingPathExtension ofType:@"icns"];
+    }
+    icon.image = iconPath ? [[NSImage alloc] initWithContentsOfFile:iconPath]
+                         : NSApp.applicationIconImage;
     icon.imageScaling = NSImageScaleProportionallyUpOrDown;
     [icon.widthAnchor constraintEqualToConstant:104].active = YES;
     [icon.heightAnchor constraintEqualToConstant:104].active = YES;

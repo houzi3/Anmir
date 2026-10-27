@@ -1,7 +1,6 @@
 #import <AppKit/AppKit.h>
 #import "sys/macos/device_ui.h"
 #include <assert.h>
-#include <math.h>
 
 @interface SCDeviceUIActionProbe : NSObject
 @property(nonatomic) NSUInteger count;
@@ -138,80 +137,10 @@ static void SCCheckChoiceCardHitArea(void) {
     [window close];
 }
 
-static NSBitmapImageRep *SCIconBitmap(NSImage *image, NSInteger size) {
-    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
-        pixelsWide:size pixelsHigh:size bitsPerSample:8 samplesPerPixel:4
-        hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace
-        bytesPerRow:0 bitsPerPixel:0];
-    bitmap.size = NSMakeSize(size, size);
-    [NSGraphicsContext saveGraphicsState];
-    NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
-    NSRect bounds = NSMakeRect(0, 0, size, size);
-    NSRectFillUsingOperation(bounds, NSCompositingOperationClear);
-    [image drawInRect:bounds];
-    [NSGraphicsContext restoreGraphicsState];
-    return bitmap;
-}
-
-static void SCCheckMirrorIcon(NSString *iconPath) {
-    NSFileManager *files = NSFileManager.defaultManager;
-    NSURL *root = [[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES]
-        URLByAppendingPathComponent:NSUUID.UUID.UUIDString isDirectory:YES];
-    NSURL *bundleURL = [root URLByAppendingPathComponent:@"Icon test.app"];
-    NSURL *contents = [bundleURL URLByAppendingPathComponent:@"Contents"];
-    NSURL *resources = [contents URLByAppendingPathComponent:@"Resources"];
-    assert([files createDirectoryAtURL:resources withIntermediateDirectories:YES attributes:nil error:nil]);
-    assert([files copyItemAtPath:iconPath toPath:
-        [resources URLByAppendingPathComponent:@"anmir.icns"].path error:nil]);
-    NSDictionary *info = @{@"CFBundlePackageType":@"APPL",
-        @"CFBundleIdentifier":[@"org.scrcpy.icontest." stringByAppendingString:NSUUID.UUID.UUIDString],
-        @"CFBundleIconFile":@"anmir.icns"};
-    assert([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]);
-    NSBundle *bundle = [NSBundle bundleWithURL:bundleURL];
-    assert(bundle);
-    NSImage *normal = [NSWorkspace.sharedWorkspace iconForFile:bundleURL.path];
-    NSImage *raw = [[NSImage alloc] initWithContentsOfFile:iconPath];
-    assert(raw);
-    NSImage *saved = NSApp.applicationIconImage;
-    // Both startup representations must produce identical mirror artwork.
-    NSApp.applicationIconImage = raw;
-    NSImage *fromRaw = SCDeviceMirrorIcon(bundle);
-    NSApp.applicationIconImage = normal;
-    NSImage *fromNormal = SCDeviceMirrorIcon(bundle);
-    NSApp.applicationIconImage = saved;
-    for (NSNumber *value in @[@32, @44, @64, @128, @256, @512]) {
-        NSInteger size = value.integerValue;
-        NSBitmapImageRep *reference = SCIconBitmap(normal, size);
-        NSBitmapImageRep *first = SCIconBitmap(fromRaw, size);
-        NSBitmapImageRep *second = SCIconBitmap(fromNormal, size);
-        assert([[first representationUsingType:NSBitmapImageFileTypePNG properties:@{}]
-            isEqualToData:[second representationUsingType:NSBitmapImageFileTypePNG properties:@{}]]);
-        // The middle row cannot intersect the lower-right phone badge.
-        // Its silhouette must match the manager at every Dock/Retina size.
-        for (NSInteger x = 0; x < size; ++x) {
-            CGFloat expected = [reference colorAtX:x y:size / 2].alphaComponent;
-            CGFloat actual = [first colorAtX:x y:size / 2].alphaComponent;
-            assert(fabs(expected - actual) <= 1.0 / 255);
-        }
-        // System icon masks vary by macOS version. Preserve the host's actual
-        // corners; downsampling may add a faint badge shadow at those pixels.
-        for (NSValue *corner in @[
-            [NSValue valueWithPoint:NSMakePoint(0, 0)],
-            [NSValue valueWithPoint:NSMakePoint(size - 1, 0)],
-            [NSValue valueWithPoint:NSMakePoint(0, size - 1)],
-            [NSValue valueWithPoint:NSMakePoint(size - 1, size - 1)]]) {
-            NSPoint pixel = corner.pointValue;
-            CGFloat expected = [reference colorAtX:pixel.x y:pixel.y].alphaComponent;
-            CGFloat actual = [first colorAtX:pixel.x y:pixel.y].alphaComponent;
-            assert(fabs(expected - actual) < 0.1);
-        }
-        assert([first colorAtX:size / 2 y:size / 2].alphaComponent == 1);
-    }
-    assert([files removeItemAtURL:root error:nil]);
-}
 
 int main(int argc, const char *argv[]) {
-    assert(argc == 2);
+    assert(argc == 1);
+    (void)argv;
     @autoreleasepool {
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
@@ -260,10 +189,9 @@ int main(int argc, const char *argv[]) {
         assert(NSEqualRects(before, hint.frame) && hint.font.pointSize == 13);
         [window close];
 
-        SCCheckMirrorIcon([NSString stringWithUTF8String:argv[1]]);
         SCCheckToolbarStates();
         SCCheckChoiceCardHitArea();
-        puts("Native input, Dock icon, toolbar state and choice-card hit-area regressions passed.");
+        puts("Native input, toolbar state and choice-card hit-area regressions passed.");
     }
     return 0;
 }

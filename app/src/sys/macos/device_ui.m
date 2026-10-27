@@ -434,35 +434,26 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 @end
 
 NSImage *SCDeviceMirrorIcon(NSBundle *bundle) {
-    // applicationIconImage may be raw ICNS artwork or an already-normalized
-    // Dock image, depending on how the process was opened. Mixing those inputs
-    // enlarges some mirrors. Ask the system for one consistent bundle icon.
-    NSImage *base = [NSWorkspace.sharedWorkspace iconForFile:bundle.bundlePath];
-    NSImage *badged = [NSImage imageWithSize:NSMakeSize(256, 256) flipped:NO drawingHandler:^BOOL(NSRect bounds) {
-        // Preserve the system's transparent margins and rounded silhouette.
-        // The phone badge uses that same canvas; it never rescales the base.
-        [base drawInRect:bounds];
-        [NSGraphicsContext saveGraphicsState];
-        NSShadow *shadow = [[NSShadow alloc] init];
-        shadow.shadowColor = [NSColor.blackColor colorWithAlphaComponent:0.2];
-        shadow.shadowBlurRadius = 5;
-        shadow.shadowOffset = NSMakeSize(0, -1);
-        [shadow set];
-        NSBezierPath *badge = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(176, 4, 76, 76) xRadius:18 yRadius:18];
-        [NSColor.whiteColor setFill]; [badge fill];
-        [NSGraphicsContext restoreGraphicsState];
-        [[NSColor.blackColor colorWithAlphaComponent:0.12] setStroke];
-        badge.lineWidth = 1; [badge stroke];
-        NSBezierPath *phone = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(201, 18, 26, 48) xRadius:5 yRadius:5];
-        [[NSColor colorWithSRGBRed:0.07 green:0.09 blue:0.12 alpha:1] setStroke];
-        phone.lineWidth = 3; [phone stroke];
-        NSBezierPath *details = [NSBezierPath bezierPath];
-        details.lineWidth = 2; details.lineCapStyle = NSLineCapStyleRound;
-        [details moveToPoint:NSMakePoint(210, 61)]; [details lineToPoint:NSMakePoint(218, 61)];
-        [details moveToPoint:NSMakePoint(210, 23)]; [details lineToPoint:NSMakePoint(218, 23)];
-        [details stroke];
-        return YES;
-    }];
-    SCBind(badged, @"accessibilityDescription", @"Device mirroring");
-    return badged;
+    NSString *path = [bundle pathForResource:@"anmir-mirror" ofType:@"icns"];
+    NSImage *image = path ? [[NSImage alloc] initWithContentsOfFile:path] : nil;
+    SCBind(image, @"accessibilityDescription", @"Device mirroring");
+    return image;
+}
+
+void SCDeviceInstallMirrorIcon(NSBundle *bundle) {
+    NSCAssert(NSThread.isMainThread, @"Dock updates require the main thread");
+    NSImage *image = SCDeviceMirrorIcon(bundle);
+    if (!image) { return; }
+    NSApp.applicationIconImage = image;
+    // Draw the complete tile explicitly. The image already contains transparent
+    // margins, a rounded silhouette and the phone badge at every resolution.
+    // Do not ask Icon Services to normalize it again on newer macOS releases.
+    NSDockTile *tile = NSApp.dockTile;
+    NSImageView *view = [[NSImageView alloc] initWithFrame:
+        NSMakeRect(0, 0, tile.size.width, tile.size.height)];
+    view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    view.imageScaling = NSImageScaleProportionallyUpOrDown;
+    view.image = image;
+    tile.contentView = view;
+    [tile display];
 }

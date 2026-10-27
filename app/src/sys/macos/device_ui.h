@@ -43,6 +43,6 @@ NSView *SCDeviceToolbarGroup(NSArray<NSButton *> *buttons);
 - (void)usePairingCodeStyle;
 @end
 
-// Start with the system-normalized bundle icon so the mirror keeps the same
-// visible size and silhouette as the manager, independently of startup state.
+// Pre-rendered RGBA representations, independent of Launch Services caches.
 NSImage *SCDeviceMirrorIcon(NSBundle *bundle);
+void SCDeviceInstallMirrorIcon(NSBundle *bundle);
