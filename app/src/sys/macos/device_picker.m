@@ -11,6 +11,7 @@
 #import "device_reconnect.h"
 #import "mirror_session.h"
 #import "application_lifecycle.h"
+#import "apk_installer.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -1052,7 +1053,12 @@ sc_device_picker_install_menu(SDL_Window *window) {
         mirrorWindow = (__bridge NSWindow *) SDL_GetPointerProperty(properties,
             SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
     }
-    SCApplicationLifecycleInstall(^{ [SCDeviceMenuController() showDevices:nil]; });
+    void (^showDevices)(void) = ^{
+        [SCDeviceMenuController() showDevices:nil];
+    };
+    SCApplicationLifecycleInstall(showDevices, ^BOOL(NSString *path) {
+        return sc_apk_installer_open_file(path, showDevices);
+    });
     NSMenu *mainMenu = NSApp.mainMenu;
     if (!mainMenu.numberOfItems) {
         return;
@@ -1125,25 +1131,69 @@ sc_device_picker_run_windows(void) {
     // The manager may be created later by the Devices action while Settings
     // is already open. Read the shared manager on every iteration.
     while (SCApplicationHasWindows() || SCUpdaterBusy()
+            || sc_apk_installer_busy()
             || deviceManager.pendingPreparations || deviceManager.reconnect.active) {
         @autoreleasepool {
             SDL_Event event;
-            if (SDL_WaitEventTimeout(&event, 100) && event.type == SDL_EVENT_QUIT) {
-                SCApplicationRequestQuit();
-                SCUpdaterCancel();
-                [deviceManager.reconnect stop];
-                [deviceManager.window close];
-                for (NSWindow *window in NSApp.windows.copy) { [window close]; }
+            if (SDL_WaitEventTimeout(&event, 100)) {
+                if (event.type == SDL_EVENT_DROP_FILE
+                        && event.drop.windowID == 0 && event.drop.data) {
+                    NSString *path = [NSString stringWithUTF8String:event.drop.data];
+                    sc_apk_installer_open_file(path, ^{
+                        [SCDeviceMenuController() showDevices:nil];
+                    });
+                } else if (event.type == SDL_EVENT_QUIT) {
+                    SCApplicationRequestQuit();
+                    SCUpdaterCancel();
+                    [deviceManager.reconnect stop];
+                    [deviceManager.window close];
+                    for (NSWindow *window in NSApp.windows.copy) { [window close]; }
+                }
             }
         }
     }
+}
+
+static BOOL
+sc_device_picker_process_startup_apks(void) {
+    BOOL handled = NO;
+    // Launch Services may deliver the initial open-document Apple event just
+    // after SDL has finished creating NSApplication. Give that event a small
+    // head start so the device list does not flash before an APK open request
+    // is routed to the installer.
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:0.25];
+    do {
+        SDL_PumpEvents();
+        SDL_Event event;
+        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_EVENT_DROP_FILE,
+                SDL_EVENT_DROP_FILE) == 1) {
+            if (event.drop.windowID == 0 && event.drop.data) {
+                NSString *path = [NSString stringWithUTF8String:event.drop.data];
+                handled |= sc_apk_installer_open_file(path, ^{
+                    [SCDeviceMenuController() showDevices:nil];
+                });
+            }
+        }
+        // Once the lifecycle delegate handled the file directly, discovery is
+        // already active and no SDL drop event remains in the queue.
+        if (handled || sc_apk_installer_busy()) {
+            return YES;
+        }
+        [NSRunLoop.mainRunLoop runUntilDate:
+            [NSDate dateWithTimeIntervalSinceNow:0.01]];
+    } while (deadline.timeIntervalSinceNow > 0);
+    return NO;
 }
 
 enum sc_device_picker_result
 sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr) {
     SCMirrorInstallCleanup();
     if (![[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundlePackageType"]
-            isEqualToString:@"APPL"] || options->serial || options->select_usb ||
+            isEqualToString:@"APPL"]) {
+        return SC_DEVICE_PICKER_CONTINUE;
+    }
+    sc_apk_installer_register_file_association();
+    if (options->serial || options->select_usb ||
             options->select_tcpip || options->tcpip_dst || options->list ||
             !options->window || getenv("ANDROID_SERIAL")) {
         return SC_DEVICE_PICKER_CONTINUE;
@@ -1164,35 +1214,6 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         struct sc_vec_adb_devices devices = SC_VECTOR_INITIALIZER;
         bool listed = sc_adb_start_server(intr, 0)
             && sc_adb_list_devices(intr, 0, &devices);
-        if (listed && devices.size == 1 && !getenv("ANMIR_SHOW_DEVICES") &&
-                !strcmp(devices.data[0].state, "device")) {
-            if (!SDL_WasInit(SDL_INIT_VIDEO) && !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-                sc_adb_devices_destroy(&devices);
-                return SC_DEVICE_PICKER_ERROR;
-            }
-            sc_device_picker_install_menu(NULL);
-            NSString *serial = sc_device_picker_string(devices.data[0].serial);
-            struct sc_device_info info;
-            sc_device_info_init(&info);
-            sc_device_info_load(&info, intr, serial.UTF8String);
-            char *name = sc_device_info_build_name(&info, devices.data[0].model ?: "Android device");
-            SCDeviceManager *manager = sc_device_picker_get_manager();
-            BOOL launched = [manager mirrorSerial:serial
-                displayName:name ? [NSString stringWithUTF8String:name] : @"Android device"];
-            // Keep startup alive while preparation runs off-main; pump AppKit
-            // rather than blocking its thread on copying resources/codesign.
-            while (launched && manager.pendingPreparations) {
-                @autoreleasepool {
-                    [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
-                }
-            }
-            launched = launched && !manager.failures[serial];
-            free(name);
-            sc_device_info_destroy(&info);
-            sc_adb_devices_destroy(&devices);
-            if (launched && manager.reconnect.active) { sc_device_picker_run_windows(); }
-            return launched ? SC_DEVICE_PICKER_FINISHED : SC_DEVICE_PICKER_ERROR;
-        }
         if (!SDL_WasInit(SDL_INIT_VIDEO) &&
                 !SDL_InitSubSystem(SDL_INIT_VIDEO)) {
             LOGE("Could not initialize device manager: %s", SDL_GetError());
@@ -1207,7 +1228,10 @@ sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr)
         manager.transports = sc_device_picker_entries(&devices);
         sc_adb_devices_destroy(&devices);
         sc_device_picker_install_menu(NULL);
-        [manager show];
+        BOOL openedAPK = sc_device_picker_process_startup_apks();
+        if (!openedAPK) {
+            [manager show];
+        }
         [manager updateSummary:listed];
         // Startup has no mirror window yet. Pump SDL/AppKit while the native
         // manager stays open; mirror processes run independently of this loop.

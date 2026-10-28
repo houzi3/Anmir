@@ -21,6 +21,7 @@ static NSString *SCApplicationQuitNotification(void) {
 @interface SCApplicationLifecycle : NSObject <NSApplicationDelegate>
 @property(nonatomic, strong) id<NSApplicationDelegate> sdlDelegate;
 @property(nonatomic, copy) void (^showDevices)(void);
+@property(nonatomic, copy) BOOL (^openFile)(NSString *path);
 @property(nonatomic) BOOL quitting, scheduled;
 - (void)terminate:(id)sender;
 @end
@@ -75,6 +76,15 @@ static NSString *SCApplicationQuitNotification(void) {
     }
     return NO; // We handled the reopen; AppKit must not create another window.
 }
+- (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename {
+    if (self.openFile && self.openFile(filename)) {
+        return YES;
+    }
+    if ([self.sdlDelegate respondsToSelector:@selector(application:openFile:)]) {
+        return [self.sdlDelegate application:sender openFile:filename];
+    }
+    return NO;
+}
 - (void)quitReceived:(NSNotification *)notification {
     (void)notification;
     if (self.quitting) { return; }
@@ -101,7 +111,8 @@ void SCApplicationRequestQuit(void) {
     [lifecycle quitReceived:nil];
 }
 
-void SCApplicationLifecycleInstall(void (^showDevices)(void)) {
+void SCApplicationLifecycleInstall(void (^showDevices)(void),
+                                   BOOL (^openFile)(NSString *path)) {
     if (!lifecycle) {
         lifecycle = [[SCApplicationLifecycle alloc] init];
         lifecycle.sdlDelegate = NSApp.delegate;
@@ -116,6 +127,7 @@ void SCApplicationLifecycleInstall(void (^showDevices)(void)) {
             suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
     }
     lifecycle.showDevices = showDevices;
+    lifecycle.openFile = openFile;
     NSMenu *appMenu = NSApp.mainMenu.numberOfItems ? [NSApp.mainMenu itemAtIndex:0].submenu : nil;
     for (NSMenuItem *item in appMenu.itemArray) {
         if (item.action == @selector(terminate:)) { item.target = lifecycle; }

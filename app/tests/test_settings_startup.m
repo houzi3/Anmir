@@ -22,15 +22,33 @@
 // Keep the production native window flow, with ADB disabled so this test
 // cannot discover phones, start a server or affect an existing mirror.
 static unsigned adbStarts;
+static BOOL simulateSingleDevice;
 const char *sc_adb_get_executable(void) { return "/usr/bin/false"; }
 bool sc_adb_start_server(struct sc_intr *intr, unsigned flags) {
-    (void)intr; (void)flags; ++adbStarts; return false;
+    (void)intr; (void)flags; ++adbStarts; return simulateSingleDevice;
 }
 bool sc_adb_list_devices(struct sc_intr *intr, unsigned flags, struct sc_vec_adb_devices *out) {
-    (void)intr; (void)flags; (void)out; assert(false); return false;
+    (void)intr; (void)flags;
+    assert(simulateSingleDevice);
+    out->data = malloc(sizeof(*out->data));
+    assert(out->data);
+    out->cap = out->size = 1;
+    out->data[0] = (struct sc_adb_device) {
+        .serial = strdup("fixture-device"),
+        .state = strdup("device"),
+        .model = strdup("Fixture_Phone"),
+    };
+    return true;
 }
 bool sc_adb_parse_devices(char *text, struct sc_vec_adb_devices *out) { (void)text; (void)out; return false; }
-void sc_adb_devices_destroy(struct sc_vec_adb_devices *devices) { assert(!devices->size); }
+void sc_adb_devices_destroy(struct sc_vec_adb_devices *devices) {
+    for (size_t i = 0; i < devices->size; ++i) {
+        free(devices->data[i].serial);
+        free(devices->data[i].state);
+        free(devices->data[i].model);
+    }
+    sc_vector_destroy(devices);
+}
 enum sc_adb_device_type sc_adb_device_get_type(const char *serial) { (void)serial; return SC_ADB_DEVICE_TYPE_USB; }
 void sc_device_info_init(struct sc_device_info *info) { memset(info, 0, sizeof(*info)); }
 void sc_device_info_destroy(struct sc_device_info *info) { (void)info; }
@@ -45,6 +63,11 @@ bool sc_toolbar_preferences_load_saved_visible(bool *visible) { (void)visible; r
 bool sc_push_event_impl(uint32_t type, void *ptr, const char *name) {
     (void)name; SDL_Event event = {.type = type}; event.user.data1 = ptr; return SDL_PushEvent(&event);
 }
+bool sc_apk_installer_busy(void) { return false; }
+bool sc_apk_installer_open_file(NSString *path, void (^showDevices)(void)) {
+    (void)path; (void)showDevices; return false;
+}
+void sc_apk_installer_register_file_association(void) {}
 
 static NSWindow *windowNamed(NSString *name) {
     for (NSWindow *window in NSApp.windows) { if ([window.title isEqualToString:name]) { return window; } }
@@ -164,6 +187,31 @@ static int lifecycleMirrorFixture(NSString *readyPath) {
         }
     }
     assert(false); return 1;
+}
+
+static int singleDeviceFixture(void) {
+    unsetenv("ANMIR_SHOW_SETTINGS"); unsetenv("ANMIR_CHECK_UPDATES");
+    unsetenv("ANMIR_SHOW_DEVICES"); unsetenv("ANDROID_SERIAL");
+    simulateSingleDevice = YES;
+    assert(SDL_Init(SDL_INIT_VIDEO));
+    __block BOOL showedManager = NO;
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:10];
+    NSTimer *timer = [NSTimer timerWithTimeInterval:.03 repeats:YES block:^(NSTimer *tick) {
+        assert(deadline.timeIntervalSinceNow > 0);
+        NSWindow *manager = windowNamed(@"Anmir");
+        if (!manager.visible) { return; }
+        showedManager = YES;
+        [manager close];
+        [tick invalidate];
+    }];
+    [NSRunLoop.mainRunLoop addTimer:timer forMode:NSRunLoopCommonModes];
+    struct scrcpy_options options = {.window = true};
+    assert(sc_device_picker_run(&options, NULL) == SC_DEVICE_PICKER_FINISHED);
+    [timer invalidate];
+    assert(showedManager && adbStarts >= 1);
+    SDL_Quit();
+    puts("Single-device startup opens the device list without auto-mirroring.");
+    return 0;
 }
 
 static int lifecycleFixture(NSString *mirrorBinary) {
@@ -292,6 +340,9 @@ int main(int argc, const char *argv[]) {
             assert(argc == 3);
             return lifecycleMirrorFixture([NSString stringWithUTF8String:argv[2]]);
         }
+        if (argc > 1 && !strcmp(argv[1], "single-device")) {
+            return singleDeviceFixture();
+        }
         if (argc > 2 && !strcmp(argv[1], "lifecycle")) { return lifecycleFixture([NSString stringWithUTF8String:argv[2]]); }
         if (argc > 2) { return fixture([NSString stringWithUTF8String:argv[2]]); }
         // Disposable UI-element bundles exercise real host and mirror identities.
@@ -322,6 +373,12 @@ int main(int argc, const char *argv[]) {
         NSTask *child = [[NSTask alloc] init]; child.executableURL = [NSURL fileURLWithPath:binary]; child.arguments = @[@"fixture", mirrorBinary];
         assert([child launchAndReturnError:nil]); [child waitUntilExit];
         int status = child.terminationStatus;
+        if (!status) {
+            child = [[NSTask alloc] init]; child.executableURL = [NSURL fileURLWithPath:binary];
+            child.arguments = @[@"single-device"];
+            assert([child launchAndReturnError:nil]); [child waitUntilExit];
+            status = child.terminationStatus;
+        }
         if (!status) {
             NSMutableDictionary *lifecycleInfo = [info mutableCopy];
             [lifecycleInfo removeObjectForKey:@"LSUIElement"];

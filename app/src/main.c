@@ -20,6 +20,10 @@
 #include "util/term.h"
 #include "version.h"
 
+#ifdef __APPLE__
+# include "sys/macos/apk_installer.h"
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include "util/str.h"
@@ -27,6 +31,15 @@
 
 static int
 main_scrcpy(int argc, char *argv[]) {
+#ifdef __APPLE__
+    bool installer_handled = false;
+    int installer_result = sc_apk_installer_try_run(argc, argv,
+                                                     &installer_handled);
+    if (installer_handled) {
+        return installer_result;
+    }
+#endif
+
 #ifdef _WIN32
     // disable buffering, we want logs immediately
     // even line buffering (setvbuf() with mode _IOLBF) is not sufficient

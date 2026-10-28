@@ -51,6 +51,43 @@ die() {
     exit 1
 }
 
+validate_server_version() {
+    local server="$1"
+    local expected_version="$2"
+
+    command -v unzip >/dev/null 2>&1 \
+        || die "unzip is required to inspect scrcpy-server"
+    command -v strings >/dev/null 2>&1 \
+        || die "strings is required to inspect scrcpy-server"
+
+    if ! unzip -p "$server" classes.dex >/dev/null 2>&1; then
+        die "could not read classes.dex from scrcpy-server: $server"
+    fi
+
+    if unzip -p "$server" classes.dex 2>/dev/null \
+            | LC_ALL=C strings \
+            | LC_ALL=C grep -Fqx "$expected_version"; then
+        return
+    fi
+
+    local detected_versions
+    detected_versions="$(
+        unzip -p "$server" classes.dex 2>/dev/null \
+            | LC_ALL=C strings \
+            | LC_ALL=C grep -E \
+                '^[0-9]+\.[0-9]+\.[0-9]+([.+_-][0-9A-Za-z.+_-]+)?$' \
+            | LC_ALL=C sort -u \
+            | paste -sd ',' - \
+            | sed 's/,/, /g'
+    )"
+    if [[ -n "$detected_versions" ]]; then
+        die "scrcpy-server version mismatch: app version is $expected_version, but $server contains $detected_versions
+Rebuild scrcpy-server for version $expected_version and pass it with --server <path>"
+    fi
+    die "could not verify scrcpy-server version $expected_version in $server
+Rebuild scrcpy-server for version $expected_version and pass it with --server <path>"
+}
+
 external_libraries() {
     otool -L "$1" |
         awk '$0 ~ /^\t/ { print $1 }' |
@@ -185,6 +222,7 @@ if [[ -z "$SERVER" ]]; then
 fi
 [[ -n "$SERVER" && -f "$SERVER" ]] \
     || die "scrcpy-server not found; build it or pass --server <path>"
+validate_server_version "$SERVER" "$VERSION"
 
 if [[ -z "$ADB" ]]; then
     if [[ "$MODE" = dist ]]; then
@@ -257,6 +295,7 @@ install -m 644 "$ROOT_DIR/app/data/anmir.icns" "$APP/Contents/Resources/anmir.ic
 install -m 644 "$ROOT_DIR/app/data/anmir-dock.icns" "$APP/Contents/Resources/anmir-dock.icns"
 install -m 644 "$ROOT_DIR/app/data/anmir-mirror.icns" "$APP/Contents/Resources/anmir-mirror.icns"
 install -m 644 "$ROOT_DIR/app/data/anmir-mirror-bundle.icns" "$APP/Contents/Resources/anmir-mirror-bundle.icns"
+install -m 644 "$ROOT_DIR/app/data/anmir.icns" "$APP/Contents/Resources/anmir-apk.icns"
 
 # Language-specific resources are also copied into every mirror launcher.
 for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do
@@ -286,6 +325,43 @@ while IFS= read -r binary_min_version; do
     fi
 done < <(printf '%s\n' "$BUILD_VERSIONS" |
     awk '$1 == "minos" { print $2 }')
+
+# Finder contextual menus run in a separate extension process. Build the
+# extension for every architecture carried by the host application, then
+# embed it before signing the outer bundle.
+FINDER_EXTENSION="$APP/Contents/PlugIns/AnmirFinder.appex"
+FINDER_BUILD="$ROOT_DIR/release/work/finder-extension"
+rm -rf "$FINDER_BUILD"
+mkdir -p "$FINDER_BUILD" "$FINDER_EXTENSION/Contents/MacOS" \
+    "$FINDER_EXTENSION/Contents/Resources"
+FINDER_BINARIES=()
+for extension_arch in $(lipo -archs "$BIN"); do
+    extension_binary="$FINDER_BUILD/AnmirFinder-$extension_arch"
+    xcrun clang -fobjc-arc -fmodules \
+        -fmodules-cache-path="$FINDER_BUILD/module-cache" \
+        -fapplication-extension -arch "$extension_arch" \
+        -mmacosx-version-min="$MINIMUM_SYSTEM_VERSION" \
+        -framework Cocoa -framework FinderSync \
+        -Wl,-e,_NSExtensionMain \
+        "$ROOT_DIR/app/src/sys/macos/finder_extension.m" \
+        "$ROOT_DIR/app/src/sys/macos/finder_device_menu.m" \
+        -o "$extension_binary"
+    FINDER_BINARIES+=("$extension_binary")
+done
+if [[ ${#FINDER_BINARIES[@]} -eq 1 ]]; then
+    install -m 755 "${FINDER_BINARIES[0]}" \
+        "$FINDER_EXTENSION/Contents/MacOS/AnmirFinder"
+else
+    lipo -create "${FINDER_BINARIES[@]}" \
+        -output "$FINDER_EXTENSION/Contents/MacOS/AnmirFinder"
+fi
+sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
+    -e "s/@SCRCPY_MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
+    "$ROOT_DIR/app/FinderExtension-Info.plist.in" \
+    > "$FINDER_EXTENSION/Contents/Info.plist"
+for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do
+    cp -R "$localization" "$FINDER_EXTENSION/Contents/Resources/"
+done
 
 sed -e "s/@SCRCPY_VERSION@/$VERSION/g" \
     -e "s/@SCRCPY_MINIMUM_SYSTEM_VERSION@/$MINIMUM_SYSTEM_VERSION/g" \
@@ -332,6 +408,7 @@ done
 
 if command -v plutil >/dev/null 2>&1; then
     plutil -lint "$APP/Contents/Info.plist" >/dev/null
+    plutil -lint "$FINDER_EXTENSION/Contents/Info.plist" >/dev/null
 fi
 
 if $SIGN; then
@@ -341,6 +418,9 @@ if $SIGN; then
     fi
     codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" \
         "$APP/Contents/MacOS/adb"
+    codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" \
+        --entitlements "$ROOT_DIR/app/FinderExtension.entitlements" \
+        "$FINDER_EXTENSION"
     codesign --force "${SIGN_OPTIONS[@]}" --sign "$IDENTITY" "$APP"
     codesign --verify --deep --strict "$APP"
 fi

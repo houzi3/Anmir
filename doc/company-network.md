@@ -24,7 +24,9 @@ that old helper after installing the new one to avoid duplicate launcher icons.
 1. In Anmir's Wi-Fi dialog, choose **Company network connection** and click **Open download page**.
    Select the Anmir Connect APK matching your Mac version from the release page, or find it in the
    [release list](https://github.com/houzi3/Anmir/releases). Transfer the APK to your phone and open it with the system file manager, allowing
-   installation from that source if prompted. Alternatively, with an existing
+   installation from that source if prompted. Alternatively, click **Scan to install** and scan the
+   popover with the phone's Camera—not the Wireless debugging scanner—to download the matching APK
+   directly. With an existing
    USB or Wi-Fi ADB connection, use `adb -s DEVICE install -r APK`. Skip installation if the helper is already installed.
 2. Keep the company-network QR window open. If the Mac has multiple physical network addresses,
    select the address reachable from the phone.
