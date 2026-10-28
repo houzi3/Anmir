@@ -16,9 +16,9 @@ static NSPasteboardName const SCAPKInstallPasteboardName =
     @"io.github.laobie.anmir.install-request";
 static NSPasteboardType const SCAPKInstallPasteboardType =
     @"io.github.laobie.anmir.install-request";
-static const CGFloat SCAPKInstallerWindowWidth = 600.0;
-static const CGFloat SCAPKInstallerDetailWidth = 544.0;
-static const CGFloat SCAPKInstallerProgressHeight = 200.0;
+static const CGFloat SCAPKInstallerWindowWidth = 300.0;
+static const CGFloat SCAPKInstallerDetailWidth = 244.0;
+static const CGFloat SCAPKInstallerProgressHeight = 180.0;
 static const CGFloat SCAPKInstallerResultMinimumHeight = 160.0;
 static NSString *const SCAPKContentType = @"com.android.package-archive";
 
@@ -85,8 +85,9 @@ static NSString *SCAPKADBExecutable(void) {
         NSMakeSize(SCAPKInstallerDetailWidth, CGFLOAT_MAX)
         options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
         attributes:attributes];
+    CGFloat chromeHeight = self.progress.hidden ? 145.0 : 165.0;
     CGFloat desiredHeight = MAX(SCAPKInstallerResultMinimumHeight,
-        ceil(textBounds.size.height) + 145.0);
+        ceil(textBounds.size.height) + chromeHeight);
     NSScreen *screen = self.window.screen ?: NSScreen.mainScreen;
     CGFloat maximumHeight = screen
         ? MAX(SCAPKInstallerResultMinimumHeight,
@@ -97,7 +98,7 @@ static NSString *SCAPKADBExecutable(void) {
         CGFloat lineHeight = self.detailLabel.font.ascender
             - self.detailLabel.font.descender + self.detailLabel.font.leading;
         self.detailLabel.maximumNumberOfLines = MAX(3,
-            (NSInteger)floor((maximumHeight - 145.0) / lineHeight));
+            (NSInteger)floor((maximumHeight - chromeHeight) / lineHeight));
         self.detailLabel.lineBreakMode = NSLineBreakByTruncatingTail;
     } else {
         self.detailLabel.maximumNumberOfLines = 0;
@@ -191,6 +192,7 @@ static NSString *SCAPKADBExecutable(void) {
         [_button.widthAnchor constraintGreaterThanOrEqualToConstant:84],
         [_button.heightAnchor constraintEqualToConstant:32],
     ]];
+    [self resizeForDetailText:_detailLabel.stringValue];
     [_window center];
 
     NSString *adb = SCAPKADBExecutable();
