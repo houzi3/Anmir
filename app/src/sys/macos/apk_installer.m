@@ -534,15 +534,19 @@ void sc_apk_installer_register_file_association(void) {
     };
     if (@available(macOS 12.0, *)) {
         UTType *type = [UTType typeWithIdentifier:SCAPKContentType];
-        [NSWorkspace.sharedWorkspace setDefaultApplicationAtURL:bundle.bundleURL
-            toOpenContentType:type completionHandler:complete];
-    } else {
-        OSStatus status = LSSetDefaultRoleHandlerForContentType(
-            (__bridge CFStringRef)SCAPKContentType, kLSRolesAll,
-            (__bridge CFStringRef)bundle.bundleIdentifier);
-        complete(status == noErr ? nil : [NSError errorWithDomain:NSOSStatusErrorDomain
-            code:status userInfo:nil]);
+        if (type) {
+            [NSWorkspace.sharedWorkspace setDefaultApplicationAtURL:bundle.bundleURL
+                toOpenContentType:type completionHandler:complete];
+            return;
+        }
     }
+    // The imported APK type may not be visible to UniformTypeIdentifiers yet
+    // on the app's first launch. The Launch Services API also covers macOS 11.
+    OSStatus status = LSSetDefaultRoleHandlerForContentType(
+        (__bridge CFStringRef)SCAPKContentType, kLSRolesAll,
+        (__bridge CFStringRef)bundle.bundleIdentifier);
+    complete(status == noErr ? nil : [NSError errorWithDomain:NSOSStatusErrorDomain
+        code:status userInfo:nil]);
 }
 
 static BOOL SCAPKArguments(int argc, char *argv[], NSString **apk,
