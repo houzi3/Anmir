@@ -51,6 +51,43 @@ die() {
     exit 1
 }
 
+validate_server_version() {
+    local server="$1"
+    local expected_version="$2"
+
+    command -v unzip >/dev/null 2>&1 \
+        || die "unzip is required to inspect scrcpy-server"
+    command -v strings >/dev/null 2>&1 \
+        || die "strings is required to inspect scrcpy-server"
+
+    if ! unzip -p "$server" classes.dex >/dev/null 2>&1; then
+        die "could not read classes.dex from scrcpy-server: $server"
+    fi
+
+    if unzip -p "$server" classes.dex 2>/dev/null \
+            | LC_ALL=C strings \
+            | LC_ALL=C grep -Fqx "$expected_version"; then
+        return
+    fi
+
+    local detected_versions
+    detected_versions="$(
+        unzip -p "$server" classes.dex 2>/dev/null \
+            | LC_ALL=C strings \
+            | LC_ALL=C grep -E \
+                '^[0-9]+\.[0-9]+\.[0-9]+([.+_-][0-9A-Za-z.+_-]+)?$' \
+            | LC_ALL=C sort -u \
+            | paste -sd ',' - \
+            | sed 's/,/, /g'
+    )"
+    if [[ -n "$detected_versions" ]]; then
+        die "scrcpy-server version mismatch: app version is $expected_version, but $server contains $detected_versions
+Rebuild scrcpy-server for version $expected_version and pass it with --server <path>"
+    fi
+    die "could not verify scrcpy-server version $expected_version in $server
+Rebuild scrcpy-server for version $expected_version and pass it with --server <path>"
+}
+
 external_libraries() {
     otool -L "$1" |
         awk '$0 ~ /^\t/ { print $1 }' |
@@ -185,6 +222,7 @@ if [[ -z "$SERVER" ]]; then
 fi
 [[ -n "$SERVER" && -f "$SERVER" ]] \
     || die "scrcpy-server not found; build it or pass --server <path>"
+validate_server_version "$SERVER" "$VERSION"
 
 if [[ -z "$ADB" ]]; then
     if [[ "$MODE" = dist ]]; then
