@@ -16,15 +16,18 @@ static NSPasteboardType const SCAPKInstallPasteboardType =
     @"io.github.laobie.anmir.install-request";
 
 static BOOL SCFinderUsesDarkAppearance(void) {
-    NSString *style = [NSUserDefaults.standardUserDefaults
-        stringForKey:@"AppleInterfaceStyle"];
-    if ([style caseInsensitiveCompare:@"Dark"] == NSOrderedSame) {
-        return YES;
-    }
-    NSAppearanceName match = [NSApp.effectiveAppearance
-        bestMatchFromAppearancesWithNames:@[
-            NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
-    return [match isEqualToString:NSAppearanceNameDarkAqua];
+    // Finder Sync may keep its extension process alive across automatic
+    // light/dark transitions. NSApp.effectiveAppearance can consequently
+    // describe the old host appearance, so refresh and read the global
+    // preference each time Finder asks us to build the contextual menu.
+    CFPreferencesSynchronize(kCFPreferencesAnyApplication,
+        kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+    CFPropertyListRef value = CFPreferencesCopyValue(
+        CFSTR("AppleInterfaceStyle"), kCFPreferencesAnyApplication,
+        kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+    NSString *style = CFBridgingRelease(value);
+    return [style isKindOfClass:NSString.class] &&
+        [style caseInsensitiveCompare:@"Dark"] == NSOrderedSame;
 }
 
 static NSImage *SCFinderMenuSymbol(NSString *name) {

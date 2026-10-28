@@ -257,6 +257,7 @@ install -m 644 "$ROOT_DIR/app/data/anmir.icns" "$APP/Contents/Resources/anmir.ic
 install -m 644 "$ROOT_DIR/app/data/anmir-dock.icns" "$APP/Contents/Resources/anmir-dock.icns"
 install -m 644 "$ROOT_DIR/app/data/anmir-mirror.icns" "$APP/Contents/Resources/anmir-mirror.icns"
 install -m 644 "$ROOT_DIR/app/data/anmir-mirror-bundle.icns" "$APP/Contents/Resources/anmir-mirror-bundle.icns"
+install -m 644 "$ROOT_DIR/app/data/anmir.icns" "$APP/Contents/Resources/anmir-apk.icns"
 
 # Language-specific resources are also copied into every mirror launcher.
 for localization in "$ROOT_DIR"/app/data/locales/*.lproj; do

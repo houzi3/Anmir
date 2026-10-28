@@ -81,6 +81,7 @@ if host_machine.system() == 'darwin'
         'src/sys/macos/apk_installer.m',
         'src/sys/macos/clipboard_writer.m',
         'src/sys/macos/device_picker.m',
+        'src/sys/macos/finder_device_menu.m',
         'src/sys/macos/device_pairing.m',
         'src/sys/macos/device_connection.m',
         'src/sys/macos/device_support.m',
@@ -176,7 +177,10 @@ dependencies = [
 ]
 
 if host_machine.system() == 'darwin'
-    dependencies += dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics'])
+    dependencies += dependency('appleframeworks', modules: [
+        'AppKit', 'CoreImage', 'CoreGraphics', 'CoreServices',
+        'UniformTypeIdentifiers',
+    ])
 endif
 
 if v4l2_support

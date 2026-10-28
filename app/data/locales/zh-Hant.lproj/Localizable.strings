@@ -276,3 +276,6 @@
 "APK installation failed" = "APK 安裝失敗";
 "ADB did not return an error message." = "ADB 未回傳錯誤資訊。";
 "Cancelling…" = "正在取消…";
+"Choose a device" = "選擇裝置";
+"Install “%@” on:" = "將「%@」安裝到：";
+"Install" = "安裝";
