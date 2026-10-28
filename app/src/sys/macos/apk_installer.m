@@ -10,6 +10,7 @@
 #import "device_ui.h"
 #import "finder_device_menu.h"
 #import "localization.h"
+#import "mirror_session.h"
 #import "settings.h"
 
 static NSPasteboardName const SCAPKInstallPasteboardName =
@@ -495,10 +496,30 @@ void sc_apk_installer_register_file_association(void) {
                 isEqualToString:@"APPL"]) {
         return;
     }
+    // Per-device mirroring windows run from disposable app bundles. They carry
+    // the host identifier in their Info.plist, but must never become document
+    // handlers themselves.
+    if (![SCMirrorHostBundleIdentifier()
+            isEqualToString:bundle.bundleIdentifier]) {
+        return;
+    }
     NSString *version = [bundle objectForInfoDictionaryKey:
         @"CFBundleShortVersionString"] ?: @"unknown";
     NSString *preference = [@"AnmirAPKDefaultHandler." stringByAppendingString:version];
-    if ([NSUserDefaults.standardUserDefaults boolForKey:preference]) {
+    BOOL registered = [NSUserDefaults.standardUserDefaults boolForKey:preference];
+    CFStringRef copiedHandler = LSCopyDefaultRoleHandlerForContentType(
+        (__bridge CFStringRef)SCAPKContentType, kLSRolesAll);
+    NSString *handler = CFBridgingRelease(copiedHandler);
+    BOOL isHost = [handler isEqualToString:bundle.bundleIdentifier];
+    BOOL isStaleMirror = [handler hasPrefix:
+        [bundle.bundleIdentifier stringByAppendingString:@".mirror."]];
+    if (registered && isHost) {
+        return;
+    }
+    // Respect a handler the user selected deliberately. The missing-handler
+    // and mirror cases are ours to repair, even if this version registered
+    // successfully before the disposable helper stole the association.
+    if (registered && handler.length && !isStaleMirror) {
         return;
     }
     void (^complete)(NSError *) = ^(NSError *error) {
