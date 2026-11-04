@@ -20,3 +20,4 @@ keystore.properties
 signing.properties
 signing.properties.original
 __pycache__/
+.DS_Store

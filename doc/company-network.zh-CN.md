@@ -7,7 +7,7 @@ Anmir Connect 在手机本机发现调试端口，再回传给 Mac；之后仍�
 ## 首次安装
 
 1. 在 Mac 的 Anmir 点击 Wi-Fi 加号，进入扫码窗口。
-2. 选择 **公司网络连接**，点击 **打开下载页**，在浏览器打开对应版本的 GitHub 发布页。也可以从[发布列表](https://github.com/houzi3/Anmir/releases)选择与 Mac 版本对应的 Anmir Connect APK。已安装辅助应用时可跳过此步。
+2. 选择 **公司网络连接**，点击 **打开下载页**，在浏览器打开对应版本的 GitHub 发布页。也可以从[发布列表](https://github.com/houzi3/Anmir/releases)选择与 Mac 版本对应的 Anmir Connect APK；或点击 **扫码安装**，使用手机相机扫描弹出的二维码直接下载对应版本。这里不要使用“无线调试”的扫码入口。已安装辅助应用时可跳过此步。
 3. 将安装包传到手机，用系统文件管理器打开并安装。如果系统询问，允许该来源安装应用。
 4. 已有 USB 或 Wi-Fi ADB 连接时，也可以使用命令安装：
 

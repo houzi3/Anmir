@@ -10,6 +10,9 @@
 
 static NSString * const SCCompanionDownloadPage =
     @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION;
+static NSString * const SCCompanionDownloadURL =
+    @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
+    "/AnmirConnect-" SCRCPY_VERSION ".apk";
 
 typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     SCDeviceWiFiQRCode, SCDeviceWiFiPairingCode, SCDeviceWiFiManual,
@@ -104,7 +107,7 @@ static NSTextField *SCWiFiWrappingLabel(NSString *key, NSString *identifier, CGF
     return label;
 }
 
-static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier, NSButton *trailing) {
+static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier, NSView *trailing) {
     NSView *row = [[NSView alloc] init];
     row.translatesAutoresizingMaskIntoConstraints = NO;
     NSImageView *icon = [NSImageView imageViewWithImage:SCDeviceSymbol(
@@ -157,6 +160,7 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
 @property(nonatomic, strong) SCDeviceButton *connectButton;
 @property(nonatomic, strong) SCDeviceButton *qrRefreshButton;
 @property(nonatomic, strong) SCDeviceQRPairing *qrPairing;
+@property(nonatomic, strong) NSPopover *companionDownloadPopover;
 @property(nonatomic, strong) SCDeviceRelay *relay;
 @property(nonatomic, copy) NSArray<SCDeviceService *> *relayServices;
 @property(nonatomic, copy) NSString *relayHost;
@@ -502,8 +506,23 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
         download.translatesAutoresizingMaskIntoConstraints = NO;
         [download.heightAnchor constraintEqualToConstant:28].active = YES;
         [download.widthAnchor constraintGreaterThanOrEqualToConstant:72].active = YES;
+        NSTextField *alternative = SCDeviceLocalizedLabel(@"or", 11,
+            NSFontWeightRegular, YES);
+        alternative.identifier = @"WiFi.companionInstallAlternative";
+        NSButton *scan = [self link:@"Scan to install"
+            action:@selector(showCompanionQRCode:)];
+        scan.identifier = @"WiFi.companionInstallQRButton";
+        scan.toolTip = SCCompanionDownloadURL;
+        [download setContentHuggingPriority:NSLayoutPriorityRequired
+            forOrientation:NSLayoutConstraintOrientationHorizontal];
+        [alternative setContentHuggingPriority:NSLayoutPriorityRequired
+            forOrientation:NSLayoutConstraintOrientationHorizontal];
+        [scan setContentHuggingPriority:NSLayoutPriorityRequired
+            forOrientation:NSLayoutConstraintOrientationHorizontal];
+        NSStackView *installActions = SCDeviceStack(
+            @[download, alternative, scan], NO, 8);
         NSView *install = SCWiFiStep(1, @"Install Anmir Connect App; skip if installed",
-            @"WiFi.companionInstall", download);
+            @"WiFi.companionInstall", installActions);
         NSView *helper = SCWiFiStep(2, @"On your phone, open the app and tap Start helper",
             @"WiFi.companionGuide", nil);
         NSView *phone = SCWiFiStep(3, @"Wireless debugging › Pair device with QR code",
@@ -788,6 +807,58 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
 - (void)downloadCompanion:(id)sender {
     (void)sender;
     [NSWorkspace.sharedWorkspace openURL:[NSURL URLWithString:SCCompanionDownloadPage]];
+}
+
+- (void)showCompanionQRCode:(NSButton *)sender {
+    NSViewController *controller = [[NSViewController alloc] init];
+    controller.view = [[SCDeviceSurface alloc] initWithFrame:NSMakeRect(0, 0, 248, 290)];
+
+    NSBox *frame = [[NSBox alloc] init];
+    frame.boxType = NSBoxCustom;
+    frame.transparent = NO;
+    frame.borderWidth = 1;
+    frame.borderColor = NSColor.separatorColor;
+    frame.fillColor = NSColor.whiteColor;
+    frame.cornerRadius = 8;
+    frame.contentViewMargins = NSZeroSize;
+    frame.translatesAutoresizingMaskIntoConstraints = NO;
+    SCDeviceQRImageView *code = [[SCDeviceQRImageView alloc] init];
+    code.identifier = @"WiFi.companionInstallQR";
+    code.image = SCDeviceQRCodeImage(SCCompanionDownloadURL);
+    code.imageScaling = NSImageScaleProportionallyUpOrDown;
+    code.translatesAutoresizingMaskIntoConstraints = NO;
+    SCBind(code, @"accessibilityLabel", @"Scan with your phone’s camera to download Anmir Connect");
+    NSTextField *hint = SCDeviceLocalizedLabel(
+        @"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install.",
+        11, NSFontWeightRegular, YES);
+    hint.identifier = @"WiFi.companionInstallQRHint";
+    hint.alignment = NSTextAlignmentCenter;
+    hint.lineBreakMode = NSLineBreakByWordWrapping;
+    hint.maximumNumberOfLines = 3;
+    hint.preferredMaxLayoutWidth = 216;
+    [controller.view addSubview:frame];
+    [frame.contentView addSubview:code];
+    [controller.view addSubview:hint];
+    [NSLayoutConstraint activateConstraints:@[
+        [frame.topAnchor constraintEqualToAnchor:controller.view.topAnchor constant:16],
+        [frame.centerXAnchor constraintEqualToAnchor:controller.view.centerXAnchor],
+        [frame.widthAnchor constraintEqualToConstant:200],
+        [frame.heightAnchor constraintEqualToConstant:200],
+        [code.centerXAnchor constraintEqualToAnchor:frame.contentView.centerXAnchor],
+        [code.centerYAnchor constraintEqualToAnchor:frame.contentView.centerYAnchor],
+        [code.widthAnchor constraintEqualToConstant:196],
+        [code.heightAnchor constraintEqualToConstant:196],
+        [hint.topAnchor constraintEqualToAnchor:frame.bottomAnchor constant:10],
+        [hint.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor constant:16],
+        [hint.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor constant:-16],
+        [hint.bottomAnchor constraintLessThanOrEqualToAnchor:controller.view.bottomAnchor constant:-12],
+    ]];
+    controller.preferredContentSize = NSMakeSize(248, 290);
+    [self.companionDownloadPopover close];
+    self.companionDownloadPopover = [[NSPopover alloc] init];
+    self.companionDownloadPopover.behavior = NSPopoverBehaviorTransient;
+    self.companionDownloadPopover.contentViewController = controller;
+    [self.companionDownloadPopover showRelativeToRect:sender.bounds ofView:sender preferredEdge:NSRectEdgeMinY];
 }
 
 - (void)usePairingCode:(id)sender {
@@ -1079,6 +1150,8 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
     (void)notification;
     ++self.generation;
     [self dismissRepairConfirmation];
+    [self.companionDownloadPopover close];
+    self.companionDownloadPopover = nil;
     [self.timer invalidate];
     self.timer = nil;
     [self.scan cancel];

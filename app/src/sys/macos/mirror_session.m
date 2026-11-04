@@ -164,6 +164,13 @@ NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) {
     info[@"CFBundleDisplayName"] = displayName;
     info[@"CFBundleExecutable"] = @"anmir";
     info[@"CFBundleIdentifier"] = [NSString stringWithFormat:@"%@.mirror.%@", host.bundleIdentifier, token];
+    // A disposable mirror is only a named launcher for one device. Do not let
+    // Launch Services inherit the host app's document claims (notably APKs),
+    // otherwise every mirror UUID becomes a candidate or default file handler.
+    for (NSString *key in @[@"CFBundleDocumentTypes", @"CFBundleURLTypes",
+            @"UTImportedTypeDeclarations", @"UTExportedTypeDeclarations"]) {
+        [info removeObjectForKey:key];
+    }
     // The Dock can read the bundle before AppKit starts or after discarding a
     // runtime override. Its on-disk icon must already include the phone badge.
     for (NSString *name in @[@"anmir-mirror.icns", @"anmir-mirror-bundle.icns"]) {

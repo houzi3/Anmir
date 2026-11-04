@@ -78,8 +78,10 @@ src = [
 
 if host_machine.system() == 'darwin'
     src += [
+        'src/sys/macos/apk_installer.m',
         'src/sys/macos/clipboard_writer.m',
         'src/sys/macos/device_picker.m',
+        'src/sys/macos/finder_device_menu.m',
         'src/sys/macos/device_pairing.m',
         'src/sys/macos/device_connection.m',
         'src/sys/macos/device_support.m',
@@ -175,7 +177,10 @@ dependencies = [
 ]
 
 if host_machine.system() == 'darwin'
-    dependencies += dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics'])
+    dependencies += dependency('appleframeworks', modules: [
+        'AppKit', 'CoreImage', 'CoreGraphics', 'CoreServices',
+        'UniformTypeIdentifiers',
+    ])
 endif
 
 if v4l2_support
@@ -436,6 +441,12 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['Foundation']),
             objc_args: ['-UNDEBUG'])
         test('test_device_support', device_test, timeout: 20)
+        finder_device_menu_test = executable('test_finder_device_menu',
+            ['tests/test_finder_device_menu.m', 'src/sys/macos/finder_device_menu.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['Foundation']),
+            objc_args: ['-UNDEBUG'])
+        test('test_finder_device_menu', finder_device_menu_test)
         relay_test = executable('test_device_relay',
             ['tests/test_device_relay.m', 'src/sys/macos/device_relay.m',
              'src/sys/macos/device_pairing.m', 'src/sys/macos/device_support.m'],

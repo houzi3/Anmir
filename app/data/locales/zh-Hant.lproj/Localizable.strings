@@ -239,6 +239,10 @@
 "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "開啟手機上的 Anmir Connect，點選「啟動輔助連線」，等待自動進入開發人員選項。";
 "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "在手機上：進入「無線偵錯 → 使用 QR 圖碼配對裝置」，掃描下方 QR 圖碼。";
 "Download APK" = "下載 APK";
+"or" = "或";
+"Scan to install" = "掃碼安裝";
+"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install." = "請使用手機相機掃碼下載 APK（不是無線偵錯掃碼），下載後開啟安裝。";
+"Scan with your phone’s camera to download Anmir Connect" = "使用手機相機掃碼下載 Anmir Connect";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "正在等待輔助連線。配對後保持輔助元件執行，Wi-Fi 恢復時會自動重新連線。";
 
@@ -262,3 +266,16 @@
 "Could not restart connection service. Try again." = "修復未完成，請重試。";
 "Another connection repair is already in progress." = "另一項連線修復正在進行。";
 "Back to QR code" = "返回掃碼";
+"Install on phone" = "安裝到手機";
+"No available devices" = "沒有可用裝置";
+"Open Anmir…" = "開啟 Anmir…";
+"USB" = "USB";
+"Installing APK…" = "正在安裝 APK…";
+"APK installed" = "APK 安裝成功";
+"Installed “%@” on %@." = "已將「%@」安裝到 %@。";
+"APK installation failed" = "APK 安裝失敗";
+"ADB did not return an error message." = "ADB 未回傳錯誤資訊。";
+"Cancelling…" = "正在取消…";
+"Choose a device" = "選擇裝置";
+"Install “%@” on:" = "將「%@」安裝到：";
+"Install" = "安裝";
