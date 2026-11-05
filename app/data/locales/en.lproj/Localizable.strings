@@ -239,5 +239,43 @@
 "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open." = "On your phone, open Anmir Connect and tap Start helper. Wait for Developer options to open.";
 "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below." = "On your phone: open Wireless debugging › Pair device with QR code, then scan the QR code below.";
 "Download APK" = "Download APK";
+"or" = "or";
+"Scan to install" = "Scan to install";
+"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install." = "Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install.";
+"Scan with your phone’s camera to download Anmir Connect" = "Scan with your phone’s camera to download Anmir Connect";
 
 "Waiting for the phone helper. After pairing, keep it running to reconnect automatically." = "Waiting for the phone helper. After pairing, keep it running to reconnect automatically.";
+
+/* QR connection recovery */
+"Company network connection" = "Company network connection";
+"For company networks where mDNS is restricted; phone and Mac must be reachable." = "For company networks where mDNS is restricted; phone and Mac must be reachable.";
+"Install Anmir Connect App; skip if installed" = "Install Anmir Connect App; skip if installed";
+"Open download page" = "Open download page";
+"On your phone, open the app and tap Start helper" = "On your phone, open the app and tap Start helper";
+"Wireless debugging › Pair device with QR code" = "Wireless debugging › Pair device with QR code";
+"Scan with your phone's system scanner and keep this window open." = "Scan with your phone's system scanner and keep this window open.";
+"Still not connected after scanning?" = "Still not connected after scanning?";
+"For company or guest networks; use the phone helper" = "For company or guest networks; use the phone helper";
+"Fix connection" = "Fix connection";
+"Restart the Mac connection service and scan again" = "Restart the Mac connection service and scan again";
+"Restart connection service?" = "Restart connection service?";
+"This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted." = "This will restart the ADB service on your Mac. Other mirroring and debugging sessions, including Android Studio, may be interrupted.";
+"Restart and fix" = "Restart and fix";
+"Restarting connection service…" = "Restarting connection service…";
+"Connection service restarted. Scan the new QR code." = "Connection service restarted. Scan the new QR code.";
+"Could not restart connection service. Try again." = "Could not restart connection service. Try again.";
+"Another connection repair is already in progress." = "Another connection repair is already in progress.";
+"Back to QR code" = "Back to QR code";
+"Install on phone" = "Install on phone";
+"No available devices" = "No available devices";
+"Open Anmir…" = "Open Anmir…";
+"USB" = "USB";
+"Installing APK…" = "Installing APK…";
+"APK installed" = "APK installed";
+"Installed “%@” on %@." = "Installed “%@” on %@.";
+"APK installation failed" = "APK installation failed";
+"ADB did not return an error message." = "ADB did not return an error message.";
+"Cancelling…" = "Cancelling…";
+"Choose a device" = "Choose a device";
+"Install “%@” on:" = "Install “%@” on:";
+"Install" = "Install";

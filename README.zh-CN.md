@@ -21,6 +21,7 @@
 ## 特色功能
 
 - **内置无线配对**：用安卓设备扫描 Anmir 的二维码，或在 Anmir 中输入配对码；支持手动连接已配对设备。
+- **公司网络连接**：mDNS 受限时可使用 Anmir Connect 辅助连接，Wi-Fi 恢复后自动重连。
 - **统一设备管理**：自动发现安卓设备，合并同一设备的 USB 与无线连接；每台设备拥有独立投屏窗口与 Dock 入口。
 - **悬浮工具栏**：在投屏窗口旁快速返回、打开主页、切换最近任务、截图和录屏。
 - **截图与录屏**：一键截图到 Mac 剪贴板；投屏中启停录屏，显示录制时长，并通过保存对话框选择位置。
@@ -92,11 +93,13 @@
   </tr>
 </table>
 
+扫码后仍未连接时，可在扫码窗口选择“公司网络连接”或“修复连接”。确认修复后会重启共享 ADB 服务，可能中断其他 ADB 连接；完成后重新扫码。
+
 ### 公司内网扫码 · Android 11+
 
 公司网络扫码一直转圈时，可用 **Anmir Connect** 辅助连接，无需输入 IP 和端口。手机与 Mac 需能通过内网互通。
 
-1. 在 Mac 扫码窗口切换到公司网络方案，在手机[下载安装 Anmir Connect](https://github.com/houzi3/Anmir/releases/tag/v0.1.2)。
+1. 在 Mac 扫码窗口切换到公司网络方案，在手机[下载安装 Anmir Connect](https://github.com/houzi3/Anmir/releases)，已安装可跳过。
 2. 打开手机上的 Anmir Connect，点击 **启动辅助连接**，等待自动进入开发者选项。
 3. 进入 **无线调试 → 使用二维码配对设备**，扫描 Mac 上的二维码，即可投屏。
 
@@ -143,27 +146,33 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.4</td>
+    <td nowrap>2026-10-27</td>
+    <td>新增扫码连接引导与修复，优化应用和投屏图标。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.4">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.3</td>
     <td nowrap>2026-10-27</td>
-    <td>更新 macOS 应用图标，采用安卓机器人照 Mac 镜子的设计；投屏窗口保留小手机角标。</td>
+    <td>更新 macOS 应用图标。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.3">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.2</td>
     <td nowrap>2026-10-26</td>
-    <td>新增 Anmir Connect，支持公司内网跨网段扫码与自动重连；修复 Dock 和窗口恢复；改进更新检查，使用静态更新清单。</td>
+    <td>新增公司网络扫码与自动重连，改进窗口恢复和更新检查。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.2">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.1</td>
     <td nowrap>2026-10-26</td>
-    <td>支持应用内检查、下载和安装更新；改进“关于”窗口，增加项目、反馈和许可证入口。</td>
+    <td>新增应用内更新，完善“关于”页面。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.1">Release</a></td>
   </tr>
   <tr>
     <td nowrap>v0.1.0</td>
     <td nowrap>2026-10-25</td>
-    <td>首次发布：原生设备管理、USB/无线投屏、截图录屏与多语言。</td>
+    <td>首个版本：设备管理、有线与无线投屏、截图和录屏。</td>
     <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.0">Release</a></td>
   </tr>
 </table>

@@ -11,6 +11,25 @@ static NSString *SCRandomPairingString(NSUInteger length) {
     return result;
 }
 
+NSImage *SCDeviceQRCodeImage(NSString *payload) {
+    CIFilter *filter = [CIFilter filterWithName:@"CIQRCodeGenerator"];
+    [filter setValue:[payload dataUsingEncoding:NSUTF8StringEncoding] forKey:@"inputMessage"];
+    [filter setValue:@"M" forKey:@"inputCorrectionLevel"];
+    CIImage *code = filter.outputImage;
+    if (!code) { return nil; }
+    // Keep a white four-module quiet zone in both light and dark mode.
+    CIImage *white = [CIImage imageWithColor:[CIColor colorWithRed:1 green:1 blue:1 alpha:1]];
+    CIImage *padded = [[code imageByCompositingOverImage:white]
+        imageByCroppingToRect:CGRectInset(code.extent, -4, -4)];
+    CIImage *scaled = [padded imageByApplyingTransform:CGAffineTransformMakeScale(8, 8)];
+    CIContext *context = [CIContext contextWithOptions:@{kCIContextUseSoftwareRenderer: @YES}];
+    CGImageRef image = [context createCGImage:scaled fromRect:scaled.extent];
+    if (!image) { return nil; }
+    NSImage *result = [[NSImage alloc] initWithCGImage:image size:NSMakeSize(224, 224)];
+    CGImageRelease(image);
+    return result;
+}
+
 @implementation SCDeviceQRPairing
 - (instancetype)init {
     return [self initWithServiceName:[@"studio-" stringByAppendingString:SCRandomPairingString(10)]];
@@ -21,23 +40,7 @@ static NSString *SCRandomPairingString(NSUInteger length) {
         _serviceName = [name copy];
         _password = SCRandomPairingString(20);
         _payload = [NSString stringWithFormat:@"WIFI:T:ADB;S:%@;P:%@;;", _serviceName, _password];
-        CIFilter *filter = [CIFilter filterWithName:@"CIQRCodeGenerator"];
-        [filter setValue:[_payload dataUsingEncoding:NSUTF8StringEncoding] forKey:@"inputMessage"];
-        [filter setValue:@"M" forKey:@"inputCorrectionLevel"];
-        CIImage *code = filter.outputImage;
-        if (code) {
-            // Keep a white four-module quiet zone in both light and dark mode.
-            CIImage *white = [CIImage imageWithColor:[CIColor colorWithRed:1 green:1 blue:1 alpha:1]];
-            CIImage *padded = [[code imageByCompositingOverImage:white]
-                imageByCroppingToRect:CGRectInset(code.extent, -4, -4)];
-            CIImage *scaled = [padded imageByApplyingTransform:CGAffineTransformMakeScale(8, 8)];
-            CIContext *context = [CIContext contextWithOptions:@{kCIContextUseSoftwareRenderer: @YES}];
-            CGImageRef image = [context createCGImage:scaled fromRect:scaled.extent];
-            if (image) {
-                _image = [[NSImage alloc] initWithCGImage:image size:NSMakeSize(224, 224)];
-                CGImageRelease(image);
-            }
-        }
+        _image = SCDeviceQRCodeImage(_payload);
     }
     return self;
 }

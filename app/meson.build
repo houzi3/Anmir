@@ -78,8 +78,10 @@ src = [
 
 if host_machine.system() == 'darwin'
     src += [
+        'src/sys/macos/apk_installer.m',
         'src/sys/macos/clipboard_writer.m',
         'src/sys/macos/device_picker.m',
+        'src/sys/macos/finder_device_menu.m',
         'src/sys/macos/device_pairing.m',
         'src/sys/macos/device_connection.m',
         'src/sys/macos/device_support.m',
@@ -175,7 +177,10 @@ dependencies = [
 ]
 
 if host_machine.system() == 'darwin'
-    dependencies += dependency('appleframeworks', modules: ['AppKit', 'CoreImage', 'CoreGraphics'])
+    dependencies += dependency('appleframeworks', modules: [
+        'AppKit', 'CoreImage', 'CoreGraphics', 'CoreServices',
+        'UniformTypeIdentifiers',
+    ])
 endif
 
 if v4l2_support
@@ -384,7 +389,7 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
         test('test_about_window', about_test,
-            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
+            args: [meson.current_source_dir() / 'data/locales', meson.current_source_dir() / 'data/anmir-dock.icns'], timeout: 20)
         updater_test = executable('test_updater',
             ['tests/test_updater.m', 'src/sys/macos/updater.m'],
             include_directories: src_dir,
@@ -436,6 +441,12 @@ if get_option('buildtype') == 'debug'
             dependencies: dependency('appleframeworks', modules: ['Foundation']),
             objc_args: ['-UNDEBUG'])
         test('test_device_support', device_test, timeout: 20)
+        finder_device_menu_test = executable('test_finder_device_menu',
+            ['tests/test_finder_device_menu.m', 'src/sys/macos/finder_device_menu.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['Foundation']),
+            objc_args: ['-UNDEBUG'])
+        test('test_finder_device_menu', finder_device_menu_test)
         relay_test = executable('test_device_relay',
             ['tests/test_device_relay.m', 'src/sys/macos/device_relay.m',
              'src/sys/macos/device_pairing.m', 'src/sys/macos/device_support.m'],
@@ -479,14 +490,21 @@ if get_option('buildtype') == 'debug'
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
-        test('test_mirror_session', mirror_test, timeout: 20)
+        test('test_mirror_session', mirror_test,
+            args: [meson.current_source_dir() / 'data/anmir-mirror.icns'], timeout: 20)
         device_ui_test = executable('test_device_ui',
             ['tests/test_device_ui.m', 'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
             objc_args: ['-UNDEBUG'])
-        test('test_device_ui', device_ui_test,
-            args: [meson.current_source_dir() / 'data/anmir.icns'], timeout: 20)
+        test('test_device_ui', device_ui_test, timeout: 20)
+        macos_icons_test = executable('test_macos_icons',
+            ['tests/test_macos_icons.m', 'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],
+            include_directories: src_dir,
+            dependencies: dependency('appleframeworks', modules: ['AppKit']),
+            objc_args: ['-UNDEBUG'])
+        test('test_macos_icons', macos_icons_test,
+            args: [meson.current_source_dir() / 'data'], timeout: 20)
         theme_chooser_test = executable('test_theme_chooser',
             ['tests/test_theme_chooser.m', 'src/sys/macos/theme_chooser.m',
              'src/sys/macos/device_ui.m', 'src/sys/macos/localization.m'],

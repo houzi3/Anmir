@@ -27,6 +27,9 @@ Anmir @VERSION@ — macOS @ARCH@
 8. 右上角 Wi-Fi 加号图标或无设备时的“Scan QR code →”打开无线连接。
    可扫码或输入六位配对码，配对后自动投屏。
    已配对设备也可从 Manual connection 输入 IP 和连接端口。
+9. 在 Finder 中右键单个 APK，选择“安装到手机”，再从右侧子菜单选择设备。
+   此功能要求 Anmir 位于“应用程序”目录。若菜单没有出现，请在
+   “系统设置 → 通用 → 登录项与扩展 → Finder 扩展”中启用 Anmir Finder。
 
 首次打开
 签名状态：@SIGNING_STATUS@

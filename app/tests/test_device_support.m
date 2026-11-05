@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import "sys/macos/device_support.h"
 #include <assert.h>
+#include <signal.h>
 #include <unistd.h>
 
 static void waitFor(BOOL (^condition)(void), NSTimeInterval timeout) {
@@ -125,6 +126,78 @@ static void testCommands(NSString *executable) {
     waitFor(^BOOL { return done; }, 2);
 }
 
+static void testRecovery(void) {
+    NSString *directory = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
+    assert([NSFileManager.defaultManager createDirectoryAtPath:directory
+        withIntermediateDirectories:YES attributes:nil error:nil]);
+    NSString *script = [directory stringByAppendingPathComponent:@"adb"];
+    NSString *mode = [directory stringByAppendingPathComponent:@"mode"];
+    NSString *log = [directory stringByAppendingPathComponent:@"commands"];
+    NSString *childFile = [directory stringByAppendingPathComponent:@"child"];
+    NSString *body = @"#!/bin/sh\n"
+        "printf '%s\\n' \"$1\" >> \"$ANMIR_RECOVERY_FIXTURE/commands\"\n"
+        "case \"$1:$(cat \"$ANMIR_RECOVERY_FIXTURE/mode\")\" in\n"
+        "kill-server:fail-stop|start-server:fail-start|kill-server:fail-both|start-server:fail-both) exit 7 ;;\n"
+        "kill-server:hang-stop|start-server:hang-start) exec /bin/sleep 30 ;;\n"
+        "start-server:child-returns) /bin/sleep 8 & echo $! > \"$ANMIR_RECOVERY_FIXTURE/child\"; exit 0 ;;\n"
+        "start-server:child-hangs) /bin/sleep 8 & echo $! > \"$ANMIR_RECOVERY_FIXTURE/child\"; exec /bin/sleep 30 ;;\n"
+        "esac\n"
+        "exit 0\n";
+    assert([body writeToFile:script atomically:YES encoding:NSUTF8StringEncoding error:nil]);
+    assert([NSFileManager.defaultManager setAttributes:@{NSFilePosixPermissions:@0755}
+        ofItemAtPath:script error:nil]);
+    assert(!setenv("ANMIR_RECOVERY_FIXTURE", directory.fileSystemRepresentation, 1));
+
+    NSArray<NSArray *> *cases = @[
+        @[@"ok", @(SCDeviceRecoverySuccess), @"kill-server\nstart-server\n"],
+        @[@"fail-stop", @(SCDeviceRecoveryStopFailed), @"kill-server\nstart-server\n"],
+        @[@"fail-start", @(SCDeviceRecoveryStartFailed), @"kill-server\nstart-server\n"],
+        @[@"fail-both", @(SCDeviceRecoveryStopFailed), @"kill-server\nstart-server\n"],
+        @[@"hang-stop", @(SCDeviceRecoveryTimedOut), @"kill-server\nstart-server\n"],
+        @[@"hang-start", @(SCDeviceRecoveryTimedOut), @"kill-server\nstart-server\n"],
+        // These descendants inherit the client's stdout/stderr and outlive it.
+        // Recovery must finish without waiting for the descendant to close them.
+        @[@"child-returns", @(SCDeviceRecoverySuccess), @"kill-server\nstart-server\n"],
+        @[@"child-hangs", @(SCDeviceRecoveryTimedOut), @"kill-server\nstart-server\n"],
+    ];
+    for (NSArray *test in cases) {
+        assert([test[0] writeToFile:mode atomically:YES encoding:NSUTF8StringEncoding error:nil]);
+        [NSFileManager.defaultManager removeItemAtPath:log error:nil];
+        [NSFileManager.defaultManager removeItemAtPath:childFile error:nil];
+        __block BOOL done = NO;
+        __block NSUInteger callbacks = 0;
+        @autoreleasepool {
+            SCDeviceRecovery *recovery = [[SCDeviceRecovery alloc] initWithExecutable:script timeout:1];
+            assert([recovery start:^(SCDeviceRecoveryResult result) {
+                assert(NSThread.isMainThread && ![SCDeviceRecovery isRunning]);
+                if (result != [test[1] unsignedIntegerValue]) {
+                    fprintf(stderr, "Recovery fixture %s returned %lu, expected %lu\n",
+                        [test[0] UTF8String], (unsigned long)result,
+                        (unsigned long)[test[1] unsignedIntegerValue]);
+                }
+                assert(result == [test[1] unsignedIntegerValue]);
+                ++callbacks; done = YES;
+            }]);
+            assert([SCDeviceRecovery isRunning]);
+            SCDeviceRecovery *duplicate = [[SCDeviceRecovery alloc] initWithExecutable:script];
+            assert(![duplicate start:^(SCDeviceRecoveryResult result) {
+                (void)result; assert(false);
+            }]);
+            // Dropping the window's reference must not cancel either command.
+            recovery = nil;
+        }
+        waitFor(^BOOL { return done; }, 4);
+        assert(callbacks == 1 && ![SCDeviceRecovery isRunning]);
+        NSString *commands = [NSString stringWithContentsOfFile:log encoding:NSUTF8StringEncoding error:nil];
+        assert([commands isEqualToString:test[2]]);
+        NSString *child = [NSString stringWithContentsOfFile:childFile encoding:NSUTF8StringEncoding error:nil];
+        pid_t childPid = (pid_t)child.intValue;
+        if (childPid > 1) { kill(childPid, SIGTERM); }
+    }
+    unsetenv("ANMIR_RECOVERY_FIXTURE");
+    assert([NSFileManager.defaultManager removeItemAtPath:directory error:nil]);
+}
+
 static void testWatcher(NSString *executable) {
     NSString *directory = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
     [NSFileManager.defaultManager createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
@@ -160,6 +233,7 @@ int main(int argc, const char *argv[]) {
         testPhysicalDevices();
         NSString *executable = [NSString stringWithUTF8String:argv[0]].stringByStandardizingPath;
         testCommands(executable);
+        testRecovery();
         testWatcher(executable);
         puts("Device support tests passed.");
     }

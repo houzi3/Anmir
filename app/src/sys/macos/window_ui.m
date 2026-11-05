@@ -286,18 +286,6 @@ sc_window_ui_get_or_create_title(NSWindow *window) {
     return ui;
 }
 
-static void
-sc_window_ui_set_mirror_icon(void) {
-    static BOOL applied;
-    if (applied) { return; }
-    applied = YES;
-    // A fresh per-device launcher may not have a normalized Launch Services
-    // icon yet. Reuse the registered host icon that the manager displays.
-    NSImage *badged = SCDeviceMirrorIcon(SCMirrorHostBundle());
-    NSApp.applicationIconImage = badged;
-    [NSApp.dockTile display];
-}
-
 void
 sc_window_ui_init(struct sc_window_ui *ui, SDL_Window *window) {
     ui->window = window;
@@ -305,7 +293,7 @@ sc_window_ui_init(struct sc_window_ui *ui, SDL_Window *window) {
     sc_device_picker_install_menu(window);
     sc_theme_install_menu();
     if (sc_window_ui_is_app()) {
-        sc_window_ui_set_mirror_icon();
+        SCDeviceInstallMirrorIcon(NSBundle.mainBundle);
         NSWindow *native = sc_window_ui_get_native_window(ui);
         SCScrcpyWindowUI *controller = sc_window_ui_get_controller(native);
         // Let AppKit size and align the traffic lights and device/settings controls in a

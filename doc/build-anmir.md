@@ -97,11 +97,17 @@ and SHA-256 checksum.
 
 Publish `Anmir-VERSION-arm64.zip`, `Anmir-VERSION-x86_64.zip` and `update.json`
 as assets of every stable `vVERSION` Release. After both ZIP files are in one directory,
-generate the manifest with optional Markdown release notes:
+generate the manifest with the release notes from `release/notes/VERSION.md`:
 
 ```sh
-bash release/generate_update_manifest.sh dist release-notes.md
+bash release/generate_update_manifest.sh dist release/notes/VERSION.md
 ```
+
+Follow the [release notes rules](../AGENTS.md#release-notes): use 1–5 short,
+user-facing bullets about new features or visible improvements. Use the same
+text in the versioned notes file, GitHub Release body and `update.json.notes`.
+Keep installation instructions, download tables and engineering details in
+their respective documentation or release assets.
 
 The `anmir-release` CI artifact combines both architectures, the unsigned companion APK,
 and the static update manifest. CI does not receive the Android signing key and does not

@@ -24,6 +24,31 @@
     <string>@SCRCPY_APP_NAME@</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Android application package</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>apk</string>
+            </array>
+            <key>CFBundleTypeIconFile</key>
+            <string>anmir-apk.icns</string>
+            <key>CFBundleTypeIconSystemGenerated</key>
+            <false/>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.android.package-archive</string>
+            </array>
+            <key>LSTypeIsPackage</key>
+            <false/>
+        </dict>
+    </array>
     <key>CFBundleShortVersionString</key>
     <string>@SCRCPY_VERSION@</string>
     <key>CFBundleVersion</key>
@@ -45,5 +70,30 @@
     </array>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+                <string>public.archive</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>Android application package</string>
+            <key>UTTypeIconFile</key>
+            <string>anmir-apk.icns</string>
+            <key>UTTypeIdentifier</key>
+            <string>com.android.package-archive</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>apk</string>
+                </array>
+                <key>public.mime-type</key>
+                <string>application/vnd.android.package-archive</string>
+            </dict>
+        </dict>
+    </array>
 </dict>
 </plist>

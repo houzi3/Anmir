@@ -87,6 +87,15 @@ A GUI mirror uses an independent process and disposable app bundle so its Dock
 name can be the device brand/model. Preparation copies resources and signs the
 copy on a worker; it never hard-links or re-signs the installed application.
 `SCMirrorPreparation` supports cancellation and cleans up cancelled bundles.
+The host retains its full-bleed `anmir.icns` bundle icon. Every mirror declares a
+badged icon before signing and launching: macOS 26+ uses the full-bleed
+`anmir-mirror-bundle.icns` for the system mask, while older macOS uses the
+transparent, rounded `anmir-mirror.icns`. Giving macOS 26+ the latter as a bundle
+icon would add a gray plate and shrink it again. At runtime the Dock content view
+draws `anmir-mirror.icns` directly on every OS, with explicit transparent margins,
+rounded corners and the phone badge at every resolution. The About window uses
+the matching `anmir-dock.icns`. Regenerate all three from the unchanged artwork with
+`swift release/generate_macos_icons.swift`.
 The manager records pending preparations before accepting another request, so
 a rapid second click or a known transport alias reuses the pending operation.
 

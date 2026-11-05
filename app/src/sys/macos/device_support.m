@@ -180,6 +180,8 @@ static void SCStopTask(NSTask *task) {
 @property(nonatomic) BOOL finished;
 @property(nonatomic) BOOL cancelled;
 @property(nonatomic) BOOL timedOut;
++ (instancetype)runSilently:(NSString *)executable arguments:(NSArray<NSString *> *)arguments
+                    timeout:(NSTimeInterval)timeout completion:(void (^)(int status))completion;
 @end
 
 @implementation SCDeviceCommand
@@ -190,14 +192,30 @@ static void SCStopTask(NSTask *task) {
 + (instancetype)run:(NSString *)executable arguments:(NSArray<NSString *> *)arguments
               input:(NSString *)input timeout:(NSTimeInterval)timeout
          completion:(void (^)(NSString *, int))completion {
+    return [self run:executable arguments:arguments input:input timeout:timeout
+        discardOutput:NO completion:completion];
+}
+
++ (instancetype)runSilently:(NSString *)executable arguments:(NSArray<NSString *> *)arguments
+                    timeout:(NSTimeInterval)timeout completion:(void (^)(int))completion {
+    return [self run:executable arguments:arguments input:nil timeout:timeout
+        discardOutput:YES completion:^(NSString *output, int status) {
+            (void)output;
+            completion(status);
+        }];
+}
+
++ (instancetype)run:(NSString *)executable arguments:(NSArray<NSString *> *)arguments
+              input:(NSString *)input timeout:(NSTimeInterval)timeout
+      discardOutput:(BOOL)discardOutput completion:(void (^)(NSString *, int))completion {
     SCDeviceCommand *command = [[self alloc] init];
     NSTask *task = [[NSTask alloc] init];
     command.task = task;
     task.executableURL = [NSURL fileURLWithPath:executable];
     task.arguments = arguments;
-    NSPipe *output = [NSPipe pipe];
-    task.standardOutput = output;
-    task.standardError = output;
+    NSPipe *output = discardOutput ? nil : [NSPipe pipe];
+    task.standardOutput = output ?: NSFileHandle.fileHandleWithNullDevice;
+    task.standardError = output ?: NSFileHandle.fileHandleWithNullDevice;
     NSPipe *inputPipe = input ? [NSPipe pipe] : nil;
     task.standardInput = inputPipe ?: NSFileHandle.fileHandleWithNullDevice;
     // Pairing may be cancelled, or ADB may exit, before the worker writes its
@@ -236,7 +254,7 @@ static void SCStopTask(NSTask *task) {
                     [inputPipe.fileHandleForWriting closeFile];
                 }
             }
-            data = [output.fileHandleForReading readDataToEndOfFile];
+            if (output) { data = [output.fileHandleForReading readDataToEndOfFile]; }
         } @catch (NSException *exception) {
             (void) exception;
         }
@@ -261,6 +279,71 @@ static void SCStopTask(NSTask *task) {
 - (void)cancel {
     self.cancelled = YES;
     SCStopTask(self.task);
+}
+@end
+
+@interface SCDeviceRecovery ()
+@property(nonatomic, copy) NSString *executable;
+@property(nonatomic) NSTimeInterval timeout;
+@property(nonatomic, strong) SCDeviceCommand *operation;
+@property(nonatomic, copy) void (^completion)(SCDeviceRecoveryResult);
+@end
+
+// The ADB server is shared by all windows in this process. Retaining the
+// active operation also lets it safely finish after its requesting window closes.
+static SCDeviceRecovery *SCActiveDeviceRecovery;
+
+@implementation SCDeviceRecovery
+- (instancetype)initWithExecutable:(NSString *)executable {
+    return [self initWithExecutable:executable timeout:8];
+}
+
+- (instancetype)initWithExecutable:(NSString *)executable timeout:(NSTimeInterval)timeout {
+    self = [super init];
+    if (self) {
+        _executable = [executable copy];
+        _timeout = timeout > 0 ? timeout : 8;
+    }
+    return self;
+}
+
++ (BOOL)isRunning {
+    return SCActiveDeviceRecovery != nil;
+}
+
+- (void)finish:(SCDeviceRecoveryResult)result {
+    if (SCActiveDeviceRecovery != self) { return; }
+    void (^completion)(SCDeviceRecoveryResult) = self.completion;
+    self.completion = nil;
+    self.operation = nil;
+    SCActiveDeviceRecovery = nil;
+    if (completion) { completion(result); }
+}
+
+- (BOOL)start:(void (^)(SCDeviceRecoveryResult))completion {
+    NSAssert(NSThread.isMainThread, @"ADB recovery must start on the main thread");
+    if (SCActiveDeviceRecovery) { return NO; }
+    SCActiveDeviceRecovery = self;
+    self.completion = completion;
+    // ADB may spawn a long-lived server inheriting stdout and stderr. Do not
+    // capture pipes here: descendants holding them open would prevent the
+    // command from completing after the client exits or times out.
+    self.operation = [SCDeviceCommand runSilently:self.executable arguments:@[@"kill-server"]
+        timeout:self.timeout completion:^(int status) {
+            // The server may already have stopped even if the client failed or
+            // timed out. Always attempt to restore it before reporting failure.
+            SCDeviceRecoveryResult stopResult = !status ? SCDeviceRecoverySuccess
+                : status == -3 ? SCDeviceRecoveryTimedOut : SCDeviceRecoveryStopFailed;
+            self.operation = [SCDeviceCommand runSilently:self.executable arguments:@[@"start-server"]
+                timeout:self.timeout completion:^(int startStatus) {
+                    SCDeviceRecoveryResult startResult = !startStatus ? SCDeviceRecoverySuccess
+                        : startStatus == -3 ? SCDeviceRecoveryTimedOut : SCDeviceRecoveryStartFailed;
+                    // Keep diagnostics useful without recording endpoints or pairing secrets.
+                    NSLog(@"Anmir ADB recovery: stop status=%d, start status=%d", status, startStatus);
+                    [self finish:stopResult != SCDeviceRecoverySuccess ? stopResult : startResult];
+                }];
+        }];
+    return YES;
 }
 @end
 

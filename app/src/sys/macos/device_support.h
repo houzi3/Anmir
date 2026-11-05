@@ -26,6 +26,24 @@ NSArray<NSArray<NSString *> *> *SCDeviceTransportGroups(
 - (void)cancel;
 @end
 
+typedef NS_ENUM(NSUInteger, SCDeviceRecoveryResult) {
+    SCDeviceRecoverySuccess,
+    SCDeviceRecoveryStopFailed,
+    SCDeviceRecoveryStartFailed,
+    SCDeviceRecoveryTimedOut,
+};
+
+// All operations are main-thread only. A started recovery owns itself until
+// it finishes, even if the window which requested it has closed.
+@interface SCDeviceRecovery : NSObject
+- (instancetype)initWithExecutable:(NSString *)executable;
+// The timeout applies independently to each command; useful for test fixtures.
+- (instancetype)initWithExecutable:(NSString *)executable timeout:(NSTimeInterval)timeout;
++ (BOOL)isRunning;
+// Returns NO without invoking completion when another recovery is in progress.
+- (BOOL)start:(void (^)(SCDeviceRecoveryResult result))completion;
+@end
+
 @interface SCDeviceWatcher : NSObject
 @property(nonatomic, readonly) BOOL connected;
 @property(nonatomic, copy) void (^changed)(void);

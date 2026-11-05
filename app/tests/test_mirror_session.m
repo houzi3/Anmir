@@ -26,6 +26,11 @@ static void waitFor(BOOL (^condition)(void)) {
     assert(condition());
 }
 
+static NSString *expectedIconName(void) {
+    if (@available(macOS 26.0, *)) { return @"anmir-mirror-bundle.icns"; }
+    return @"anmir-mirror.icns";
+}
+
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc == 3 && !strcmp(argv[1], "--check-host-bundle")) {
@@ -35,8 +40,12 @@ int main(int argc, const char *argv[]) {
                 isEqualToString:expected.stringByResolvingSymlinksInPath]);
             assert(![host.bundlePath isEqualToString:NSBundle.mainBundle.bundlePath]);
             assert([SCMirrorHostBundleIdentifier() isEqualToString:host.bundleIdentifier]);
+            assert([[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleIconFile"]
+                isEqualToString:expectedIconName()]);
+            assert([NSBundle.mainBundle pathForResource:@"anmir-mirror" ofType:@"icns"]);
             return 0;
         }
+        assert(argc == 2);
         NSArray *arguments = SCMirrorArguments(@[@"anmir", @"-s", @"old", @"--serial=other",
             @"-d", @"--tcpip=192.0.2.1", @"--no-audio"], @"new");
         assert(([arguments isEqualToArray:@[@"--serial", @"new", @"--no-audio"]]));
@@ -49,17 +58,50 @@ int main(int argc, const char *argv[]) {
         NSURL *resources = [contents URLByAppendingPathComponent:@"Resources"];
         assert([files createDirectoryAtURL:macOS withIntermediateDirectories:YES attributes:nil error:nil]);
         assert([files createDirectoryAtURL:resources withIntermediateDirectories:YES attributes:nil error:nil]);
+        NSData *icon = [NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];
+        assert(icon.length);
+        NSURL *iconURL = [resources URLByAppendingPathComponent:@"anmir-mirror.icns"];
+        assert([icon writeToURL:iconURL atomically:YES]);
+        NSString *bundleIconPath = [[NSString stringWithUTF8String:argv[1]].stringByDeletingLastPathComponent
+            stringByAppendingPathComponent:@"anmir-mirror-bundle.icns"];
+        NSData *bundleIcon = [NSData dataWithContentsOfFile:bundleIconPath];
+        assert(bundleIcon.length);
+        assert([bundleIcon writeToURL:[resources URLByAppendingPathComponent:@"anmir-mirror-bundle.icns"] atomically:YES]);
         NSURL *binary = [macOS URLByAppendingPathComponent:@"anmir"];
         assert([files copyItemAtURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:argv[0]]]
                              toURL:binary error:nil]);
+        NSArray *documentTypes = @[@{
+            @"CFBundleTypeName": @"Android application package",
+            @"CFBundleTypeExtensions": @[@"apk"],
+            @"CFBundleTypeRole": @"Viewer",
+            @"LSItemContentTypes": @[@"com.android.package-archive"],
+        }];
+        NSArray *importedTypes = @[@{
+            @"UTTypeIdentifier": @"com.android.package-archive",
+            @"UTTypeTagSpecification": @{@"public.filename-extension": @[@"apk"]},
+        }];
+        NSArray *exportedTypes = @[@{
+            @"UTTypeIdentifier": @"org.scrcpy.mirror.test-exported-type",
+        }];
+        NSArray *urlTypes = @[@{
+            @"CFBundleURLName": @"Anmir test URL",
+            @"CFBundleURLSchemes": @[@"anmir-test"],
+        }];
         NSDictionary *info = @{@"CFBundleExecutable":@"anmir", @"CFBundlePackageType":@"APPL",
-            @"CFBundleIdentifier":@"org.scrcpy.mirror.testhost", @"CFBundleName":@"Host"};
+            @"CFBundleIdentifier":@"org.scrcpy.mirror.testhost", @"CFBundleName":@"Host",
+            @"CFBundleIconFile":@"anmir-dock", @"CFBundleIconName":@"HostIcon",
+            @"CFBundleIcons":@{@"CFBundlePrimaryIcon":@{@"CFBundleIconName":@"HostIcon"}},
+            @"CFBundleDocumentTypes": documentTypes,
+            @"CFBundleURLTypes": urlTypes,
+            @"UTImportedTypeDeclarations": importedTypes,
+            @"UTExportedTypeDeclarations": exportedTypes};
         assert([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]);
         NSData *original = [NSData dataWithContentsOfURL:binary];
         NSError *error = nil;
+        NSBundle *host = [NSBundle bundleWithURL:hostURL];
         SCMirrorLaunch *launch = [SCMirrorLaunch prepareWithName:@"Google Pixel 7"
             serial:@"adb-28151FDH200EZG-test._adb-tls-connect._tcp"
-            hostBundle:[NSBundle bundleWithURL:hostURL] error:&error];
+            hostBundle:host error:&error];
         assert(launch && !error);
         NSBundle *mirror = [NSBundle bundleWithURL:launch.bundleURL];
         assert([launch.executableURL.lastPathComponent isEqualToString:@"anmir"]);
@@ -70,6 +112,24 @@ int main(int argc, const char *argv[]) {
             isEqualToString:@"adb-28151FDH200EZG-test._adb-tls-connect._tcp"]);
         assert([[mirror objectForInfoDictionaryKey:@"AnmirHostBundleIdentifier"] isEqualToString:info[@"CFBundleIdentifier"]]);
         assert(![mirror.bundleIdentifier isEqualToString:info[@"CFBundleIdentifier"]]);
+        // Per-device helper bundles must never register themselves as document
+        // handlers. Otherwise LaunchServices may replace Anmir with the
+        // short-lived mirror bundle as the default app for APK files.
+        assert(![mirror objectForInfoDictionaryKey:@"CFBundleDocumentTypes"]);
+        assert(![mirror objectForInfoDictionaryKey:@"CFBundleURLTypes"]);
+        assert(![mirror objectForInfoDictionaryKey:@"UTImportedTypeDeclarations"]);
+        assert(![mirror objectForInfoDictionaryKey:@"UTExportedTypeDeclarations"]);
+        assert([host.infoDictionary[@"CFBundleDocumentTypes"] isEqualToArray:documentTypes]);
+        assert([host.infoDictionary[@"CFBundleURLTypes"] isEqualToArray:urlTypes]);
+        assert([host.infoDictionary[@"UTImportedTypeDeclarations"] isEqualToArray:importedTypes]);
+        assert([host.infoDictionary[@"UTExportedTypeDeclarations"] isEqualToArray:exportedTypes]);
+        assert([[mirror objectForInfoDictionaryKey:@"CFBundleIconFile"] isEqualToString:expectedIconName()]);
+        assert(![mirror objectForInfoDictionaryKey:@"CFBundleIconName"]);
+        assert(![mirror objectForInfoDictionaryKey:@"CFBundleIcons"]);
+        NSString *copiedIcon = [mirror pathForResource:@"anmir-mirror" ofType:@"icns"];
+        assert([icon isEqualToData:[NSData dataWithContentsOfFile:copiedIcon]]);
+        assert([bundleIcon isEqualToData:[NSData dataWithContentsOfFile:
+            [mirror pathForResource:@"anmir-mirror-bundle" ofType:@"icns"]]]);
         assert([original isEqualToData:[NSData dataWithContentsOfURL:binary]]);
         NSString *expectedADB = NSProcessInfo.processInfo.environment[@"ADB"] ?: [macOS URLByAppendingPathComponent:@"adb"].path;
         assert([launch.environment[@"ADB"] isEqualToString:expectedADB]);
@@ -111,6 +171,14 @@ int main(int argc, const char *argv[]) {
         waitFor(^BOOL { return completed; });
         assert(cancelledRoot && ![files fileExistsAtPath:cancelledRoot.path]);
         assert([original isEqualToData:[NSData dataWithContentsOfURL:binary]]);
+        assert([icon isEqualToData:[NSData dataWithContentsOfURL:iconURL]]);
+        // Fail preparation explicitly if packaging ever omits the mirror icon;
+        // never launch another device with a silently unbadged fallback.
+        assert([files removeItemAtURL:iconURL error:nil]);
+        error = nil;
+        SCMirrorLaunch *missingIcon = [SCMirrorLaunch prepareWithName:@"Missing icon"
+            serial:@"test-serial" hostBundle:[NSBundle bundleWithURL:hostURL] error:&error];
+        assert(!missingIcon && error.code == NSFileReadNoSuchFileError);
         [files removeItemAtURL:root error:nil];
         puts("Mirror session tests passed.");
     }
