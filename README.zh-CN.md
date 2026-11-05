@@ -146,6 +146,18 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.6</td>
+    <td nowrap>2026-11-06</td>
+    <td>更新 Mac 与 Connect 图标，APK 文件使用更简洁的绿色图标。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.6">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.5</td>
+    <td nowrap>2026-11-05</td>
+    <td>支持从 Finder 安装 APK，并提供 Anmir Connect 下载二维码。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.5">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.4</td>
     <td nowrap>2026-10-27</td>
     <td>新增扫码连接引导与修复，优化应用和投屏图标。</td>

@@ -1,22 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <title>Anmir Connect APK file icon — editable reconstruction</title>
-  <g id="document">
-    <path d="M255 88h410l164 163q13 13 13 37v590q0 78-78 78H255q-78 0-78-78V166q0-78 78-78z" fill="#fff" stroke="#98a5bd" stroke-width="20" stroke-linejoin="round"/>
-    <path d="M665 88v114q0 48 48 48h116z" fill="#b5c1d2"/>
+  <title>Anmir Connect APK file icon — flat jade-green reconstruction</title>
+  <path id="document" d="M252 96h410l172 174v577q0 87-87 87H252q-83 0-83-83V183q0-87 83-87z" fill="#fff" stroke="#268b5a" stroke-width="14" stroke-linejoin="round"/>
+  <path id="fold" d="M662 96v126q0 26 26 26h124" fill="none" stroke="#268b5a" stroke-width="12" stroke-linejoin="round"/>
+  <g id="android-head" fill="#268b5a">
+    <path d="M382 354l43 73m195-73-43 73" fill="none" stroke="#268b5a" stroke-width="30" stroke-linecap="round"/>
+    <path d="M311 578a190 180 0 0 1 380 0z"/>
+    <circle cx="425" cy="502" r="23" fill="#fff"/>
+    <circle cx="577" cy="502" r="23" fill="#fff"/>
   </g>
-  <rect id="screen" x="283" y="263" width="449" height="429" rx="85" fill="#102a30"/>
-  <g id="android" fill="#00ef64">
-    <path d="M457 322l25 39m97-39-25 39" fill="none" stroke="#00ef64" stroke-width="11" stroke-linecap="round"/>
-    <path d="M430 428a88 88 0 0 1 176 0v8H430z"/>
-    <rect x="430" y="450" width="177" height="175" rx="21"/>
-    <rect x="362" y="434" width="42" height="100" rx="21" transform="rotate(-40 383 484)"/>
-    <rect x="623" y="463" width="39" height="126" rx="19.5"/>
-    <circle cx="483" cy="397" r="13" fill="#fff"/>
-    <circle cx="553" cy="397" r="13" fill="#fff"/>
-  </g>
-  <g id="apk-lettering" fill="#102a30">
-    <path fill-rule="evenodd" d="M291 882l59-145h52l59 145h-44l-10-28h-63l-10 28zm65-61h39l-19-53z"/>
-    <path fill-rule="evenodd" d="M471 882V737h75c37 0 59 20 59 51 0 32-23 51-59 51h-35v43zm40-74h31c14 0 21-7 21-20 0-12-7-19-21-19h-31z"/>
-    <path d="M620 737h40v56l50-56h48l-57 61 62 84h-49l-41-57-13 14v43h-40z"/>
+  <g id="apk-lettering" fill="#268b5a">
+    <path fill-rule="evenodd" d="M303 790l59-132h33l55 132h-33l-11-30h-57l-12 30zm57-56h36l-18-42z"/>
+    <path fill-rule="evenodd" d="M457 790V658h58c30 0 47 17 47 44 0 28-18 47-48 47h-26v41zm31-67h23c14 0 21-8 21-21 0-12-7-19-21-19h-23z"/>
+    <path d="M579 658h31v57l53-57h39l-53 58 57 74h-39l-39-51-18 19v32h-31z"/>
   </g>
 </svg>

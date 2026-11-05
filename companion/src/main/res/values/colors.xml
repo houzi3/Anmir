@@ -1,4 +1,5 @@
 <resources>
+    <color name="icon_background">#0B181B</color>
     <color name="page">#101412</color>
     <color name="surface">#242B27</color>
     <color name="mint">#46E698</color>

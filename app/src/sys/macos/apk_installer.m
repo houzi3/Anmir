@@ -23,6 +23,13 @@ static const CGFloat SCAPKInstallerProgressHeight = 180.0;
 static const CGFloat SCAPKInstallerResultMinimumHeight = 160.0;
 static NSString *const SCAPKContentType = @"com.android.package-archive";
 
+static NSImage *SCAPKFileIcon(void) {
+    NSURL *url = [NSBundle.mainBundle URLForResource:@"anmir-apk"
+        withExtension:@"icns"];
+    NSImage *image = url ? [[NSImage alloc] initWithContentsOfURL:url] : nil;
+    return image ?: SCDeviceSymbol(@"doc");
+}
+
 static NSMutableSet *SCAPKActiveControllers(void) {
     static NSMutableSet *controllers;
     static dispatch_once_t onceToken;
@@ -150,7 +157,7 @@ static NSString *SCAPKADBExecutable(void) {
     NSView *content = _window.contentView;
     _icon = [[NSImageView alloc] init];
     _icon.translatesAutoresizingMaskIntoConstraints = NO;
-    [self setStatusSymbol:@"iphone.and.arrow.forward" color:SCDeviceBlue()];
+    _icon.image = SCAPKFileIcon();
     _titleLabel = [self label:SCLocalized(@"Installing APK…") size:17
         weight:NSFontWeightSemibold];
     _detailLabel = [self label:[NSString stringWithFormat:@"%@\n%@",
@@ -350,9 +357,7 @@ static NSString *SCAPKADBExecutable(void) {
         initWithFrame:self.window.contentView.bounds];
 
     NSView *content = self.window.contentView;
-    NSImageView *icon = [NSImageView imageViewWithImage:
-        SCDeviceSymbol(@"iphone.and.arrow.forward")];
-    icon.contentTintColor = SCDeviceBlue();
+    NSImageView *icon = [NSImageView imageViewWithImage:SCAPKFileIcon()];
     icon.translatesAutoresizingMaskIntoConstraints = NO;
     NSTextField *heading = SCDeviceLocalizedLabel(@"Choose a device", 17,
         NSFontWeightSemibold, NO);
