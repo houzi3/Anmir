@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Anmir Connect APK file icon — editable reconstruction</title>
+  <g id="document">
+    <path d="M255 88h410l164 163q13 13 13 37v590q0 78-78 78H255q-78 0-78-78V166q0-78 78-78z" fill="#fff" stroke="#98a5bd" stroke-width="20" stroke-linejoin="round"/>
+    <path d="M665 88v114q0 48 48 48h116z" fill="#b5c1d2"/>
+  </g>
+  <rect id="screen" x="283" y="263" width="449" height="429" rx="85" fill="#102a30"/>
+  <g id="android" fill="#00ef64">
+    <path d="M457 322l25 39m97-39-25 39" fill="none" stroke="#00ef64" stroke-width="11" stroke-linecap="round"/>
+    <path d="M430 428a88 88 0 0 1 176 0v8H430z"/>
+    <rect x="430" y="450" width="177" height="175" rx="21"/>
+    <rect x="362" y="434" width="42" height="100" rx="21" transform="rotate(-40 383 484)"/>
+    <rect x="623" y="463" width="39" height="126" rx="19.5"/>
+    <circle cx="483" cy="397" r="13" fill="#fff"/>
+    <circle cx="553" cy="397" r="13" fill="#fff"/>
+  </g>
+  <g id="apk-lettering" fill="#102a30">
+    <path fill-rule="evenodd" d="M291 882l59-145h52l59 145h-44l-10-28h-63l-10 28zm65-61h39l-19-53z"/>
+    <path fill-rule="evenodd" d="M471 882V737h75c37 0 59 20 59 51 0 32-23 51-59 51h-35v43zm40-74h31c14 0 21-7 21-20 0-12-7-19-21-19h-31z"/>
+    <path d="M620 737h40v56l50-56h48l-57 61 62 84h-49l-41-57-13 14v43h-40z"/>
+  </g>
+</svg>
