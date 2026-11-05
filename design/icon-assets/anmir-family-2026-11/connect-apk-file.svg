@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Anmir Connect APK file icon — flat jade-green reconstruction</title>
+  <path id="document" d="M252 96h410l172 174v577q0 87-87 87H252q-83 0-83-83V183q0-87 83-87z" fill="#fff" stroke="#268b5a" stroke-width="14" stroke-linejoin="round"/>
+  <path id="fold" d="M662 96v126q0 26 26 26h124" fill="none" stroke="#268b5a" stroke-width="12" stroke-linejoin="round"/>
+  <g id="android-head" fill="#268b5a">
+    <path d="M382 354l43 73m195-73-43 73" fill="none" stroke="#268b5a" stroke-width="30" stroke-linecap="round"/>
+    <path d="M311 578a190 180 0 0 1 380 0z"/>
+    <circle cx="425" cy="502" r="23" fill="#fff"/>
+    <circle cx="577" cy="502" r="23" fill="#fff"/>
+  </g>
+  <g id="apk-lettering" fill="#268b5a">
+    <path fill-rule="evenodd" d="M303 790l59-132h33l55 132h-33l-11-30h-57l-12 30zm57-56h36l-18-42z"/>
+    <path fill-rule="evenodd" d="M457 790V658h58c30 0 47 17 47 44 0 28-18 47-48 47h-26v41zm31-67h23c14 0 21-8 21-21 0-12-7-19-21-19h-23z"/>
+    <path d="M579 658h31v57l53-57h39l-53 58 57 74h-39l-39-51-18 19v32h-31z"/>
+  </g>
+</svg>

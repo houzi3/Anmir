@@ -18,6 +18,39 @@ static NSBitmapImageRep *SCIconBitmap(NSImage *image, NSInteger size) {
     return bitmap;
 }
 
+static void SCCheckAPKIcon(NSString *dataPath) {
+    NSString *path = [dataPath stringByAppendingPathComponent:@"anmir-apk.icns"];
+    NSData *apkData = [NSData dataWithContentsOfFile:path];
+    NSData *appData = [NSData dataWithContentsOfFile:
+        [dataPath stringByAppendingPathComponent:@"anmir.icns"]];
+    assert(apkData && ![apkData isEqualToData:appData]);
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:path];
+    assert(image && image.representations.count >= 5);
+    for (NSNumber *value in @[@16, @32, @64, @128, @256, @512, @1024]) {
+        NSInteger size = value.integerValue;
+        NSBitmapImageRep *bitmap = SCIconBitmap(image, size);
+        assert([bitmap colorAtX:0 y:0].alphaComponent < .05);
+        assert([bitmap colorAtX:size - 1 y:size - 1].alphaComponent < .05);
+        if (size >= 32) {
+            NSColor *head = [[bitmap colorAtX:size / 2 y:size / 2]
+                colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+            assert(head.alphaComponent > .99);
+            assert(head.greenComponent > .3);
+            assert(head.greenComponent > head.redComponent + .12);
+            NSColor *paper = [[bitmap colorAtX:size * .35 y:size * .25]
+                colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+            assert(paper.alphaComponent > .99 && paper.redComponent > .9);
+        }
+    }
+    NSString *template = [[dataPath stringByDeletingLastPathComponent]
+        stringByAppendingPathComponent:@"Info.plist.in"];
+    NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:template];
+    assert([info[@"CFBundleDocumentTypes"][0][@"CFBundleTypeIconFile"]
+        isEqualToString:@"anmir-apk.icns"]);
+    assert([info[@"UTImportedTypeDeclarations"][0][@"UTTypeIconFile"]
+        isEqualToString:@"anmir-apk.icns"]);
+}
+
 static void SCCheckMirrorIcon(NSString *dataPath) {
     NSFileManager *files = NSFileManager.defaultManager;
     NSURL *root = [[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES]
@@ -120,7 +153,8 @@ int main(int argc, const char *argv[]) {
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
         SCCheckMirrorIcon([NSString stringWithUTF8String:argv[1]]);
-        puts("macOS Dock icons: transparent corners, stable scale, phone badges and repeated installation passed.");
+        SCCheckAPKIcon([NSString stringWithUTF8String:argv[1]]);
+        puts("macOS icons: Dock transparency, phone badges and dedicated APK document artwork passed.");
     }
     return 0;
 }

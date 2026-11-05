@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Anmir Mac app icon — editable reconstruction</title>
+  <rect width="1024" height="1024" fill="#ffffff"/>
+  <g id="display">
+    <rect x="110" y="226" width="692" height="486" rx="76" fill="#94a5bf"/>
+    <rect x="132" y="248" width="648" height="442" rx="62" fill="#102a30"/>
+    <path d="M417 705h56v52h-56z" fill="#94a5bf"/>
+    <rect x="319" y="755" width="226" height="43" rx="22" fill="#94a5bf"/>
+    <g id="apple-mark" fill="#20383e">
+      <path d="M458 400c-16 0-24-10-42-10-27 0-52 23-52 54 0 39 25 97 53 115 12 8 22 1 39 1s27 7 40-1c15-10 28-29 37-50-29-13-30-50-3-67-14-22-32-29-48-29-11 0-18 6-24 7z"/>
+      <path d="M456 397c-1-26 16-47 43-52 2 23-14 45-43 52z"/>
+    </g>
+  </g>
+  <g id="phone">
+    <rect x="530" y="459" width="204" height="346" rx="51" fill="#ced9ef"/>
+    <rect x="538" y="467" width="188" height="330" rx="43" fill="#102a30"/>
+  </g>
+  <g id="android" fill="#00ef64">
+    <path d="M608 556l12 20m45-20-12 20" fill="none" stroke="#00ef64" stroke-width="4" stroke-linecap="round"/>
+    <path d="M598 603a39 39 0 0 1 78 0v4h-78z"/>
+    <rect x="598" y="615" width="79" height="79" rx="6"/>
+    <rect x="561" y="609" width="17" height="48" rx="4" transform="rotate(-42 569.5 633)"/>
+    <rect x="685" y="621" width="18" height="58" rx="4"/>
+    <circle cx="620" cy="590" r="5.5" fill="#ffffff"/>
+    <circle cx="652" cy="590" r="5.5" fill="#ffffff"/>
+  </g>
+</svg>

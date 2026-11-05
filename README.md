@@ -146,6 +146,18 @@ Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
     <th>Release</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.6</td>
+    <td nowrap>2026-11-06</td>
+    <td>Updated Mac and Connect icons and added a simpler green APK document icon.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.6">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.5</td>
+    <td nowrap>2026-11-05</td>
+    <td>Added APK installation from Finder and a QR code to download Anmir Connect.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.5">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.4</td>
     <td nowrap>2026-10-27</td>
     <td>Added QR connection guidance and repair; refined app and mirror icons.</td>
