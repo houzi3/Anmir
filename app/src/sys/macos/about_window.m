@@ -42,7 +42,7 @@ static NSTextField *SCAboutLabel(NSString *identifier, CGFloat size, NSFontWeigh
     NSImageView *icon = [NSImageView new];
     icon.identifier = @"About.icon";
     NSString *iconName = [bundle objectForInfoDictionaryKey:@"CFBundleIconFile"];
-    NSString *iconPath = [bundle pathForResource:@"anmir-dock" ofType:@"icns"];
+    NSString *iconPath = [bundle pathForResource:@"anmir" ofType:@"png"];
     if (!iconPath && iconName.length) {
         iconPath = [bundle pathForResource:iconName.stringByDeletingPathExtension ofType:@"icns"];
     }

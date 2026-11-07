@@ -5,25 +5,17 @@ APK documents. These are integrated into the application and release packages.
 
 | Asset | Mac app | Android app | APK file |
 | --- | --- | --- | --- |
-| Editable vector | `mac-app.svg` | `connect-app.svg` | `connect-apk-file.svg` |
-| 1024×1024 preview | `mac-app.png` | `connect-app.png` | `connect-apk-file.png` |
-| Original image generation output | `mac-app-source.png` | `connect-app-source.png` | `connect-apk-file-source.png` |
+| PNG master | `mac-app.png` | `connect-app.png` | `connect-apk-file.png` |
 
-The final APK artwork uses a folded document, Android head and APK lettering in
-jade green and white. `connect-apk-file-source.png` and
-`connect-apk-file-flat.png` preserve the exact user-approved attachment;
-`connect-apk-file.png` is its 1024px export. The image was edited with the built-in
-image generation tool; the final prompt is in `connect-apk-file-flat-prompt.txt`.
+The Mac and Connect PNGs are the approved transparent masters. About, update
+prompts and READMEs reuse `app/data/anmir.png`; application launchers use the
+platform-specific backgrounds and safe margins generated from these masters.
+The APK document keeps its separate green-and-white artwork.
 
-The image-generation output was raster, not SVG. Each SVG is an editable
-vector reconstruction of the selected PNG using independent shapes and paths;
-it is not a pixel-identical original or an embedded raster. The APK file PNG and
-SVG have transparent backgrounds. The other icons use opaque backgrounds.
-
-Rebuild the Mac app, Dock, mirror and generic icons with:
+Rebuild the Mac app, Dock, mirror, generic PNG and Windows icons with:
 
 ```sh
-swift release/generate_macos_icons.swift --import-png design/icon-assets/anmir-family-2026-11/mac-app.png
+swift release/generate_macos_icons.swift
 ```
 
 Rebuild the dedicated Finder APK icon with:

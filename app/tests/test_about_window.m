@@ -21,6 +21,8 @@ static NSBundle *bundle(NSURL *root, NSString *build, NSString *icon) {
         @"CFBundleShortVersionString":@"0.0.9", @"CFBundleVersion":build, @"CFBundleIconFile":@"anmir.icns"};
     assert(([info writeToURL:[contents URLByAppendingPathComponent:@"Info.plist"] atomically:YES]));
     assert(([files copyItemAtPath:icon toPath:[resources URLByAppendingPathComponent:@"anmir.icns"].path error:nil]));
+    NSString *logo = [icon.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"anmir.png"];
+    assert(([files copyItemAtPath:logo toPath:[resources URLByAppendingPathComponent:@"anmir.png"].path error:nil]));
     for (NSString *path in @[@"LICENSE", @"NOTICE", @"THIRD_PARTY.md", @"licenses/dependency.txt"]) {
         assert(([[@"Unmodified license fixture" dataUsingEncoding:NSUTF8StringEncoding] writeToURL:[resources URLByAppendingPathComponent:path] atomically:YES]));
     }
@@ -50,7 +52,10 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
             assert(([((NSTextField *)find(numbered.window.contentView, @"About.version")).stringValue
                 isEqual:[NSString stringWithFormat:SCLocalized(@"Version %@ (Build %@)"), @"0.0.9", @"17"]]));
             assert(([((NSTextField *)find(view, @"About.description")).stringValue isEqual:SCLocalized(@"Mirror and control Android devices from your Mac.")]));
-            assert((((NSImageView *)find(view, @"About.icon")).image));
+            NSImage *artwork = ((NSImageView *)find(view, @"About.icon")).image;
+            assert(artwork);
+            NSBitmapImageRep *pixels = [NSBitmapImageRep imageRepWithData:artwork.TIFFRepresentation];
+            assert([pixels colorAtX:pixels.pixelsWide / 2 y:pixels.pixelsHigh / 8].alphaComponent == 0);
             for (NSString *identifier in @[@"About.project", @"About.feedback", @"About.licenses"]) {
                 NSButton *button = (NSButton *)find(view, identifier);
                 NSRect rect = [button convertRect:button.bounds toView:view];

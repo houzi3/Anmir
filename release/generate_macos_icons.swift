@@ -1,5 +1,5 @@
 // Build macOS presentation icons from the approved full-size artwork.
-// Run: swift release/generate_macos_icons.swift [source.icns] [output-dir] [preview-dir]
+// Run: swift release/generate_macos_icons.swift [source.png] [output-dir] [preview-dir]
 // Import approved artwork and rebuild the macOS, generic PNG and Windows icons:
 //   swift release/generate_macos_icons.swift --import-png artwork.png [output-dir] [preview-dir]
 // CoreGraphics/ImageIO render pixels locally: no AppKit, Dock or Icon Services cache.
@@ -16,7 +16,7 @@ let paths = Array(args.dropFirst(importing ? 2 : 1))
 if paths.count > 3 || (importing && paths.isEmpty) {
     fatalError("Usage: swift generate_macos_icons.swift [--import-png] [source] [output-dir] [preview-dir]")
 }
-let sourceURL = !paths.isEmpty ? URL(fileURLWithPath: paths[0]) : root.appendingPathComponent("app/data/anmir.icns")
+let sourceURL = !paths.isEmpty ? URL(fileURLWithPath: paths[0]) : root.appendingPathComponent("design/icon-assets/anmir-family-2026-11/mac-app.png")
 let output = paths.count > 1 ? URL(fileURLWithPath: paths[1]) : root.appendingPathComponent("app/data")
 let previews = paths.count > 2 ? URL(fileURLWithPath: paths[2]) : root.appendingPathComponent("output/icon-diagnostics")
 
@@ -24,86 +24,64 @@ func require<T>(_ value: T?, _ message: String) -> T {
     guard let value else { fatalError(message) }
     return value
 }
-let source = require(CGImageSourceCreateWithURL(sourceURL as CFURL, nil), "Cannot read source artwork")
-let largest = (0..<CGImageSourceGetCount(source)).max { a, b in
-    let first = CGImageSourceCopyPropertiesAtIndex(source, a, nil) as? [CFString: Any]
-    let second = CGImageSourceCopyPropertiesAtIndex(source, b, nil) as? [CFString: Any]
-    return (first?[kCGImagePropertyPixelWidth] as? Int ?? 0) < (second?[kCGImagePropertyPixelWidth] as? Int ?? 0)
-}
-let decoded = require(CGImageSourceCreateImageAtIndex(source, require(largest, "Empty source artwork"), nil), "Cannot decode source artwork")
-precondition(decoded.width == decoded.height, "Artwork must be square")
 let colorSpace = require(CGColorSpace(name: CGColorSpace.sRGB), "Cannot create sRGB space")
-let artwork = importing ? resized(decoded, to: 1024) : decoded
-precondition(artwork.width == 1024 && artwork.height == 1024, "Expected 1024 × 1024 source artwork")
-// Keep the established 20-pixel source margin trim when applying the runtime
-// alpha mask. The approved white artwork uses the same foreground framing;
-// trimming only this background margin preserves its scale and geometry.
-let cropped = require(artwork.cropping(to: CGRect(x: 20, y: 20, width: 984, height: 984)), "Cannot crop artwork")
-let tile = CGRect(x: 100, y: 100, width: 824, height: 824)
-let tilePath = CGPath(roundedRect: tile, cornerWidth: 184, cornerHeight: 184, transform: nil)
 
-func render(mirror: Bool, bundle: Bool = false) -> CGImage {
+func foreground(_ url: URL) -> CGImage {
+    let source = require(CGImageSourceCreateWithURL(url as CFURL, nil), "Cannot read source artwork")
+    let largest = (0..<CGImageSourceGetCount(source)).max { a, b in
+        let first = CGImageSourceCopyPropertiesAtIndex(source, a, nil) as? [CFString: Any]
+        let second = CGImageSourceCopyPropertiesAtIndex(source, b, nil) as? [CFString: Any]
+        return (first?[kCGImagePropertyPixelWidth] as? Int ?? 0) < (second?[kCGImagePropertyPixelWidth] as? Int ?? 0)
+    }
+    let image = require(CGImageSourceCreateImageAtIndex(source, require(largest, "Empty source artwork"), nil), "Cannot decode artwork")
+    precondition(image.width == image.height, "Artwork must be square")
+    let context = require(CGContext(data: nil, width: image.width, height: image.height,
+        bitsPerComponent: 8, bytesPerRow: image.width * 4, space: colorSpace,
+        bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue), "Cannot decode pixels")
+    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let pixels = require(context.data, "Missing pixels").bindMemory(to: UInt8.self, capacity: image.width * image.height * 4)
+    var left = image.width, top = image.height, right = -1, bottom = -1
+    for y in 0..<image.height {
+        for x in 0..<image.width where pixels[(y * image.width + x) * 4 + 3] > 8 {
+            left = min(left, x); right = max(right, x)
+            top = min(top, y); bottom = max(bottom, y)
+        }
+    }
+    precondition(right >= left && bottom >= top, "Empty artwork")
+    return require(context.makeImage()?.cropping(to: CGRect(x: left, y: top,
+        width: right - left + 1, height: bottom - top + 1)), "Cannot crop artwork")
+}
+let artwork = foreground(sourceURL)
+let phoneArtwork = foreground(root.appendingPathComponent("design/icon-assets/anmir-family-2026-11/connect-app.png"))
+
+func framed(_ image: CGImage, fraction: Double, background: Bool = true, bundle: Bool = false) -> CGImage {
     let size = 1024
     let context = require(CGContext(data: nil, width: size, height: size,
         bitsPerComponent: 8, bytesPerRow: size * 4, space: colorSpace,
         bitmapInfo: (bundle ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast).rawValue), "Cannot create bitmap")
     context.interpolationQuality = .high
-    if bundle {
-        // Icon Services on macOS 26+ encloses non-square legacy artwork in a
-        // gray tile. Keep this launch/fallback icon full bleed with an inset
-        // phone, so its system-normalized result retains the original scale.
-        context.draw(artwork, in: CGRect(x: 0, y: 0, width: size, height: size))
-    } else {
-        // Every direct-drawing representation has the same transparent silhouette.
-        context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -10), blur: 20,
-            color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.16))
-        context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
-        context.addPath(tilePath)
-        context.fillPath()
-        context.restoreGState()
-        context.saveGState()
-        context.addPath(tilePath)
-        context.clip()
-        context.draw(cropped, in: tile)
-        context.restoreGState()
-    }
-
-    if mirror {
+    if background {
+        context.setFillColor(CGColor(srgbRed: 241 / 255, green: 243 / 255, blue: 245 / 255, alpha: 1))
         if bundle {
-            context.translateBy(x: 704, y: 80)
-            context.scaleBy(x: 256.0 / 304, y: 256.0 / 304)
-            context.translateBy(x: -704, y: -16)
+            // Icon Services applies the system mask to full-bleed launch assets.
+            context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        } else {
+            let tile = CGRect(x: 102.4, y: 102.4, width: 819.2, height: 819.2)
+            context.addPath(CGPath(roundedRect: tile, cornerWidth: 184.32, cornerHeight: 184.32, transform: nil))
+            context.fillPath()
         }
-        // Preserve the existing phone badge geometry on a 1024-pixel canvas.
-        // Both the bundle fallback and the runtime image contain the phone.
-        let badge = CGPath(roundedRect: CGRect(x: 704, y: 16, width: 304, height: 304),
-            cornerWidth: 72, cornerHeight: 72, transform: nil)
-        context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -4), blur: 20,
-            color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.2))
-        context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
-        context.addPath(badge)
-        context.fillPath()
-        context.restoreGState()
-        context.setStrokeColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.12))
-        context.setLineWidth(4)
-        context.addPath(badge)
-        context.strokePath()
-        context.setStrokeColor(CGColor(srgbRed: 0.07, green: 0.09, blue: 0.12, alpha: 1))
-        context.setLineWidth(12)
-        context.addPath(CGPath(roundedRect: CGRect(x: 804, y: 72, width: 104, height: 192),
-            cornerWidth: 20, cornerHeight: 20, transform: nil))
-        context.strokePath()
-        context.setLineWidth(8)
-        context.setLineCap(.round)
-        for y in [244.0, 92.0] {
-            context.move(to: CGPoint(x: 840, y: y))
-            context.addLine(to: CGPoint(x: 872, y: y))
-        }
-        context.strokePath()
     }
+    let scale = Double(size) * fraction / Double(max(image.width, image.height))
+    let width = Double(image.width) * scale, height = Double(image.height) * scale
+    context.draw(image, in: CGRect(x: (Double(size) - width) / 2,
+        y: (Double(size) - height) / 2, width: width, height: height))
     return require(context.makeImage(), "Cannot export bitmap")
+}
+
+func render(mirror: Bool, bundle: Bool = false) -> CGImage {
+    // The phone-led companion replaces the former extra corner badge.
+    framed(mirror ? phoneArtwork : artwork,
+        fraction: mirror ? (bundle ? 0.70 : 0.56) : (bundle ? 0.75 : 0.60), bundle: bundle)
 }
 
 func resized(_ image: CGImage, to size: Int) -> CGImage {
@@ -112,8 +90,7 @@ func resized(_ image: CGImage, to size: Int) -> CGImage {
         bitsPerComponent: 8, bytesPerRow: size * 4, space: colorSpace,
         bitmapInfo: (opaque ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast).rawValue), "Cannot resize bitmap")
     context.interpolationQuality = .high
-    // CGContext shadows are specified in device space. Resample the completed
-    // master so the shadow and subpixel badge strokes scale with the artwork.
+    // Resample the completed master so all representations share one silhouette.
     context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
     return require(context.makeImage(), "Cannot export resized bitmap")
 }
@@ -129,11 +106,10 @@ try files.createDirectory(at: previews, withIntermediateDirectories: true)
 let temporary = files.temporaryDirectory.appendingPathComponent("AnmirIcons-" + UUID().uuidString)
 try files.createDirectory(at: temporary, withIntermediateDirectories: true)
 defer { try? files.removeItem(at: temporary) }
-var masters: [(String, CGImage)] = []
-if importing {
-    masters.append(("anmir", artwork))
+var masters: [(String, CGImage)] = [("anmir", render(mirror: false, bundle: true))]
+do {
     let pngURL = output.appendingPathComponent("anmir.png")
-    writePNG(resized(artwork, to: 256), to: pngURL)
+    writePNG(resized(framed(artwork, fraction: 0.9, background: false), to: 256), to: pngURL)
     // The existing Windows resource is a one-frame 256px PNG-backed ICO.
     // Rewrap the identical generic PNG bytes; do not rasterize it a second time.
     let png = try Data(contentsOf: pngURL)
