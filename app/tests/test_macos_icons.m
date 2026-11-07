@@ -77,16 +77,16 @@ static void SCCheckMirrorIcon(NSString *dataPath) {
         [dataPath stringByAppendingPathComponent:@"anmir-mirror-bundle.icns"]];
     assert(bundleIcon);
     NSBitmapImageRep *launch = SCIconBitmap(bundleIcon, 256);
-    // The system-masked launch asset needs its own baked phone, not just the
-    // runtime Dock override. Its safe inset keeps the phone inside the mask.
+    // The system-masked launch asset contains the complete phone-led design.
+    // Its dominant phone is visible in the left foreground before startup.
     NSUInteger launchInk = 0;
-    for (NSInteger y = 194; y < 227; ++y) {
-        for (NSInteger x = 195; x < 219; ++x) {
+    for (NSInteger y = 40; y < 215; ++y) {
+        for (NSInteger x = 38; x < 125; ++x) {
             NSColor *color = [[launch colorAtX:x y:y] colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
             if (color.redComponent < .5 && color.greenComponent < .5 && color.blueComponent < .5) { ++launchInk; }
         }
     }
-    assert(launchInk > 30);
+    assert(launchInk > 100);
     NSImage *saved = NSApp.applicationIconImage;
     NSView *savedView = NSApp.dockTile.contentView;
     NSApp.applicationIconImage = raw;
@@ -110,34 +110,26 @@ static void SCCheckMirrorIcon(NSString *dataPath) {
             assert([bitmap colorAtX:size - 1 y:size - 1].alphaComponent < .05);
             assert([bitmap colorAtX:size / 2 y:size / 2].alphaComponent > .99);
         }
-        // The badge must not change the main tile's scale/silhouette.
+        // Both app designs retain the same tile scale and silhouette.
         for (NSInteger x = 0; x < size; ++x) {
             CGFloat expected = [reference colorAtX:x y:size / 2].alphaComponent;
             CGFloat actual = [first colorAtX:x y:size / 2].alphaComponent;
             assert(fabs(expected - actual) <= 2.0 / 255);
         }
-        // Bottom-right badge contains a dark phone outline, even at 16px.
-        NSUInteger darkPixels = 0;
-        // At 16/32px the 3pt outline is narrower than one raster pixel.
-        // Its antialiasing still needs visible contrast against the white badge.
-        CGFloat inkLimit = size <= 32 ? .90 : .65;
-        for (NSInteger y = size * .76; y < size * .94; ++y) {
-            for (NSInteger x = size * .77; x < size * .90; ++x) {
-                NSColor *color = [[first colorAtX:x y:y] colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
-                if (color.alphaComponent > .8 && color.redComponent < inkLimit
-                    && color.greenComponent < inkLimit && color.blueComponent < inkLimit) { ++darkPixels; }
-            }
-        }
-        assert(darkPixels > 0);
-        // Badge surface extends below the main tile and survives serialization.
-        assert([first colorAtX:size * .83 y:size * .95].alphaComponent > (size == 16 ? .25 : .9));
-        assert([reference colorAtX:size * .83 y:size * .95].alphaComponent < .1);
+        // The complete phone-led composition replaces the extra corner badge.
+        // Match the actual companion resource and keep all four tile margins.
+        NSImage *companion = [[NSImage alloc] initWithContentsOfFile:
+            [dataPath stringByAppendingPathComponent:@"anmir-mirror.icns"]];
+        NSBitmapImageRep *expected = SCIconBitmap(companion, size);
+        assert([[first representationUsingType:NSBitmapImageFileTypePNG properties:@{}]
+            isEqualToData:[expected representationUsingType:NSBitmapImageFileTypePNG properties:@{}]]);
+        assert([first colorAtX:size * .83 y:size * .95].alphaComponent < .1);
     }
     SCDeviceInstallMirrorIcon(bundle);
     assert([NSApp.dockTile.contentView isKindOfClass:NSImageView.class]);
     NSImageView *tile = (NSImageView *)NSApp.dockTile.contentView;
     assert(tile.image && tile.image.representations.count > 1);
-    // The runtime image is still the badged asset, regardless of the process's
+    // The runtime image is still the phone-led asset, regardless of the process's
     // initial app image. Applying again must also restore a replaced Dock view.
     NSApp.dockTile.contentView = nil;
     SCDeviceInstallMirrorIcon(bundle);
@@ -154,7 +146,7 @@ int main(int argc, const char *argv[]) {
         [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
         SCCheckMirrorIcon([NSString stringWithUTF8String:argv[1]]);
         SCCheckAPKIcon([NSString stringWithUTF8String:argv[1]]);
-        puts("macOS icons: Dock transparency, phone badges and dedicated APK document artwork passed.");
+        puts("macOS icons: Dock transparency, phone-led mirrors and dedicated APK document artwork passed.");
     }
     return 0;
 }

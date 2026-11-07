@@ -66,6 +66,12 @@ BOOL SCUpdateVerifyArchive(NSURL *archive, NSString *digest) {
 static NSString *const SCSkippedUpdateVersionKey = @"AnmirSkippedUpdateVersion";
 static NSString *const SCLastUpdateCheckKey = @"AnmirLastUpdateCheck";
 
+static void SCUpdateSetArtwork(NSAlert *alert) {
+    NSString *path = [NSBundle.mainBundle pathForResource:@"anmir" ofType:@"png"];
+    NSImage *image = path ? [[NSImage alloc] initWithContentsOfFile:path] : nil;
+    if (image) { alert.icon = image; }
+}
+
 @interface SCUpdateAlert : NSAlert
 @property(strong) NSButton *skipButton;
 @property(strong) NSScrollView *notesScroll;
@@ -85,6 +91,11 @@ static NSTextField *SCUpdateFindText(NSView *view, NSString *text) {
 }
 
 @implementation SCUpdateAlert
+- (instancetype)init {
+    self = [super init];
+    if (self) { SCUpdateSetArtwork(self); }
+    return self;
+}
 - (void)skipVersion:(id)sender {
     (void)sender;
     [NSApp stopModalWithCode:NSAlertThirdButtonReturn];
@@ -265,7 +276,8 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
 }
 - (BOOL)validateMenuItem:(NSMenuItem *)item { (void)item; return !self.busy || self.automatic; }
 - (void)message:(NSString *)title detail:(NSString *)detail {
-    NSAlert *alert = [NSAlert new]; alert.messageText = SCLocalized(title); alert.informativeText = detail ?: @"";
+    NSAlert *alert = [NSAlert new]; SCUpdateSetArtwork(alert);
+    alert.messageText = SCLocalized(title); alert.informativeText = detail ?: @"";
     [alert addButtonWithTitle:SCLocalized(@"OK")]; [alert runModal];
 }
 - (void)finish:(NSError *)error {
@@ -383,6 +395,7 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
     NSString *notes = [release[@"notes"] isKindOfClass:NSString.class] ? release[@"notes"] : @"";
     if ([[[self preferences] stringForKey:SCSkippedUpdateVersionKey] isEqual:latest]) {
         NSAlert *skipped = [NSAlert new];
+        SCUpdateSetArtwork(skipped);
         skipped.messageText = SCLocalized(@"You skipped this version");
         skipped.informativeText = [NSString stringWithFormat:SCLocalized(@"You skipped Anmir %@. You can still view and install it manually."), latest];
         [skipped addButtonWithTitle:SCLocalized(@"View Update")];
@@ -456,7 +469,8 @@ void SCUpdaterCancel(void) { [updater cancel:nil]; }
 }
 - (void)install {
     if (SCMirrorRunningSessions().count) { [self finish:SCUpdateError(@"Close all mirroring windows before installing an update.")]; return; }
-    NSAlert *alert = [NSAlert new]; alert.messageText = SCLocalized(@"Ready to install");
+    NSAlert *alert = [NSAlert new]; SCUpdateSetArtwork(alert);
+    alert.messageText = SCLocalized(@"Ready to install");
     alert.informativeText = SCLocalized(@"Anmir will quit, install the update, and reopen. The previous version will be kept next to the application.");
     [alert addButtonWithTitle:SCLocalized(@"Install and Restart")]; [alert addButtonWithTitle:SCLocalized(@"Cancel")];
     if ([alert runModal] != NSAlertFirstButtonReturn) { [self finish:nil]; return; }
