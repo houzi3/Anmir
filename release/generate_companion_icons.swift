@@ -32,11 +32,11 @@ let context = require(CGContext(data: nil, width: width, height: height,
 context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 let pixels = require(context.data, "Missing pixels").bindMemory(to: UInt8.self, capacity: width * height * 4)
 
-// Remove only dark pixels connected to the outside. The enclosed dark phone
-// and monitor screens remain part of the approved foreground artwork.
+// The approved master already has alpha. Preserve black device frames;
+// only transparent pixels connected to the outside are backdrop.
 func isBackground(_ index: Int) -> Bool {
     let offset = index * 4
-    return pixels[offset] < 60 && pixels[offset + 1] < 70 && pixels[offset + 2] < 70
+    return pixels[offset + 3] < 8
 }
 var outside = [Bool](repeating: false, count: width * height)
 var queue: [Int] = []
@@ -108,7 +108,7 @@ for index in 0..<(width * height) {
     let offset = index * 4
     let r = Int(pixels[offset]), g = Int(pixels[offset + 1]), b = Int(pixels[offset + 2])
     let isAndroid = g > 90 && Double(g) > Double(r) * 1.8 && Double(g) > Double(b) * 1.2
-    let isFrame = r > 60 && max(r, g, b) - min(r, g, b) < 80
+    let isFrame = max(r, g, b) < 225 && max(r, g, b) - min(r, g, b) < 80
     let isEye = min(r, g, b) > 225
     let alpha: UInt8 = !outside[index] && (isAndroid || isFrame) && !isEye ? 255 : 0
     for channel in 0..<4 { pixels[offset + channel] = alpha }
