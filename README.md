@@ -191,8 +191,10 @@ Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
 
 ## Contributors
 
+<!-- anmir-contributors:start -->
 [<img src="https://github.com/houzi3.png?size=120" width="60" height="60" alt="@houzi3">](https://github.com/houzi3)&nbsp;
 [<img src="https://github.com/ztygalaxy.png?size=120" width="60" height="60" alt="@ztygalaxy">](https://github.com/ztygalaxy)
+<!-- anmir-contributors:end -->
 
 Thanks to everyone contributing code, testing and feedback. Upstream scrcpy contributors remain credited in [NOTICE](NOTICE).
 

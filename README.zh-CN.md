@@ -191,8 +191,10 @@
 
 ## 贡献者
 
+<!-- anmir-contributors:start -->
 [<img src="https://github.com/houzi3.png?size=120" width="60" height="60" alt="@houzi3">](https://github.com/houzi3)&nbsp;
 [<img src="https://github.com/ztygalaxy.png?size=120" width="60" height="60" alt="@ztygalaxy">](https://github.com/ztygalaxy)
+<!-- anmir-contributors:end -->
 
 感谢所有参与代码、测试与反馈的贡献者；上游 scrcpy 贡献者的署名继续保留在 [NOTICE](NOTICE) 中。
 
