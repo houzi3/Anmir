@@ -444,11 +444,14 @@ void SCDeviceInstallMirrorIcon(NSBundle *bundle) {
     NSCAssert(NSThread.isMainThread, @"Dock updates require the main thread");
     NSImage *image = SCDeviceMirrorIcon(bundle);
     if (!image) { return; }
-    NSApp.applicationIconImage = image;
+    // This is also called before SDL initializes its video subsystem, so make
+    // AppKit available and configure the tile before it first enters the Dock.
+    NSApplication *application = NSApplication.sharedApplication;
+    application.applicationIconImage = image;
     // Draw the complete tile explicitly. The image already contains transparent
     // margins, a rounded silhouette and the phone badge at every resolution.
     // Do not ask Icon Services to normalize it again on newer macOS releases.
-    NSDockTile *tile = NSApp.dockTile;
+    NSDockTile *tile = application.dockTile;
     NSImageView *view = [[NSImageView alloc] initWithFrame:
         NSMakeRect(0, 0, tile.size.width, tile.size.height)];
     view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;

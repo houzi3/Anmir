@@ -1188,9 +1188,17 @@ sc_device_picker_process_startup_apks(void) {
 enum sc_device_picker_result
 sc_device_picker_run(const struct scrcpy_options *options, struct sc_intr *intr) {
     SCMirrorInstallCleanup();
-    if (![[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundlePackageType"]
+    NSBundle *bundle = NSBundle.mainBundle;
+    if (![[bundle objectForInfoDictionaryKey:@"CFBundlePackageType"]
             isEqualToString:@"APPL"]) {
         return SC_DEVICE_PICKER_CONTINUE;
+    }
+    // The mirror process is launched directly from its disposable bundle.
+    // Install the final transparent Dock tile before SDL creates a window;
+    // otherwise macOS briefly shows the normalized bundle icon and the phone
+    // badge visibly moves when window_ui installs this artwork later.
+    if ([[bundle objectForInfoDictionaryKey:@"AnmirDeviceSerial"] length]) {
+        SCDeviceInstallMirrorIcon(bundle);
     }
     sc_apk_installer_register_file_association();
     if (options->serial || options->select_usb ||

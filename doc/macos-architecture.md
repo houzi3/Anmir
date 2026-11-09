@@ -88,12 +88,15 @@ name can be the device brand/model. Preparation copies resources and signs the
 copy on a worker; it never hard-links or re-signs the installed application.
 `SCMirrorPreparation` supports cancellation and cleans up cancelled bundles.
 The host retains its full-bleed `anmir.icns` bundle icon. Every mirror declares a
-phone-led icon before signing and launching: macOS 26+ uses the full-bleed
+badged icon before signing and launching: macOS 26+ uses the full-bleed
 `anmir-mirror-bundle.icns` for the system mask, while older macOS uses the
 transparent, rounded `anmir-mirror.icns`. Giving macOS 26+ the latter as a bundle
 icon would add a gray plate and shrink it again. At runtime the Dock content view
 draws `anmir-mirror.icns` directly on every OS, with explicit transparent margins,
-rounded corners and the complete phone-led design at every resolution. About
+rounded corners and the phone badge at every resolution. A mirror installs this
+tile before SDL creates its first window or starts the device connection, so the
+Dock never needs to switch from the normalized bundle artwork after appearing.
+About
 and update prompts use the transparent `anmir.png` artwork. Regenerate the icons with
 `swift release/generate_macos_icons.swift`.
 The manager records pending preparations before accepting another request, so
