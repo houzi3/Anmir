@@ -2,6 +2,7 @@
 #import "sys/macos/updater.h"
 #import "sys/macos/mirror_session.h"
 #include <assert.h>
+#include <math.h>
 
 // The updater's pure policy is exercised without network, UI, or an installed app.
 NSString *SCLocalized(NSString *key) { return key; }
@@ -11,6 +12,21 @@ NSBundle *SCMirrorHostBundle(void) { return NSBundle.mainBundle; }
 NSArray<SCMirrorSession *> *SCMirrorRunningSessions(void) { return @[]; }
 
 int main(void) { @autoreleasepool {
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
+    CGFloat emptyNotes = SCUpdateReleaseNotesHeightForTesting(@"");
+    CGFloat oneLine = SCUpdateReleaseNotesHeightForTesting(@"One line");
+    CGFloat threeLines = SCUpdateReleaseNotesHeightForTesting(@"One\nTwo\nThree");
+    NSMutableArray *manyLines = [NSMutableArray array];
+    for (NSUInteger i = 0; i < 30; ++i) { [manyLines addObject:@"Release note"]; }
+    CGFloat capped = SCUpdateReleaseNotesHeightForTesting([manyLines componentsJoinedByString:@"\n"]);
+    NSLayoutManager *layout = [NSLayoutManager new];
+    CGFloat expectedMaximum = ceil([layout defaultLineHeightForFont:
+        [NSFont systemFontOfSize:NSFont.systemFontSize]]) * 15 + 14;
+    assert(fabs(emptyNotes - oneLine) < .5);
+    assert(threeLines > oneLine);
+    assert(capped > threeLines);
+    assert(fabs(capped - expectedMaximum) < .5);
     assert([SCUpdateVersion(@"v1.2.10") isEqual:@"1.2.10"]);
     assert([SCUpdateVersion(@"0.1.0") isEqual:@"0.1.0"]);
     for (id invalid in @[@"1.0", @"v1.0.0-beta", @"1.0.0\n", @"v1.0.0+build", @"garbage", @42, NSNull.null]) {
