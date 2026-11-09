@@ -174,8 +174,9 @@ static NSAlert *SCUpdateReleaseAlert(NSString *current, NSString *latest, NSStri
 
     NSFont *font = [NSFont systemFontOfSize:NSFont.systemFontSize];
     NSLayoutManager *layout = [NSLayoutManager new];
-    CGFloat height = ceil([layout defaultLineHeightForFont:font] * 15) + 14;
-    NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 500, height)];
+    CGFloat lineHeight = ceil([layout defaultLineHeightForFont:font]);
+    CGFloat maximumHeight = lineHeight * 15 + 14;
+    NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 500, maximumHeight)];
     scroll.borderType = NSBezelBorder;
     scroll.hasVerticalScroller = YES;
     scroll.hasHorizontalScroller = NO;
@@ -192,12 +193,22 @@ static NSAlert *SCUpdateReleaseAlert(NSString *current, NSString *latest, NSStri
     text.verticallyResizable = YES;
     text.horizontallyResizable = NO;
     text.autoresizingMask = NSViewWidthSizable;
-    text.minSize = NSMakeSize(0, scroll.contentSize.height);
+    text.minSize = NSZeroSize;
     text.maxSize = NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX);
     text.textContainer.containerSize = NSMakeSize(scroll.contentSize.width, CGFLOAT_MAX);
     text.textContainer.widthTracksTextView = YES;
     text.string = notes;
     scroll.documentView = text;
+    [text.layoutManager ensureLayoutForTextContainer:text.textContainer];
+    CGFloat usedHeight = ceil([text.layoutManager usedRectForTextContainer:text.textContainer].size.height);
+    CGFloat height = MIN(maximumHeight, MAX(lineHeight, usedHeight) + 14);
+    [scroll setFrameSize:NSMakeSize(500, height)];
+    NSSize contentSize = scroll.contentSize;
+    text.minSize = NSMakeSize(0, contentSize.height);
+    NSRect textFrame = text.frame;
+    textFrame.size = NSMakeSize(contentSize.width,
+        MAX(contentSize.height, usedHeight + text.textContainerInset.height * 2));
+    text.frame = textFrame;
     NSView *content = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, height + 28)];
     NSTextField *label = [NSTextField labelWithString:SCLocalized(@"Release Notes:")];
     label.font = [NSFont boldSystemFontOfSize:NSFont.systemFontSize];
@@ -216,6 +227,13 @@ static NSAlert *SCUpdateReleaseAlert(NSString *current, NSString *latest, NSStri
     alert.skipButton.bezelStyle = NSBezelStyleRounded;
     return alert;
 }
+
+#ifdef SC_TEST
+CGFloat SCUpdateReleaseNotesHeightForTesting(NSString *notes) {
+    SCUpdateAlert *alert = (SCUpdateAlert *)SCUpdateReleaseAlert(@"0.1.0", @"0.1.1", notes);
+    return alert.notesScroll.frame.size.height;
+}
+#endif
 
 @interface SCUpdater : NSObject <NSURLSessionDownloadDelegate, NSMenuItemValidation>
 - (void)cancel:(id)sender;

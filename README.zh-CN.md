@@ -189,9 +189,14 @@
   </tr>
 </table>
 
-## 特别感谢
+## 贡献者
 
-特别感谢 [@ztygalaxy](https://github.com/ztygalaxy) 参与早期测试，并提出改进建议。
+<!-- anmir-contributors:start -->
+[<img src="https://github.com/houzi3.png?size=120" width="60" height="60" alt="@houzi3">](https://github.com/houzi3)&nbsp;
+[<img src="https://github.com/ztygalaxy.png?size=120" width="60" height="60" alt="@ztygalaxy">](https://github.com/ztygalaxy)
+<!-- anmir-contributors:end -->
+
+感谢所有参与代码、测试与反馈的贡献者；上游 scrcpy 贡献者的署名继续保留在 [NOTICE](NOTICE) 中。
 
 ## 开源许可
 

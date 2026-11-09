@@ -3,7 +3,7 @@
 Native Android 11+ companion for Anmir’s company-network QR pairing.
 
 - Application ID and namespace: `io.github.houzi3.anmir.connect`.
-- UI: compact charcoal / mint layout, English and Chinese resources.
+- UI: compact system light/dark layout with a mint accent, English and Chinese resources.
 - Start helper → actual local listener readiness → brief success dialog → Android Developer options.
 - Developer options opens in Settings’ own task; Anmir Connect keeps its own Activity stack.
 - Anmir Connect asks Settings to scroll to and highlight Wireless debugging; vendor Settings may ignore the optional hints and open the usual developer page.
@@ -47,8 +47,9 @@ system permission UI. No permission-grant shell override is required.
 ## Assets
 
 The launcher foreground is a transparent PNG generated from the approved compact
-design and packaged as an
-Android adaptive icon. The UI uses native Android widgets and actual text.
+design and packaged as an Android adaptive icon. The same artwork is exported as
+a separate transparent in-app header logo, without a launcher mask or background.
+The UI uses native Android widgets and actual text.
 
 The success check drawable is from the Android Open Source Project
 (`platforms/android-36/data/res/drawable/ic_check_24dp.xml`, Apache 2.0); its

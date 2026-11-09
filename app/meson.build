@@ -394,7 +394,7 @@ if get_option('buildtype') == 'debug'
             ['tests/test_updater.m', 'src/sys/macos/updater.m'],
             include_directories: src_dir,
             dependencies: dependency('appleframeworks', modules: ['AppKit']),
-            objc_args: ['-UNDEBUG', '-Wno-deprecated-declarations'])
+            objc_args: ['-UNDEBUG', '-DSC_TEST', '-Wno-deprecated-declarations'])
         test('test_updater', updater_test)
         updater_automatic_test = executable('test_updater_automatic',
             ['tests/test_updater_automatic.m'],

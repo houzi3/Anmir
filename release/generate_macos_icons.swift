@@ -52,7 +52,6 @@ func foreground(_ url: URL) -> CGImage {
         width: right - left + 1, height: bottom - top + 1)), "Cannot crop artwork")
 }
 let artwork = foreground(sourceURL)
-let phoneArtwork = foreground(root.appendingPathComponent("design/icon-assets/anmir-family-2026-11/connect-app.png"))
 
 func framed(_ image: CGImage, fraction: Double, background: Bool = true, bundle: Bool = false) -> CGImage {
     let size = 1024
@@ -79,9 +78,50 @@ func framed(_ image: CGImage, fraction: Double, background: Bool = true, bundle:
 }
 
 func render(mirror: Bool, bundle: Bool = false) -> CGImage {
-    // The phone-led companion replaces the former extra corner badge.
-    framed(mirror ? phoneArtwork : artwork,
-        fraction: mirror ? (bundle ? 0.70 : 0.56) : (bundle ? 0.75 : 0.60), bundle: bundle)
+    let size = 1024
+    let base = framed(artwork, fraction: bundle ? 0.75 : 0.60, bundle: bundle)
+    guard mirror else { return base }
+    let context = require(CGContext(data: nil, width: size, height: size,
+        bitsPerComponent: 8, bytesPerRow: size * 4, space: colorSpace,
+        bitmapInfo: (bundle ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast).rawValue), "Cannot create bitmap")
+    context.interpolationQuality = .high
+    context.draw(base, in: CGRect(x: 0, y: 0, width: size, height: size))
+    // A compact circular badge reads as window metadata instead of another app.
+    // The bundle variant stays farther inside the system mask used at launch.
+    let badge = bundle ? CGRect(x: 792, y: 92, width: 168, height: 168)
+        : CGRect(x: 790, y: 50, width: 200, height: 200)
+    context.saveGState()
+    context.setShadow(offset: CGSize(width: 0, height: -5), blur: 16,
+        color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.22))
+    context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+    context.fillEllipse(in: badge)
+    context.restoreGState()
+    context.setStrokeColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.12))
+    context.setLineWidth(4)
+    context.strokeEllipse(in: badge.insetBy(dx: 2, dy: 2))
+
+    let phoneWidth = badge.width * 0.40
+    let phoneHeight = badge.height * 0.64
+    let phone = CGRect(x: badge.midX - phoneWidth / 2, y: badge.midY - phoneHeight / 2,
+        width: phoneWidth, height: phoneHeight)
+    let dark = CGColor(srgbRed: 0.07, green: 0.09, blue: 0.12, alpha: 1)
+    context.setFillColor(dark)
+    context.addPath(CGPath(roundedRect: phone, cornerWidth: phoneWidth * 0.23,
+        cornerHeight: phoneWidth * 0.23, transform: nil))
+    context.fillPath()
+    context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+    context.addPath(CGPath(roundedRect: phone.insetBy(dx: phoneWidth * 0.18, dy: phoneHeight * 0.13),
+        cornerWidth: phoneWidth * 0.08, cornerHeight: phoneWidth * 0.08, transform: nil))
+    context.fillPath()
+    context.setStrokeColor(dark)
+    context.setLineWidth(max(5, phoneWidth * 0.08))
+    context.setLineCap(.round)
+    for y in [phone.maxY - phoneHeight * 0.16, phone.minY + phoneHeight * 0.16] {
+        context.move(to: CGPoint(x: phone.midX - phoneWidth * 0.12, y: y))
+        context.addLine(to: CGPoint(x: phone.midX + phoneWidth * 0.12, y: y))
+    }
+    context.strokePath()
+    return require(context.makeImage(), "Cannot export bitmap")
 }
 
 func resized(_ image: CGImage, to size: Int) -> CGImage {
@@ -101,11 +141,42 @@ func writePNG(_ image: CGImage, to url: URL) {
     precondition(CGImageDestinationFinalize(destination), "Cannot finalize PNG")
 }
 
+func encodedPNG(_ image: CGImage) -> Data {
+    let data = NSMutableData()
+    let destination = require(CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil), "Cannot encode PNG")
+    CGImageDestinationAddImage(destination, image, nil)
+    precondition(CGImageDestinationFinalize(destination), "Cannot finalize PNG")
+    return data as Data
+}
+
+func appendBigEndian(_ value: UInt32, to data: inout Data) {
+    var encoded = value.bigEndian
+    withUnsafeBytes(of: &encoded) { data.append(contentsOf: $0) }
+}
+
+func writeICNS(_ images: [Int: CGImage], to url: URL) throws {
+    let representations: [(String, Int)] = [
+        ("icp4", 16), ("ic11", 32),
+        ("icp5", 32), ("ic12", 64),
+        ("ic07", 128), ("ic13", 256),
+        ("ic08", 256), ("ic14", 512),
+        ("ic09", 512), ("ic10", 1024),
+    ]
+    var chunks = Data()
+    for (type, pixels) in representations {
+        let png = encodedPNG(require(images[pixels], "Missing \(pixels)-pixel representation"))
+        chunks.append(contentsOf: type.utf8)
+        appendBigEndian(UInt32(png.count + 8), to: &chunks)
+        chunks.append(png)
+    }
+    var icon = Data("icns".utf8)
+    appendBigEndian(UInt32(chunks.count + 8), to: &icon)
+    icon.append(chunks)
+    try icon.write(to: url, options: .atomic)
+}
+
 try files.createDirectory(at: output, withIntermediateDirectories: true)
 try files.createDirectory(at: previews, withIntermediateDirectories: true)
-let temporary = files.temporaryDirectory.appendingPathComponent("AnmirIcons-" + UUID().uuidString)
-try files.createDirectory(at: temporary, withIntermediateDirectories: true)
-defer { try? files.removeItem(at: temporary) }
 var masters: [(String, CGImage)] = [("anmir", render(mirror: false, bundle: true))]
 do {
     let pngURL = output.appendingPathComponent("anmir.png")
@@ -125,23 +196,9 @@ masters += [("anmir-dock", render(mirror: false)),
             ("anmir-mirror", render(mirror: true)),
             ("anmir-mirror-bundle", render(mirror: true, bundle: true))]
 for (name, master) in masters {
-    let iconset = temporary.appendingPathComponent(name + ".iconset")
-    try files.createDirectory(at: iconset, withIntermediateDirectories: true)
     var images: [Int: CGImage] = [1024: master]
-    for points in [16, 32, 128, 256, 512] {
-        for scale in [1, 2] {
-            let pixels = points * scale
-            if images[pixels] == nil { images[pixels] = resized(master, to: pixels) }
-            let suffix = scale == 2 ? "@2x" : ""
-            writePNG(images[pixels]!, to: iconset.appendingPathComponent("icon_\(points)x\(points)\(suffix).png"))
-        }
-    }
-    let tool = Process()
-    tool.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
-    tool.arguments = ["-c", "icns", iconset.path, "-o", output.appendingPathComponent(name + ".icns").path]
-    try tool.run()
-    tool.waitUntilExit()
-    precondition(tool.terminationStatus == 0, "iconutil failed")
+    for pixels in [16, 32, 64, 128, 256, 512] { images[pixels] = resized(master, to: pixels) }
+    try writeICNS(images, to: output.appendingPathComponent(name + ".icns"))
     for pixels in [64, 256, 1024] {
         writePNG(images[pixels]!, to: previews.appendingPathComponent("\(name)-\(pixels).png"))
     }

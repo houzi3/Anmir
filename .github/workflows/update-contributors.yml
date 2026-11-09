@@ -1,0 +1,58 @@
+name: Update contributors
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: anmir-update-contributors-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: >-
+      github.repository == 'houzi3/Anmir' &&
+      (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show required repository permission
+        run: |
+          message="Updating contributors requires Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
+          echo "::notice title=GitHub Actions write access required::$message"
+          {
+            echo "### GitHub Actions write access required"
+            echo
+            echo "$message"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check out the merged main branch
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Update contributor sections
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+        run: python3 release/update_contributors.py
+
+      - name: Commit contributor changes
+        run: |
+          if git diff --quiet -- README.md README.zh-CN.md; then
+            echo "Contributor sections are already up to date."
+            exit 0
+          fi
+
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md README.zh-CN.md
+          git commit -m "docs: update contributors"
+          git pull --rebase origin main
+          git push origin HEAD:main

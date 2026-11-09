@@ -10,3 +10,6 @@ NSDictionary *SCUpdateAsset(NSDictionary *manifest, NSString *architecture);
 BOOL SCUpdateVerifyArchive(NSURL *archive, NSString *digest);
 BOOL SCUpdaterBusy(void);
 void SCUpdaterCancel(void);
+#ifdef SC_TEST
+CGFloat SCUpdateReleaseNotesHeightForTesting(NSString *notes);
+#endif

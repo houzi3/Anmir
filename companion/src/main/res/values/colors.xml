@@ -1,11 +1,12 @@
 <resources>
     <color name="icon_background">#F1F3F5</color>
-    <color name="page">#101412</color>
-    <color name="surface">#242B27</color>
-    <color name="mint">#46E698</color>
-    <color name="text">#F4F6F5</color>
-    <color name="muted">#A1A8A3</color>
-    <color name="divider">#343C37</color>
-    <color name="error">#FFB4AB</color>
-    <color name="danger">#FF6B6B</color>
+    <color name="page">#FFFFFF</color>
+    <color name="surface">#F2F5F3</color>
+    <color name="mint">#147A49</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="text">#171A18</color>
+    <color name="muted">#626964</color>
+    <color name="divider">#DCE2DE</color>
+    <color name="error">#B3261E</color>
+    <color name="danger">#B3261E</color>
 </resources>
