@@ -102,6 +102,27 @@ func writePNG(_ image: CGImage, name: String) throws {
 }
 try writePNG(render(foreground), name: "icon_foreground")
 
+// The in-app header must show the approved artwork itself, without an
+// adaptive-icon background or launcher mask. Crop the same cutout into a
+// compact transparent square so it remains legible at 64dp.
+let headerSize = 320
+let headerPadding = 20.0
+let artworkWidth = Double(maxX - minX + 1)
+let artworkHeight = Double(maxY - minY + 1)
+let headerScale = min((Double(headerSize) - headerPadding * 2) / artworkWidth,
+    (Double(headerSize) - headerPadding * 2) / artworkHeight)
+let headerDestination = CGRect(
+    x: Double(headerSize) / 2 - centerX * headerScale,
+    y: Double(headerSize) / 2 - centerY * headerScale,
+    width: Double(width) * headerScale,
+    height: Double(height) * headerScale)
+let headerContext = require(CGContext(data: nil, width: headerSize, height: headerSize,
+    bitsPerComponent: 8, bytesPerRow: headerSize * 4, space: colorSpace,
+    bitmapInfo: bitmapInfo), "Cannot create header artwork")
+headerContext.interpolationQuality = .high
+headerContext.draw(foreground, in: headerDestination)
+try writePNG(require(headerContext.makeImage(), "Cannot export header artwork"), name: "header_logo")
+
 // A themed icon uses shape alpha only: silver outlines and the green Android
 // become white, while screens and white eye cutouts remain transparent.
 for index in 0..<(width * height) {
