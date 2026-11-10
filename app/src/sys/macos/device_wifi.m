@@ -27,6 +27,30 @@ typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
 }
 @end
 
+static NSBox *SCDeviceQRFrame(SCDeviceQRImageView *code, CGFloat size) {
+    NSBox *frame = [[NSBox alloc] init];
+    frame.boxType = NSBoxCustom;
+    frame.transparent = NO;
+    frame.borderWidth = 1;
+    frame.borderColor = NSColor.separatorColor;
+    frame.fillColor = NSColor.whiteColor;
+    frame.cornerRadius = 8;
+    frame.contentViewMargins = NSZeroSize;
+    frame.translatesAutoresizingMaskIntoConstraints = NO;
+    NSView *inside = frame.contentView;
+    [inside addSubview:code];
+    // Keep the square white image inside the rounded border at every corner.
+    [NSLayoutConstraint activateConstraints:@[
+        [frame.widthAnchor constraintEqualToConstant:size],
+        [frame.heightAnchor constraintEqualToAnchor:frame.widthAnchor],
+        [code.widthAnchor constraintEqualToAnchor:frame.widthAnchor constant:-10],
+        [code.heightAnchor constraintEqualToAnchor:code.widthAnchor],
+        [code.centerXAnchor constraintEqualToAnchor:inside.centerXAnchor],
+        [code.centerYAnchor constraintEqualToAnchor:inside.centerYAnchor],
+    ]];
+    return frame;
+}
+
 // Both prerequisites share one hierarchy. Keep icons aligned to the first
 // text line when a localized navigation path wraps.
 static NSView *SCDeviceQRGuideRow(NSString *symbol, NSString *key, NSString *identifier) {
@@ -132,6 +156,8 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
         [NSLayoutConstraint activateConstraints:@[
             [trailing.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
             [trailing.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+            [trailing.topAnchor constraintGreaterThanOrEqualToAnchor:row.topAnchor constant:2],
+            [trailing.bottomAnchor constraintLessThanOrEqualToAnchor:row.bottomAnchor constant:-2],
             [label.trailingAnchor constraintLessThanOrEqualToAnchor:trailing.leadingAnchor constant:-8],
         ]];
     } else {
@@ -504,7 +530,7 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
         download.enabled = !self.busy;
         download.font = [NSFont systemFontOfSize:12];
         download.translatesAutoresizingMaskIntoConstraints = NO;
-        [download.heightAnchor constraintEqualToConstant:28].active = YES;
+        [download.heightAnchor constraintEqualToConstant:24].active = YES;
         [download.widthAnchor constraintGreaterThanOrEqualToConstant:72].active = YES;
         NSTextField *alternative = SCDeviceLocalizedLabel(@"or", 11,
             NSFontWeightRegular, YES);
@@ -590,29 +616,14 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
     SCBind(code, @"accessibilityLabel", @"Scan with Android Wireless debugging");
     NSView *row = [[NSView alloc] init];
     row.translatesAutoresizingMaskIntoConstraints = NO;
-    NSBox *qrFrame = [[NSBox alloc] init];
-    qrFrame.boxType = NSBoxCustom;
-    qrFrame.transparent = NO;
-    qrFrame.borderWidth = 1;
-    qrFrame.borderColor = NSColor.separatorColor;
-    qrFrame.fillColor = NSColor.whiteColor;
-    qrFrame.cornerRadius = 8;
-    qrFrame.contentViewMargins = NSZeroSize;
-    qrFrame.translatesAutoresizingMaskIntoConstraints = NO;
+    NSBox *qrFrame = SCDeviceQRFrame(code, 184);
     [row addSubview:qrFrame];
-    [qrFrame.contentView addSubview:code];
     [self.body addArrangedSubview:row];
     [NSLayoutConstraint activateConstraints:@[
         [row.widthAnchor constraintEqualToAnchor:self.body.widthAnchor],
-        [row.heightAnchor constraintEqualToConstant:184],
-        [qrFrame.widthAnchor constraintEqualToConstant:184],
-        [qrFrame.heightAnchor constraintEqualToConstant:184],
+        [qrFrame.topAnchor constraintEqualToAnchor:row.topAnchor],
+        [qrFrame.bottomAnchor constraintEqualToAnchor:row.bottomAnchor],
         [qrFrame.centerXAnchor constraintEqualToAnchor:row.centerXAnchor],
-        [qrFrame.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
-        [code.widthAnchor constraintEqualToConstant:180],
-        [code.heightAnchor constraintEqualToConstant:180],
-        [code.centerXAnchor constraintEqualToAnchor:qrFrame.centerXAnchor],
-        [code.centerYAnchor constraintEqualToAnchor:qrFrame.centerYAnchor],
     ]];
     self.message = [NSTextField wrappingLabelWithString:@""];
     self.message.identifier = @"WiFi.qrStatus";
@@ -813,21 +824,13 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
     NSViewController *controller = [[NSViewController alloc] init];
     controller.view = [[SCDeviceSurface alloc] initWithFrame:NSMakeRect(0, 0, 248, 290)];
 
-    NSBox *frame = [[NSBox alloc] init];
-    frame.boxType = NSBoxCustom;
-    frame.transparent = NO;
-    frame.borderWidth = 1;
-    frame.borderColor = NSColor.separatorColor;
-    frame.fillColor = NSColor.whiteColor;
-    frame.cornerRadius = 8;
-    frame.contentViewMargins = NSZeroSize;
-    frame.translatesAutoresizingMaskIntoConstraints = NO;
     SCDeviceQRImageView *code = [[SCDeviceQRImageView alloc] init];
     code.identifier = @"WiFi.companionInstallQR";
     code.image = SCDeviceQRCodeImage(SCCompanionDownloadURL);
     code.imageScaling = NSImageScaleProportionallyUpOrDown;
     code.translatesAutoresizingMaskIntoConstraints = NO;
     SCBind(code, @"accessibilityLabel", @"Scan with your phone’s camera to download Anmir Connect");
+    NSBox *frame = SCDeviceQRFrame(code, 200);
     NSTextField *hint = SCDeviceLocalizedLabel(
         @"Use your phone’s camera—not Wireless debugging—to download the APK, then open it to install.",
         11, NSFontWeightRegular, YES);
@@ -837,17 +840,10 @@ static NSView *SCWiFiStep(NSUInteger number, NSString *key, NSString *identifier
     hint.maximumNumberOfLines = 3;
     hint.preferredMaxLayoutWidth = 216;
     [controller.view addSubview:frame];
-    [frame.contentView addSubview:code];
     [controller.view addSubview:hint];
     [NSLayoutConstraint activateConstraints:@[
         [frame.topAnchor constraintEqualToAnchor:controller.view.topAnchor constant:16],
         [frame.centerXAnchor constraintEqualToAnchor:controller.view.centerXAnchor],
-        [frame.widthAnchor constraintEqualToConstant:200],
-        [frame.heightAnchor constraintEqualToConstant:200],
-        [code.centerXAnchor constraintEqualToAnchor:frame.contentView.centerXAnchor],
-        [code.centerYAnchor constraintEqualToAnchor:frame.contentView.centerYAnchor],
-        [code.widthAnchor constraintEqualToConstant:196],
-        [code.heightAnchor constraintEqualToConstant:196],
         [hint.topAnchor constraintEqualToAnchor:frame.bottomAnchor constant:10],
         [hint.leadingAnchor constraintEqualToAnchor:controller.view.leadingAnchor constant:16],
         [hint.trailingAnchor constraintEqualToAnchor:controller.view.trailingAnchor constant:-16],
