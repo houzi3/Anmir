@@ -141,6 +141,11 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
 
 @implementation SCDeviceButton
 + (Class)cellClass { return SCDeviceButtonCell.class; }
+- (NSEdgeInsets)alignmentRectInsets {
+    // The custom bezel fills the frame. Native bezel insets would make the
+    // visible button extend beyond its Auto Layout size and spacing.
+    return NSEdgeInsetsMake(0, 0, 0, 0);
+}
 + (instancetype)buttonWithTitle:(NSString *)title target:(id)target action:(SEL)action {
     SCDeviceButton *button = [super buttonWithTitle:title target:target action:action];
     SCBind(button, @"title", title);
