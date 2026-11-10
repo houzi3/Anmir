@@ -129,13 +129,39 @@ NSStackView *SCDeviceStack(NSArray<NSView *> *views, BOOL vertical, CGFloat spac
     path.lineWidth = 1;
     [path stroke];
 }
+- (void)drawImage:(NSImage *)image withFrame:(NSRect)frame inView:(NSView *)view {
+    if (self.imagePosition == NSImageLeft || self.imagePosition == NSImageRight) {
+        frame.origin.y = NSMidY(view.bounds) - NSHeight(frame) / 2;
+    }
+    [super drawImage:image withFrame:frame inView:view];
+}
 - (NSRect)drawTitle:(NSAttributedString *)title withFrame:(NSRect)frame inView:(NSView *)view {
     SCDeviceButton *button = (SCDeviceButton *)view;
     NSMutableAttributedString *text = [title mutableCopy];
     [text addAttribute:NSForegroundColorAttributeName value:
         !self.enabled ? NSColor.disabledControlTextColor : button.primary ? NSColor.whiteColor : NSColor.labelColor
         range:NSMakeRange(0, text.length)];
-    return [super drawTitle:text withFrame:frame inView:view];
+
+    // AppKit positions the title baseline for a native bezel. Center the
+    // visible glyphs in our bezel instead, keeping AppKit's horizontal slot
+    // for a title next to an image.
+    NSRect ink = [text boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)
+        options:NSStringDrawingUsesDeviceMetrics context:nil];
+    BOOL hasSideImage = self.imagePosition == NSImageLeft || self.imagePosition == NSImageRight;
+    CGFloat centerX = hasSideImage ? NSMidX(frame) : NSMidX(view.bounds);
+    CGFloat centerY = NSMidY(view.bounds);
+    NSRect visible = NSMakeRect(centerX - NSWidth(ink) / 2, centerY - NSHeight(ink) / 2,
+        NSWidth(ink), NSHeight(ink));
+    if (NSIsEmptyRect(ink) || !NSContainsRect(view.bounds, visible)
+            || (hasSideImage && NSWidth(ink) > NSWidth(frame))
+            || self.imagePosition == NSImageAbove || self.imagePosition == NSImageBelow) {
+        return [super drawTitle:text withFrame:frame inView:view];
+    }
+    NSSize size = text.size;
+    CGFloat baseline = centerY + (view.isFlipped ? NSMidY(ink) : -NSMidY(ink));
+    [text drawWithRect:NSMakeRect(centerX - NSMidX(ink), baseline, ceil(size.width), ceil(size.height))
+        options:0 context:nil];
+    return visible;
 }
 @end
 

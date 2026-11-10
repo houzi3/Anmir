@@ -10,7 +10,7 @@
 - (void)activate:(id)sender { (void)sender; ++_count; }
 @end
 
-static NSData *SCButtonSnapshot(NSView *view) {
+static NSBitmapImageRep *SCButtonBitmap(NSView *view) {
     NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
         pixelsWide:view.bounds.size.width * 2 pixelsHigh:view.bounds.size.height * 2
         bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO
@@ -19,7 +19,43 @@ static NSData *SCButtonSnapshot(NSView *view) {
     [view.effectiveAppearance performAsCurrentDrawingAppearance:^{
         [view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];
     }];
-    return [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    return bitmap;
+}
+
+static NSData *SCButtonSnapshot(NSView *view) {
+    return [SCButtonBitmap(view) representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+}
+
+static void SCCheckButtonTitle(void) {
+    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 96, 30)
+        styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:NO];
+    window.releasedWhenClosed = NO;
+    SCDeviceButton *button = [SCDeviceButton buttonWithTitle:@"Mirror" target:nil action:nil];
+    button.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
+    button.bezelStyle = NSBezelStyleRounded;
+    button.primary = YES;
+    button.frame = window.contentView.bounds;
+    [window.contentView addSubview:button];
+    for (NSString *title in @[@"投屏", @"鏡像輸出", @"Starting…"]) {
+        button.title = title;
+        NSBitmapImageRep *bitmap = SCButtonBitmap(button);
+        NSInteger left = bitmap.pixelsWide, top = bitmap.pixelsHigh, right = -1, bottom = -1;
+        // Exclude the edge of the rounded bezel. White interior pixels are the title.
+        for (NSInteger y = 8; y < bitmap.pixelsHigh - 8; ++y) {
+            for (NSInteger x = 12; x < bitmap.pixelsWide - 12; ++x) {
+                NSColor *pixel = [bitmap colorAtX:x y:y];
+                if (pixel.redComponent > .65 && pixel.greenComponent > .65 && pixel.blueComponent > .65) {
+                    left = MIN(left, x); right = MAX(right, x);
+                    top = MIN(top, y); bottom = MAX(bottom, y);
+                }
+            }
+        }
+        assert(left <= right && top <= bottom);
+        // Pixel centers are half a pixel in from the bitmap edges.
+        assert(fabs((left + right + 1 - bitmap.pixelsWide) / 2.0) <= 1.5);
+        assert(fabs((top + bottom + 1 - bitmap.pixelsHigh) / 2.0) <= 1.5);
+    }
+    [window close];
 }
 
 static void SCCheckToolbarStates(void) {
@@ -193,9 +229,10 @@ int main(int argc, const char *argv[]) {
         assert(NSEqualRects(before, hint.frame) && hint.font.pointSize == 13);
         [window close];
 
+        SCCheckButtonTitle();
         SCCheckToolbarStates();
         SCCheckChoiceCardHitArea();
-        puts("Native input, toolbar state and choice-card hit-area regressions passed.");
+        puts("Native input, button title centering, toolbar state and choice-card hit-area regressions passed.");
     }
     return 0;
 }
