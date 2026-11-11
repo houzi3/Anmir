@@ -146,6 +146,24 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.9</td>
+    <td nowrap>2026-11-11</td>
+    <td>修复投屏、Wi-Fi 连接和 APK 安装窗口的按钮文字偏移，使文字与状态图标对齐。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.9">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.8</td>
+    <td nowrap>2026-11-10</td>
+    <td>修复连接和 APK 安装窗口的按钮重叠，以及配对和 Anmir Connect 安装二维码的圆角边框缺口。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.8">Release</a></td>
+  </tr>
+  <tr>
+    <td nowrap>v0.1.7</td>
+    <td nowrap>2026-11-09</td>
+    <td>Anmir Connect 跟随 Android 系统切换浅色和深色界面，检查更新窗口按日志长度调整高度，打开投屏窗口时 Dock 图标不再跳动。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.7">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.6</td>
     <td nowrap>2026-11-06</td>
     <td>更新 Mac 与 Connect 图标，APK 文件使用更简洁的绿色图标。</td>

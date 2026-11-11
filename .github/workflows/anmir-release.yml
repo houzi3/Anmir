@@ -7,6 +7,14 @@ on:
         description: Release notes embedded in update.json
         required: false
         type: string
+      readme_summary_zh:
+        description: Optional one-sentence Chinese README summary when publishing
+        required: false
+        type: string
+      readme_summary_en:
+        description: Optional one-sentence English README summary when publishing
+        required: false
+        type: string
       publish:
         description: Publish a completed build after the APK was signed locally
         required: false
@@ -196,7 +204,7 @@ jobs:
       - run: sdkmanager 'build-tools;36.0.0'
       - name: Show required repository permission
         run: |
-          message="Release publishing and the automatic version bump require Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
+          message="Release publishing and automatic README and version updates require Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
           echo "::notice title=GitHub Actions write access required::$message"
           {
             echo "### GitHub Actions write access required"
@@ -256,6 +264,7 @@ jobs:
             --notes-file "$RUNNER_TEMP/release-notes.md" --draft=false --prerelease=false --latest
 
   bump-version:
+    name: Update README history and prepare the next patch
     needs: publish
     if: always() && !cancelled() && needs.publish.result == 'success' && github.repository == 'houzi3/Anmir' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -266,21 +275,39 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Advance to the next patch version
+      - name: Add the published release to both READMEs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASED_VERSION: ${{ needs.publish.outputs.version }}
+          README_SUMMARY_ZH: ${{ inputs.readme_summary_zh }}
+          README_SUMMARY_EN: ${{ inputs.readme_summary_en }}
+        run: |
+          gh release view "v$RELEASED_VERSION" --json isDraft,isPrerelease,publishedAt,tagName,url |
+            python3 release/update_readme_history.py "$RELEASED_VERSION" \
+              --chinese-summary="$README_SUMMARY_ZH" --english-summary="$README_SUMMARY_EN"
+      - name: Commit the release history and next patch version
         env:
           RELEASED_VERSION: ${{ needs.publish.outputs.version }}
         run: |
           current="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
-          if [[ "$current" != "$RELEASED_VERSION" ]]; then
+          if [[ "$current" == "$RELEASED_VERSION" ]]; then
+            IFS=. read -r major minor patch <<< "$current"
+            next="$major.$minor.$((10#$patch + 1))"
+            ./bump_version "$next"
+          else
             echo "Version is already $current; released $RELEASED_VERSION, so no bump is needed."
+          fi
+
+          git add README.md README.zh-CN.md meson.build server/build.gradle server/build_without_gradle.sh companion/build.gradle app/scrcpy-windows.rc
+          if git diff --cached --quiet; then
+            echo "Release history and project version are already up to date."
             exit 0
           fi
-          IFS=. read -r major minor patch <<< "$current"
-          next="$major.$minor.$((10#$patch + 1))"
-          ./bump_version "$next"
-          git diff --check
+          git diff --cached --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add meson.build server/build.gradle server/build_without_gradle.sh companion/build.gradle app/scrcpy-windows.rc
-          git commit -m "chore: prepare Anmir $next"
+          git commit -m "chore: record Anmir $RELEASED_VERSION release"
+          git pull --rebase origin main
           git push origin HEAD:main
