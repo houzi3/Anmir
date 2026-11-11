@@ -78,6 +78,8 @@ src = [
 
 if host_machine.system() == 'darwin'
     src += [
+        'src/sys/macos/apk_batch.m',
+        'src/sys/macos/apk_devices.m',
         'src/sys/macos/apk_installer.m',
         'src/sys/macos/clipboard_writer.m',
         'src/sys/macos/device_picker.m',

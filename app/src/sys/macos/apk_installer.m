@@ -1,4 +1,6 @@
 #import "apk_installer.h"
+#import "apk_batch.h"
+#import "apk_devices.h"
 
 #import <AppKit/AppKit.h>
 #import <CoreServices/CoreServices.h>
@@ -8,7 +10,6 @@
 #include <string.h>
 #import "device_support.h"
 #import "device_ui.h"
-#import "finder_device_menu.h"
 #import "localization.h"
 #import "mirror_session.h"
 #import "settings.h"
@@ -17,10 +18,14 @@ static NSPasteboardName const SCAPKInstallPasteboardName =
     @"io.github.laobie.anmir.install-request";
 static NSPasteboardType const SCAPKInstallPasteboardType =
     @"io.github.laobie.anmir.install-request";
-static const CGFloat SCAPKInstallerWindowWidth = 300.0;
-static const CGFloat SCAPKInstallerDetailWidth = 244.0;
-static const CGFloat SCAPKInstallerProgressHeight = 180.0;
-static const CGFloat SCAPKInstallerResultMinimumHeight = 160.0;
+static const CGFloat SCAPKInstallerWindowWidth = 440.0;
+static const CGFloat SCAPKInstallerDetailWidth = 364.0;
+static const CGFloat SCAPKInstallerProgressHeight = 236.0;
+static const CGFloat SCAPKInstallerResultMinimumHeight = 210.0;
+static const CGFloat SCAPKChooserWindowWidth = 460.0;
+static const CGFloat SCAPKChooserInset = 24.0;
+static const CGFloat SCAPKChooserRowHeight = 54.0;
+static const CGFloat SCAPKChooserRowSpacing = 8.0;
 static NSString *const SCAPKContentType = @"com.android.package-archive";
 
 static NSImage *SCAPKFileIcon(void) {
@@ -29,6 +34,136 @@ static NSImage *SCAPKFileIcon(void) {
     NSImage *image = url ? [[NSImage alloc] initWithContentsOfURL:url] : nil;
     return image ?: SCDeviceSymbol(@"doc");
 }
+
+static NSString *SCAPKDeviceModel(SCAPKTarget *device) {
+    return [device.model isEqualToString:@"Android device"]
+        ? SCLocalized(@"Android device") : device.model;
+}
+
+@interface SCAPKPanel : NSView
+@end
+
+@implementation SCAPKPanel
+- (void)drawRect:(NSRect)dirtyRect {
+    (void)dirtyRect;
+    NSBezierPath *shape = [NSBezierPath bezierPathWithRoundedRect:
+        NSInsetRect(self.bounds, .5, .5) xRadius:10 yRadius:10];
+    [[NSColor.labelColor colorWithAlphaComponent:.035] setFill];
+    [shape fill];
+    [[NSColor.labelColor colorWithAlphaComponent:.10] setStroke];
+    shape.lineWidth = 1;
+    [shape stroke];
+}
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    self.needsDisplay = YES;
+}
+@end
+
+@interface SCAPKDeviceOption : NSButton
+@property(nonatomic, strong) SCAPKTarget *device;
+@property(nonatomic, strong) NSTextField *nameLabel;
+@property(nonatomic, strong) NSTextField *connectionLabel;
+@property(nonatomic, strong) NSImageView *deviceIcon;
+@property(nonatomic, strong) NSImageView *checkmark;
+- (instancetype)initWithDevice:(SCAPKTarget *)device;
+- (void)updateSelectionAppearance;
+@end
+
+@implementation SCAPKDeviceOption
++ (Class)cellClass { return SCDeviceCardCell.class; }
+- (instancetype)initWithDevice:(SCAPKTarget *)device {
+    self = [super initWithFrame:NSZeroRect];
+    if (!self) { return nil; }
+    _device = device;
+    [self setButtonType:NSButtonTypeSwitch];
+    self.bordered = NO;
+    self.title = @"";
+    self.focusRingType = NSFocusRingTypeExterior;
+
+    _deviceIcon = [NSImageView imageViewWithImage:SCDeviceSymbol(@"smartphone")];
+    _deviceIcon.contentTintColor = NSColor.secondaryLabelColor;
+    _nameLabel = SCDeviceLabel(@"", 13, NSFontWeightMedium, NO);
+    _connectionLabel = SCDeviceLabel(@"", 11, NSFontWeightRegular, YES);
+    _checkmark = [[NSImageView alloc] init];
+    for (NSView *view in @[_deviceIcon, _nameLabel, _connectionLabel, _checkmark]) {
+        view.translatesAutoresizingMaskIntoConstraints = NO;
+        [self addSubview:view];
+    }
+    [NSLayoutConstraint activateConstraints:@[
+        [_deviceIcon.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:16],
+        [_deviceIcon.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+        [_deviceIcon.widthAnchor constraintEqualToConstant:20],
+        [_deviceIcon.heightAnchor constraintEqualToConstant:20],
+        [_nameLabel.leadingAnchor constraintEqualToAnchor:_deviceIcon.trailingAnchor constant:12],
+        [_nameLabel.topAnchor constraintEqualToAnchor:self.topAnchor constant:10],
+        [_nameLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_checkmark.leadingAnchor constant:-12],
+        [_connectionLabel.leadingAnchor constraintEqualToAnchor:_nameLabel.leadingAnchor],
+        [_connectionLabel.topAnchor constraintEqualToAnchor:_nameLabel.bottomAnchor constant:2],
+        [_connectionLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_checkmark.leadingAnchor constant:-12],
+        [_checkmark.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-16],
+        [_checkmark.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+        [_checkmark.widthAnchor constraintEqualToConstant:18],
+        [_checkmark.heightAnchor constraintEqualToConstant:18],
+    ]];
+    [self updateDeviceLabels];
+    [self updateSelectionAppearance];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(languageChanged:)
+        name:SCLanguageChangedNotification object:nil];
+    return self;
+}
+- (void)updateDeviceLabels {
+    NSString *model = SCAPKDeviceModel(self.device);
+    NSString *nickname = SCSettingsDeviceNickname(self.device.identity);
+    NSString *transport = SCLocalized(self.device.transport);
+    NSString *name = nickname ?: model;
+    NSString *detail = nickname
+        ? [NSString stringWithFormat:@"%@ · %@", model, transport] : transport;
+    self.nameLabel.stringValue = name;
+    self.connectionLabel.stringValue = detail;
+    self.accessibilityLabel = [NSString stringWithFormat:@"%@, %@", name, detail];
+}
+- (void)languageChanged:(NSNotification *)notification {
+    (void)notification;
+    [self updateDeviceLabels];
+}
+- (NSView *)hitTest:(NSPoint)point {
+    return self.enabled && [super hitTest:point] ? self : nil;
+}
+- (void)updateSelectionAppearance {
+    BOOL selected = self.state == NSControlStateValueOn;
+    self.checkmark.image = SCDeviceSymbol(selected ? @"checkmark.square.fill" : @"square");
+    self.checkmark.contentTintColor = selected ? SCDeviceBlue() : NSColor.secondaryLabelColor;
+    self.deviceIcon.contentTintColor = selected
+        ? SCDeviceBlue() : NSColor.secondaryLabelColor;
+    self.needsDisplay = YES;
+}
+- (void)drawRect:(NSRect)dirtyRect {
+    BOOL selected = self.state == NSControlStateValueOn;
+    NSBezierPath *shape = [NSBezierPath bezierPathWithRoundedRect:
+        NSInsetRect(self.bounds, .5, .5) xRadius:9 yRadius:9];
+    NSColor *fill = selected
+        ? [SCDeviceBlue() colorWithAlphaComponent:self.highlighted ? .14 : .075]
+        : [NSColor.labelColor colorWithAlphaComponent:self.highlighted ? .065 : .025];
+    [fill setFill];
+    [shape fill];
+    [(selected ? [SCDeviceBlue() colorWithAlphaComponent:.65]
+               : [NSColor.labelColor colorWithAlphaComponent:.11]) setStroke];
+    shape.lineWidth = 1;
+    [shape stroke];
+}
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    self.needsDisplay = YES;
+}
+@end
+
+@interface SCAPKChooserList : NSView
+@end
+
+@implementation SCAPKChooserList
+- (BOOL)isFlipped { return YES; }
+@end
 
 static NSMutableSet *SCAPKActiveControllers(void) {
     static NSMutableSet *controllers;
@@ -78,7 +213,7 @@ static NSString *SCAPKADBExecutable(void) {
 
 - (void)setStatusSymbol:(NSString *)symbol color:(NSColor *)color {
     NSImageSymbolConfiguration *configuration =
-        [NSImageSymbolConfiguration configurationWithPointSize:27
+        [NSImageSymbolConfiguration configurationWithPointSize:32
             weight:NSFontWeightRegular];
     self.icon.image = [SCDeviceSymbol(symbol)
         imageWithSymbolConfiguration:configuration];
@@ -93,7 +228,7 @@ static NSString *SCAPKADBExecutable(void) {
         NSMakeSize(SCAPKInstallerDetailWidth, CGFLOAT_MAX)
         options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
         attributes:attributes];
-    CGFloat chromeHeight = self.progress.hidden ? 145.0 : 165.0;
+    CGFloat chromeHeight = self.progress.hidden ? 176.0 : 204.0;
     CGFloat desiredHeight = MAX(SCAPKInstallerResultMinimumHeight,
         ceil(textBounds.size.height) + chromeHeight);
     NSScreen *screen = self.window.screen ?: NSScreen.mainScreen;
@@ -158,7 +293,7 @@ static NSString *SCAPKADBExecutable(void) {
     _icon = [[NSImageView alloc] init];
     _icon.translatesAutoresizingMaskIntoConstraints = NO;
     _icon.image = SCAPKFileIcon();
-    _titleLabel = [self label:SCLocalized(@"Installing APK…") size:17
+    _titleLabel = [self label:SCLocalized(@"Installing APK…") size:18
         weight:NSFontWeightSemibold];
     _detailLabel = [self label:[NSString stringWithFormat:@"%@\n%@",
         apk.lastPathComponent, deviceName] size:12 weight:NSFontWeightRegular];
@@ -168,6 +303,7 @@ static NSString *SCAPKADBExecutable(void) {
     _progress = [[NSProgressIndicator alloc] init];
     _progress.style = NSProgressIndicatorStyleBar;
     _progress.indeterminate = YES;
+    _progress.controlSize = NSControlSizeSmall;
     _progress.translatesAutoresizingMaskIntoConstraints = NO;
     [_progress startAnimation:nil];
     _button = [SCDeviceButton buttonWithTitle:@"Cancel" target:self
@@ -176,28 +312,35 @@ static NSString *SCAPKADBExecutable(void) {
     _button.bezelStyle = NSBezelStyleRounded;
     _button.font = [NSFont systemFontOfSize:12];
     _button.translatesAutoresizingMaskIntoConstraints = NO;
-    for (NSView *view in @[_icon, _titleLabel, _detailLabel, _progress,
-            _button]) {
+    SCAPKPanel *status = [[SCAPKPanel alloc] init];
+    status.translatesAutoresizingMaskIntoConstraints = NO;
+    NSStackView *statusStack = SCDeviceStack(@[_detailLabel, _progress], YES, 14);
+    statusStack.alignment = NSLayoutAttributeLeading;
+    [status addSubview:statusStack];
+    for (NSView *view in @[_icon, _titleLabel, status, _button]) {
         [content addSubview:view];
     }
     [NSLayoutConstraint activateConstraints:@[
         [_icon.topAnchor constraintEqualToAnchor:content.topAnchor constant:26],
-        [_icon.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
-        [_icon.widthAnchor constraintEqualToConstant:32],
-        [_icon.heightAnchor constraintEqualToConstant:32],
-        [_titleLabel.leadingAnchor constraintEqualToAnchor:_icon.trailingAnchor constant:12],
-        [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-28],
+        [_icon.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:24],
+        [_icon.widthAnchor constraintEqualToConstant:40],
+        [_icon.heightAnchor constraintEqualToConstant:40],
+        [_titleLabel.leadingAnchor constraintEqualToAnchor:_icon.trailingAnchor constant:14],
+        [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-24],
         [_titleLabel.centerYAnchor constraintEqualToAnchor:_icon.centerYAnchor],
-        [_detailLabel.topAnchor constraintEqualToAnchor:_icon.bottomAnchor constant:18],
-        [_detailLabel.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
-        [_detailLabel.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-28],
+        [status.topAnchor constraintEqualToAnchor:_icon.bottomAnchor constant:18],
+        [status.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:24],
+        [status.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-24],
+        [status.bottomAnchor constraintEqualToAnchor:_button.topAnchor constant:-18],
+        [statusStack.topAnchor constraintEqualToAnchor:status.topAnchor constant:14],
+        [statusStack.leadingAnchor constraintEqualToAnchor:status.leadingAnchor constant:14],
+        [statusStack.trailingAnchor constraintEqualToAnchor:status.trailingAnchor constant:-14],
+        [statusStack.bottomAnchor constraintEqualToAnchor:status.bottomAnchor constant:-14],
         [_detailLabel.widthAnchor constraintEqualToConstant:SCAPKInstallerDetailWidth],
-        [_progress.topAnchor constraintEqualToAnchor:_detailLabel.bottomAnchor constant:16],
-        [_progress.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
-        [_progress.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-28],
-        [_button.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-20],
+        [_progress.widthAnchor constraintEqualToAnchor:_detailLabel.widthAnchor],
+        [_button.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-24],
         [_button.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:-16],
-        [_button.widthAnchor constraintGreaterThanOrEqualToConstant:84],
+        [_button.widthAnchor constraintGreaterThanOrEqualToConstant:88],
         [_button.heightAnchor constraintEqualToConstant:32],
     ]];
     [self resizeForDetailText:_detailLabel.stringValue];
@@ -286,10 +429,11 @@ static NSString *SCAPKADBExecutable(void) {
 @interface SCAPKOpenController : NSObject <NSWindowDelegate>
 @property(nonatomic, copy) NSString *apk;
 @property(nonatomic, copy) void (^showDevices)(void);
-@property(nonatomic, strong) SCDeviceCommand *command;
+@property(nonatomic, strong) SCAPKDeviceDiscovery *discovery;
 @property(nonatomic, strong) NSWindow *window;
-@property(nonatomic, strong) NSPopUpButton *devicePicker;
-@property(nonatomic, copy) NSArray<NSDictionary<NSString *, NSString *> *> *devices;
+@property(nonatomic, strong) SCDeviceButton *installButton;
+@property(nonatomic, copy) NSArray<SCAPKDeviceOption *> *deviceButtons;
+@property(nonatomic, copy) NSArray<SCAPKTarget *> *devices;
 @property(nonatomic) BOOL transitioning;
 - (instancetype)initWithAPK:(NSString *)apk
         showDevices:(void (^)(void))showDevices;
@@ -308,31 +452,38 @@ static NSString *SCAPKADBExecutable(void) {
     return self;
 }
 
-- (NSString *)displayNameForDevice:(NSDictionary<NSString *, NSString *> *)device {
-    NSString *transport = device[SCFinderDeviceTransportKey];
-    if (![transport isEqualToString:@"Wi-Fi"]) {
-        transport = SCLocalized(transport);
-    }
-    return [NSString stringWithFormat:@"%@ · %@",
-        device[SCFinderDeviceModelKey], transport];
-}
-
 - (void)finish {
     [SCAPKActiveControllers() removeObject:self];
 }
 
-- (void)installOnDevice:(NSDictionary<NSString *, NSString *> *)device {
-    NSString *serial = device[SCFinderDeviceSerialKey];
-    if (!serial.length) {
+- (void)installOnDevices:(NSArray<SCAPKTarget *> *)devices {
+    if (!devices.count) {
         return;
     }
     self.transitioning = YES;
     [self.window close];
     self.window = nil;
 
-    NSString *deviceName = [self displayNameForDevice:device];
+    if (devices.count > 1) {
+        __block __weak SCAPKBatchController *weakBatch;
+        SCAPKBatchController *batch = [[SCAPKBatchController alloc]
+            initWithAPK:self.apk adb:SCAPKADBExecutable() targets:devices completion:^{
+                SCAPKBatchController *controller = weakBatch;
+                if (controller) { [SCAPKActiveControllers() removeObject:controller]; }
+            }];
+        weakBatch = batch;
+        [SCAPKActiveControllers() addObject:batch];
+        [batch show];
+        [self finish];
+        return;
+    }
+
+    SCAPKTarget *device = devices.firstObject;
+    NSString *name = SCSettingsDeviceNickname(device.identity) ?: SCAPKDeviceModel(device);
+    NSString *deviceName = [NSString stringWithFormat:@"%@ · %@",
+        name, SCLocalized(device.transport)];
     SCAPKInstallerController *installer = [[SCAPKInstallerController alloc]
-        initWithAPK:self.apk serial:serial deviceName:deviceName
+        initWithAPK:self.apk serial:device.serial deviceName:deviceName
         exitWhenClosed:NO completion:nil];
     __weak SCAPKInstallerController *weakInstaller = installer;
     installer.completion = ^{
@@ -344,8 +495,12 @@ static NSString *SCAPKADBExecutable(void) {
 }
 
 - (void)showChooser {
-    CGFloat height = 190.0;
-    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 520, height)
+    NSUInteger visibleRows = MIN(self.devices.count, 4);
+    CGFloat rowStride = SCAPKChooserRowHeight + SCAPKChooserRowSpacing;
+    CGFloat listHeight = visibleRows * rowStride - SCAPKChooserRowSpacing;
+    CGFloat height = 154.0 + listHeight;
+    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0,
+        SCAPKChooserWindowWidth, height)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title = @"Anmir";
@@ -359,21 +514,42 @@ static NSString *SCAPKADBExecutable(void) {
     NSView *content = self.window.contentView;
     NSImageView *icon = [NSImageView imageViewWithImage:SCAPKFileIcon()];
     icon.translatesAutoresizingMaskIntoConstraints = NO;
-    NSTextField *heading = SCDeviceLocalizedLabel(@"Choose a device", 17,
+    NSTextField *heading = SCDeviceLocalizedLabel(@"Choose one or more devices", 18,
         NSFontWeightSemibold, NO);
-    NSTextField *detail = SCDeviceLabel([NSString stringWithFormat:
-        SCLocalized(@"Install “%@” on:"), self.apk.lastPathComponent], 12,
-        NSFontWeightRegular, YES);
+    NSTextField *detail = SCDeviceLabel(@"", 12, NSFontWeightRegular, YES);
+    SCBindFormat(detail, @"stringValue", @"Install “%@” on:", @[_apk.lastPathComponent]);
     detail.lineBreakMode = NSLineBreakByTruncatingMiddle;
     detail.toolTip = self.apk.lastPathComponent;
 
-    self.devicePicker = [[NSPopUpButton alloc] initWithFrame:NSZeroRect
-        pullsDown:NO];
-    self.devicePicker.translatesAutoresizingMaskIntoConstraints = NO;
-    for (NSDictionary<NSString *, NSString *> *device in self.devices) {
-        [self.devicePicker addItemWithTitle:[self displayNameForDevice:device]];
+    CGFloat listWidth = SCAPKChooserWindowWidth - 2 * SCAPKChooserInset;
+    NSScrollView *deviceList = [[NSScrollView alloc]
+        initWithFrame:NSMakeRect(0, 0, listWidth, listHeight)];
+    deviceList.translatesAutoresizingMaskIntoConstraints = NO;
+    deviceList.borderType = NSNoBorder;
+    deviceList.drawsBackground = NO;
+    deviceList.hasVerticalScroller = self.devices.count > visibleRows;
+    deviceList.autohidesScrollers = YES;
+    CGFloat optionsWidth = deviceList.contentSize.width;
+    CGFloat optionsHeight = self.devices.count * rowStride - SCAPKChooserRowSpacing;
+    NSView *options = [[SCAPKChooserList alloc] initWithFrame:
+        NSMakeRect(0, 0, optionsWidth, optionsHeight)];
+    options.autoresizingMask = NSViewWidthSizable;
+    NSMutableArray<SCAPKDeviceOption *> *buttons = [NSMutableArray array];
+    for (NSUInteger index = 0; index < self.devices.count; ++index) {
+        SCAPKDeviceOption *option = [[SCAPKDeviceOption alloc]
+            initWithDevice:self.devices[index]];
+        option.frame = NSMakeRect(0, index * rowStride, optionsWidth, SCAPKChooserRowHeight);
+        option.autoresizingMask = NSViewWidthSizable;
+        option.tag = (NSInteger)index;
+        option.target = self;
+        option.action = @selector(selectDevice:);
+        option.identifier = [NSString stringWithFormat:@"APKChooser.Device.%lu",
+            (unsigned long)index];
+        [options addSubview:option];
+        [buttons addObject:option];
     }
-    self.devicePicker.toolTip = SCLocalized(@"Choose a device");
+    self.deviceButtons = buttons;
+    deviceList.documentView = options;
 
     SCDeviceButton *cancel = [SCDeviceButton buttonWithTitle:@"Cancel"
         target:self action:@selector(cancel:)];
@@ -383,35 +559,39 @@ static NSString *SCAPKADBExecutable(void) {
     SCDeviceButton *install = [SCDeviceButton buttonWithTitle:@"Install"
         target:self action:@selector(install:)];
     install.primary = YES;
+    install.enabled = NO;
+    install.identifier = @"APKChooser.Install";
     install.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
     install.keyEquivalent = @"\r";
     install.translatesAutoresizingMaskIntoConstraints = NO;
+    self.installButton = install;
 
-    for (NSView *view in @[icon, heading, detail, self.devicePicker,
+    for (NSView *view in @[icon, heading, detail, deviceList,
             cancel, install]) {
         [content addSubview:view];
     }
     [NSLayoutConstraint activateConstraints:@[
-        [icon.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
+        [icon.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:SCAPKChooserInset],
         [icon.topAnchor constraintEqualToAnchor:content.topAnchor constant:26],
-        [icon.widthAnchor constraintEqualToConstant:32],
-        [icon.heightAnchor constraintEqualToConstant:32],
-        [heading.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:12],
-        [heading.centerYAnchor constraintEqualToAnchor:icon.centerYAnchor],
-        [heading.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-28],
-        [detail.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
-        [detail.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-28],
-        [detail.topAnchor constraintEqualToAnchor:icon.bottomAnchor constant:18],
-        [self.devicePicker.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:28],
-        [self.devicePicker.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-28],
-        [self.devicePicker.topAnchor constraintEqualToAnchor:detail.bottomAnchor constant:10],
-        [install.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-20],
+        [icon.widthAnchor constraintEqualToConstant:40],
+        [icon.heightAnchor constraintEqualToConstant:40],
+        [heading.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:14],
+        [heading.topAnchor constraintEqualToAnchor:icon.topAnchor constant:1],
+        [heading.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-SCAPKChooserInset],
+        [detail.leadingAnchor constraintEqualToAnchor:heading.leadingAnchor],
+        [detail.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-SCAPKChooserInset],
+        [detail.topAnchor constraintEqualToAnchor:heading.bottomAnchor constant:4],
+        [deviceList.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:SCAPKChooserInset],
+        [deviceList.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-SCAPKChooserInset],
+        [deviceList.topAnchor constraintEqualToAnchor:icon.bottomAnchor constant:20],
+        [deviceList.heightAnchor constraintEqualToConstant:listHeight],
+        [install.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-SCAPKChooserInset],
         [install.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:-16],
-        [install.widthAnchor constraintEqualToConstant:84],
+        [install.widthAnchor constraintGreaterThanOrEqualToConstant:88],
         [install.heightAnchor constraintEqualToConstant:32],
         [cancel.trailingAnchor constraintEqualToAnchor:install.leadingAnchor constant:-10],
         [cancel.centerYAnchor constraintEqualToAnchor:install.centerYAnchor],
-        [cancel.widthAnchor constraintEqualToConstant:84],
+        [cancel.widthAnchor constraintEqualToConstant:88],
         [cancel.heightAnchor constraintEqualToConstant:32],
     ]];
     [self.window center];
@@ -421,41 +601,57 @@ static NSString *SCAPKADBExecutable(void) {
     [self.window orderFrontRegardless];
 }
 
+- (void)selectDevice:(SCAPKDeviceOption *)sender {
+    [sender updateSelectionAppearance];
+    NSUInteger count = self.selectedDevices.count;
+    self.installButton.enabled = count > 0;
+    if (count > 1) {
+        SCBindFormat(self.installButton, @"title", @"Install (%@)", @[@(count).stringValue]);
+    } else {
+        SCBind(self.installButton, @"title", @"Install");
+    }
+}
+
+- (NSArray<SCAPKTarget *> *)selectedDevices {
+    NSMutableArray<SCAPKTarget *> *selected = [NSMutableArray array];
+    for (SCAPKDeviceOption *option in self.deviceButtons) {
+        if (option.state == NSControlStateValueOn) {
+            [selected addObject:self.devices[(NSUInteger)option.tag]];
+        }
+    }
+    return selected;
+}
+
 - (void)begin {
-    NSString *adb = SCAPKADBExecutable();
+    self.discovery = [[SCAPKDeviceDiscovery alloc] initWithADB:SCAPKADBExecutable()];
     __weak SCAPKOpenController *weakSelf = self;
-    self.command = [SCDeviceCommand run:adb arguments:@[@"devices", @"-l"]
-        input:nil timeout:5 completion:^(NSString *output, int status) {
-            SCAPKOpenController *controller = weakSelf;
-            if (!controller) {
-                return;
+    [self.discovery startWithCompletion:^(NSArray<SCAPKTarget *> *devices, int status) {
+        SCAPKOpenController *controller = weakSelf;
+        if (!controller) {
+            return;
+        }
+        controller.discovery = nil;
+        controller.devices = devices;
+        os_log(OS_LOG_DEFAULT,
+            "Anmir APK open found %lu available device(s), ADB status %d",
+            (unsigned long)devices.count, status);
+        if (!devices.count) {
+            void (^showDevices)(void) = controller.showDevices;
+            [controller finish];
+            if (showDevices) {
+                showDevices();
             }
-            controller.command = nil;
-            controller.devices = status == 0
-                ? SCFinderParseADBDevices(output) : @[];
-            os_log(OS_LOG_DEFAULT,
-                "Anmir APK open found %lu available device(s), ADB status %d",
-                (unsigned long)controller.devices.count, status);
-            if (!controller.devices.count) {
-                void (^showDevices)(void) = controller.showDevices;
-                [controller finish];
-                if (showDevices) {
-                    showDevices();
-                }
-            } else if (controller.devices.count == 1) {
-                [controller installOnDevice:controller.devices.firstObject];
-            } else {
-                [controller showChooser];
-            }
-        }];
+        } else if (devices.count == 1) {
+            [controller installOnDevices:devices];
+        } else {
+            [controller showChooser];
+        }
+    }];
 }
 
 - (void)install:(id)sender {
     (void)sender;
-    NSInteger index = self.devicePicker.indexOfSelectedItem;
-    if (index >= 0 && (NSUInteger)index < self.devices.count) {
-        [self installOnDevice:self.devices[(NSUInteger)index]];
-    }
+    [self installOnDevices:self.selectedDevices];
 }
 
 - (void)cancel:(id)sender {
@@ -466,7 +662,7 @@ static NSString *SCAPKADBExecutable(void) {
 - (void)windowWillClose:(NSNotification *)notification {
     (void)notification;
     if (!self.transitioning) {
-        [self.command cancel];
+        [self.discovery cancel];
         [self finish];
     }
 }

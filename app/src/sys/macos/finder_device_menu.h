@@ -5,6 +5,7 @@ NS_ASSUME_NONNULL_BEGIN
 extern NSString *const SCFinderDeviceSerialKey;
 extern NSString *const SCFinderDeviceModelKey;
 extern NSString *const SCFinderDeviceTransportKey;
+extern NSString *const SCFinderDeviceTransportIDKey;
 
 BOOL SCFinderSelectionIsSingleAPK(NSArray<NSURL *> *urls);
 NSArray<NSDictionary<NSString *, NSString *> *> *SCFinderParseADBDevices(
