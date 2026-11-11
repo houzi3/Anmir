@@ -41,6 +41,26 @@ static NSView *find(NSView *view, NSString *identifier) {
     }
     return nil;
 }
+static void checkButtonGap(NSButton *button, BOOL cancelOnRight) {
+    assert(button.superview);
+    for (NSView *view in button.superview.subviews) {
+        if ([view isKindOfClass:NSButton.class] && [((NSButton *)view).keyEquivalent isEqual:@"\033"]) {
+            NSRect left = cancelOnRight ? button.frame : view.frame;
+            NSRect right = cancelOnRight ? view.frame : button.frame;
+            assert(NSMinX(right) - NSMaxX(left) >= 8);
+            assert(fabs(NSMidY(left) - NSMidY(right)) <= 1);
+            return;
+        }
+    }
+    assert(!"Missing cancel button");
+}
+static void checkQRFrame(NSView *image) {
+    assert(image);
+    NSView *frame = image.superview.superview;
+    assert([frame isKindOfClass:NSBox.class]);
+    // The square white image must stay clear of the rounded border.
+    assert(NSContainsRect(NSInsetRect(frame.bounds, 4, 4), [image convertRect:image.bounds toView:frame]));
+}
 static NSBitmapImageRep *snapshot(NSView *view) {
     [view layoutSubtreeIfNeeded];
     NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
@@ -101,6 +121,8 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
                 ? NSAppearanceNameAqua : NSAppearanceNameDarkAqua];
             [content layoutSubtreeIfNeeded];
             assert(!content.hasAmbiguousLayout);
+            NSButton *refresh = (NSButton *)find(content, @"WiFi.refreshQR");
+            checkButtonGap(refresh, YES);
             NSView *networkMode = find(content, @"WiFi.companyNetwork");
             NSRect entry = [networkMode convertRect:networkMode.bounds toView:content];
             assert(NSMaxX(entry) <= NSWidth(content.bounds) - 20);
@@ -121,6 +143,8 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
                     @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
                     "/AnmirConnect-" SCRCPY_VERSION ".apk"]);
                 assert(find(content, @"WiFi.companySteps"));
+                NSView *installRow = caption.superview;
+                assert(NSContainsRect(installRow.bounds, [download convertRect:download.bounds toView:installRow]));
                 if (![language isEqualToString:@"en"]) {
                     assert(fabs(NSHeight(caption.superview.bounds) - NSHeight(helper.superview.bounds)) <= 1);
                     assert(fabs(NSHeight(caption.superview.bounds) - NSHeight(path.superview.bounds)) <= 1);
@@ -136,6 +160,7 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
             }
             assert(qr == [wifi valueForKey:@"qrPairing"]); // Theme/language cannot rotate a live code.
             NSView *image = find(content, @"WiFi.qrCode");
+            checkQRFrame(image);
             NSBitmapImageRep *pixels = snapshot(image);
             CIDetector *detector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:nil
                 options:@{CIDetectorAccuracy:CIDetectorAccuracyHigh}];
@@ -143,7 +168,6 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
             assert(features.count == 1);
             assert([((CIQRCodeFeature *)features.firstObject).messageString isEqualToString:qr.payload]);
             save(content, [NSString stringWithFormat:@"%@-%@.png", language, theme]);
-            NSButton *refresh = (NSButton *)find(content, @"WiFi.refreshQR");
             NSRect status = [find(content, @"WiFi.qrStatus") convertRect:find(content, @"WiFi.qrStatus").bounds toView:content];
             assert(NSMinY(status) >= NSMaxY(refresh.frame) + 20);
             assert(NSMinY(status) <= NSMaxY(refresh.frame) + 44);
@@ -222,6 +246,7 @@ int main(int argc, const char *argv[]) {
         assert(installerPopover.shown);
         NSView *installerQR = find(installerPopover.contentViewController.view, @"WiFi.companionInstallQR");
         NSBitmapImageRep *installerPixels = snapshot(installerQR);
+        checkQRFrame(installerQR);
         CIDetector *installerDetector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:nil
             options:@{CIDetectorAccuracy:CIDetectorAccuracyHigh}];
         NSArray *installerFeatures = [installerDetector featuresInImage:
@@ -338,6 +363,18 @@ int main(int argc, const char *argv[]) {
                 save(wifi.window.contentView, @"pairing-failed.png");
                 [[wifi valueForKey:@"modeButton"] performClick:nil];
                 assert([wifi valueForKey:@"code"]);
+                for (NSString *page in @[@"pairing-code", @"manual"]) {
+                    for (NSString *language in @[@"zh-Hans", @"zh-Hant", @"en"]) {
+                        SCUseLanguage(language);
+                        [wifi.window.contentView layoutSubtreeIfNeeded];
+                        checkButtonGap([wifi valueForKey:@"connectButton"], NO);
+                        save(wifi.window.contentView, [NSString stringWithFormat:@"%@-%@.png", page, language]);
+                    }
+                    if ([page isEqualToString:@"pairing-code"]) {
+                        [[wifi valueForKey:@"modeButton"] performClick:nil];
+                        assert([wifi valueForKey:@"address"]);
+                    }
+                }
             } else {
                 waitFor(^BOOL { return fixtureRead(@"pair-arguments").length > 0; });
                 assert(![[wifi valueForKey:@"qrRefreshButton"] isEnabled]);
