@@ -2,6 +2,7 @@
 
 #import <AppKit/AppKit.h>
 #import "localization.h"
+#import "settings.h"
 #import "settings_ui.h"
 #import "updater.h"
 #import "device_picker_ui.h"
@@ -82,6 +83,218 @@ static NSString *SCMirrorShownNotification(void) {
 }
 @end
 
+static NSImage *SCDeviceNicknameIcon(void) {
+    // The supplied edit SVG uses two rounded strokes, scaled here to 16 pt.
+    NSImage *image = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect bounds) {
+        (void)bounds;
+        NSBezierPath *path = [NSBezierPath bezierPath];
+        path.lineWidth = 1.4;
+        path.lineCapStyle = NSLineCapStyleRound;
+        const CGFloat left = 0.832, right = 15.205, top = 15.179, bottom = 0.806;
+        const CGFloat radius = 1.077;
+        [path moveToPoint:NSMakePoint(9.058, top)];
+        [path appendBezierPathWithArcFromPoint:NSMakePoint(left, top)
+            toPoint:NSMakePoint(left, bottom) radius:radius];
+        [path appendBezierPathWithArcFromPoint:NSMakePoint(left, bottom)
+            toPoint:NSMakePoint(right, bottom) radius:radius];
+        [path appendBezierPathWithArcFromPoint:NSMakePoint(right, bottom)
+            toPoint:NSMakePoint(right, 9.696) radius:radius];
+        [path lineToPoint:NSMakePoint(right, 9.696)];
+        [path moveToPoint:NSMakePoint(7.415, 7.525)];
+        [path lineToPoint:NSMakePoint(15.028, 15.139)];
+        [NSColor.blackColor setStroke];
+        [path stroke];
+        return YES;
+    }];
+    image.template = YES;
+    return image;
+}
+
+@interface SCDeviceNicknameButton : SCDeviceIconButton
+@property(nonatomic, strong) NSTimer *hintTimer;
+@property(nonatomic, strong) NSPanel *hintPanel;
+- (void)hideHint;
+@end
+
+@implementation SCDeviceNicknameButton
+- (BOOL)containsMousePointer {
+    NSWindow *window = self.window;
+    if (!window.isKeyWindow || !window.isVisible || !self.enabled || self.isHiddenOrHasHiddenAncestor) {
+        return NO;
+    }
+    NSPoint point = [self convertPoint:window.mouseLocationOutsideOfEventStream fromView:nil];
+    return NSMouseInRect(point, self.visibleRect, self.isFlipped);
+}
+
+- (void)showHint {
+    if (![self containsMousePointer]) { return; }
+    NSWindow *window = self.window;
+    NSRect anchor = [window convertRectToScreen:[self convertRect:self.bounds toView:nil]];
+    NSRect screen = window.screen.visibleFrame;
+    NSTextField *label = [NSTextField labelWithString:SCLocalized(@"Click to edit device nickname")];
+    label.font = [NSFont toolTipsFontOfSize:0];
+    NSSize text = label.intrinsicContentSize;
+    NSRect frame = NSMakeRect(0, NSMinY(anchor) - text.height - 13, text.width + 14, text.height + 8);
+    frame.origin.x = MAX(NSMinX(screen), MIN(NSMidX(anchor) - NSWidth(frame) / 2,
+        NSMaxX(screen) - NSWidth(frame)));
+    if (NSMinY(frame) < NSMinY(screen)) { frame.origin.y = NSMaxY(anchor) + 5; }
+
+    NSPanel *panel = [[NSPanel alloc] initWithContentRect:frame
+        styleMask:NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel
+        backing:NSBackingStoreBuffered defer:NO];
+    panel.appearance = window.effectiveAppearance;
+    panel.opaque = NO;
+    panel.backgroundColor = NSColor.clearColor;
+    panel.hasShadow = YES;
+    panel.ignoresMouseEvents = YES;
+    NSVisualEffectView *surface = [[NSVisualEffectView alloc] initWithFrame:panel.contentView.bounds];
+    surface.material = NSVisualEffectMaterialToolTip;
+    surface.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    surface.state = NSVisualEffectStateActive;
+    surface.wantsLayer = YES;
+    surface.layer.cornerRadius = 5;
+    surface.layer.masksToBounds = YES;
+    label.frame = NSMakeRect(7, 4, text.width, text.height);
+    [surface addSubview:label];
+    panel.contentView = surface;
+    self.hintPanel = panel;
+    [window addChildWindow:panel ordered:NSWindowAbove];
+    [panel orderFront:nil];
+}
+
+- (void)hideHint {
+    [self.hintTimer invalidate];
+    self.hintTimer = nil;
+    NSPanel *panel = self.hintPanel;
+    self.hintPanel = nil;
+    [panel.parentWindow removeChildWindow:panel];
+    [panel orderOut:nil];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    [super mouseEntered:event];
+    [self hideHint];
+    __weak SCDeviceNicknameButton *weakSelf = self;
+    self.hintTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:NO block:^(NSTimer *timer) {
+        (void)timer;
+        SCDeviceNicknameButton *button = weakSelf;
+        button.hintTimer = nil;
+        [button showHint];
+    }];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    [super mouseExited:event];
+    [self hideHint];
+}
+
+- (void)mouseDown:(NSEvent *)event {
+    [self hideHint];
+    [super mouseDown:event];
+}
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (self.hintPanel && ![self containsMousePointer]) { [self hideHint]; }
+}
+
+- (void)viewDidHide {
+    [super viewDidHide];
+    [self hideHint];
+}
+
+- (void)viewWillMoveToWindow:(NSWindow *)newWindow {
+    [self hideHint];
+    NSNotificationCenter *notifications = NSNotificationCenter.defaultCenter;
+    [notifications removeObserver:self name:NSWindowDidResignKeyNotification object:self.window];
+    if (newWindow) {
+        [notifications addObserver:self selector:@selector(windowDidResignKey:)
+            name:NSWindowDidResignKeyNotification object:newWindow];
+    }
+    [super viewWillMoveToWindow:newWindow];
+}
+
+- (void)windowDidResignKey:(NSNotification *)notification {
+    (void)notification;
+    [self hideHint];
+}
+@end
+
+@interface SCDeviceNicknameSheet : NSWindowController
+@property(nonatomic, strong) SCDeviceInput *input;
+- (instancetype)initWithModel:(NSString *)model nickname:(NSString *)nickname;
+@end
+
+@implementation SCDeviceNicknameSheet
+- (instancetype)initWithModel:(NSString *)model nickname:(NSString *)nickname {
+    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 340, 180)
+        styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskFullSizeContentView
+        backing:NSBackingStoreBuffered defer:NO];
+    self = [super initWithWindow:window];
+    if (!self) { return nil; }
+
+    SCBind(window, @"title", @"Edit device nickname");
+    window.titleVisibility = NSWindowTitleHidden;
+    window.titlebarAppearsTransparent = YES;
+    window.releasedWhenClosed = NO;
+    window.backgroundColor = SCDeviceBackground();
+    window.contentView = [[SCDeviceSurface alloc] initWithFrame:window.contentView.bounds];
+    NSView *content = window.contentView;
+    NSTextField *title = SCDeviceLocalizedLabel(@"Edit device nickname", 16, NSFontWeightSemibold, NO);
+    NSTextField *modelLabel = SCDeviceLabel(model ?: @"", 12, NSFontWeightRegular, YES);
+    if (model) {
+        modelLabel.toolTip = model;
+    } else {
+        SCBind(modelLabel, @"stringValue", @"Android device");
+        SCBind(modelLabel, @"toolTip", @"Android device");
+    }
+    _input = [[SCDeviceInput alloc] initWithPlaceholder:@"Device nickname" identifier:@"Device.nickname"];
+    _input.stringValue = nickname;
+    SCBind(_input.textField, @"accessibilityLabel", @"Device nickname");
+    window.initialFirstResponder = _input.textField;
+    NSTextField *hint = SCDeviceLocalizedLabel(@"Leave blank to remove the nickname.", 11, NSFontWeightRegular, YES);
+
+    SCDeviceButton *cancel = [SCDeviceButton buttonWithTitle:@"Cancel" target:self action:@selector(finish:)];
+    SCDeviceButton *save = [SCDeviceButton buttonWithTitle:@"Save" target:self action:@selector(finish:)];
+    cancel.tag = NSModalResponseCancel;
+    cancel.keyEquivalent = @"\033";
+    save.tag = NSModalResponseOK;
+    save.keyEquivalent = @"\r";
+    save.primary = YES;
+    for (SCDeviceButton *button in @[cancel, save]) {
+        button.bezelStyle = NSBezelStyleRounded;
+        button.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
+        button.translatesAutoresizingMaskIntoConstraints = NO;
+        [button.widthAnchor constraintGreaterThanOrEqualToConstant:74].active = YES;
+        [button.heightAnchor constraintEqualToConstant:30].active = YES;
+    }
+    NSStackView *actions = SCDeviceStack(@[cancel, save], NO, 8);
+    for (NSView *view in @[title, modelLabel, _input, hint, actions]) {
+        [content addSubview:view];
+    }
+    for (NSView *view in @[title, modelLabel, _input, hint]) {
+        [NSLayoutConstraint activateConstraints:@[
+            [view.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:20],
+            [view.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-20],
+        ]];
+    }
+    [NSLayoutConstraint activateConstraints:@[
+        [title.topAnchor constraintEqualToAnchor:content.topAnchor constant:18],
+        [modelLabel.topAnchor constraintEqualToAnchor:title.bottomAnchor constant:3],
+        [_input.topAnchor constraintEqualToAnchor:modelLabel.bottomAnchor constant:12],
+        [hint.topAnchor constraintEqualToAnchor:_input.bottomAnchor constant:5],
+        [actions.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-20],
+        [actions.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:-16],
+    ]];
+    return self;
+}
+
+- (void)finish:(NSButton *)sender {
+    [self.window makeFirstResponder:nil];
+    [self.window.sheetParent endSheet:self.window returnCode:sender.tag];
+}
+@end
+
 static NSString *sc_device_picker_string(const char *value) {
     return value ? ([NSString stringWithUTF8String:value] ?: @"Unknown") : @"Unknown";
 }
@@ -92,10 +305,17 @@ static NSString *sc_device_picker_string(const char *value) {
 @property(nonatomic, readonly) NSString *transport;
 @property(nonatomic, readonly) BOOL ready;
 @property(nonatomic) BOOL fallbackName;
+@property(nonatomic, copy) NSString *physicalIdentity;
+@property(nonatomic, readonly) NSString *modelName;
 @property(nonatomic, readonly) NSString *displayName;
 @end
 @implementation SCDeviceEntry
-- (NSString *)displayName { return self.fallbackName ? SCLocalized(@"Android device") : self.name; }
+- (NSString *)modelName {
+    return self.fallbackName ? SCLocalized(@"Android device") : self.name;
+}
+- (NSString *)displayName {
+    return SCSettingsDeviceNickname(self.physicalIdentity) ?: self.modelName;
+}
 - (BOOL)ready { return [self.state isEqualToString:@"device"]; }
 - (NSString *)transport {
     switch (self.transportType) {
@@ -359,6 +579,8 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 
 - (void)applyMetadata:(SCDeviceEntry *)entry {
     NSDictionary *properties = self.metadata[entry.serial];
+    entry.physicalIdentity = entry.transportType == SC_ADB_DEVICE_TYPE_EMULATOR
+        ? nil : SCDevicePhysicalIdentity(properties);
     NSString *model = properties[@"ro.product.model"];
     if (!model.length) { model = entry.name; }
     NSString *brand = properties[@"ro.product.manufacturer"];
@@ -687,6 +909,28 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)table { (void)table; return self.devices.count; }
 - (BOOL)tableView:(NSTableView *)table shouldSelectRow:(NSInteger)row { (void)table; (void)row; return NO; }
+- (void)editDeviceNickname:(SCDeviceNicknameButton *)button {
+    [button hideHint];
+    if (!self.window.visible || self.window.attachedSheet) { return; }
+    SCDeviceEntry *entry = nil;
+    for (SCDeviceEntry *candidate in self.devices) {
+        if ([candidate.serial isEqualToString:button.identifier]) { entry = candidate; break; }
+    }
+    NSString *identity = entry.physicalIdentity;
+    if (!identity.length) { return; }
+
+    SCDeviceNicknameSheet *editor = [[SCDeviceNicknameSheet alloc]
+        initWithModel:entry.fallbackName ? nil : entry.modelName
+        nickname:SCSettingsDeviceNickname(identity)];
+    __weak SCDeviceManager *weakSelf = self;
+    [self.window beginSheet:editor.window completionHandler:^(NSModalResponse response) {
+        if (response == NSModalResponseOK) {
+            SCSettingsSetDeviceNickname(identity, editor.input.stringValue);
+            [weakSelf.table reloadData];
+        }
+    }];
+}
+
 - (NSView *)tableView:(NSTableView *)table viewForTableColumn:(NSTableColumn *)column row:(NSInteger)row {
     (void)table;
     SCDeviceEntry *entry = self.devices[row];
@@ -734,9 +978,30 @@ static NSArray<SCDeviceEntry *> *sc_device_picker_entries(const struct sc_vec_ad
         [cell addSubview:label];
         [NSLayoutConstraint activateConstraints:@[
             [label.leadingAnchor constraintEqualToAnchor:cell.leadingAnchor constant:device ? 52 : 14],
-            [label.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor constant:-10],
             [label.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
         ]];
+        if (device && entry.physicalIdentity.length) {
+            SCDeviceNicknameButton *edit = [SCDeviceNicknameButton buttonWithImage:SCDeviceNicknameIcon()
+                target:self action:@selector(editDeviceNickname:)];
+            edit.identifier = entry.serial;
+            edit.glyphSize = 11;
+            edit.contentTintColor = NSColor.secondaryLabelColor;
+            edit.translatesAutoresizingMaskIntoConstraints = NO;
+            SCBind(edit, @"accessibilityLabel", @"Edit device nickname");
+            if (![entry.modelName isEqualToString:label.stringValue]) {
+                label.toolTip = [NSString stringWithFormat:@"%@ · %@", label.stringValue, entry.modelName];
+            }
+            [cell addSubview:edit];
+            [NSLayoutConstraint activateConstraints:@[
+                [edit.leadingAnchor constraintEqualToAnchor:label.trailingAnchor constant:4],
+                [edit.trailingAnchor constraintLessThanOrEqualToAnchor:cell.trailingAnchor constant:-10],
+                [edit.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+                [edit.widthAnchor constraintEqualToConstant:24],
+                [edit.heightAnchor constraintEqualToConstant:24],
+            ]];
+        } else {
+            [label.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor constant:-10].active = YES;
+        }
         if (device) {
             NSImageView *icon = [NSImageView imageViewWithImage:SCDeviceSymbol(@"iphone")];
             icon.contentTintColor = NSColor.secondaryLabelColor;

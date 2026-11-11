@@ -73,7 +73,12 @@ int main(int argc, const char *argv[]) {
         domain = args[2]; resources = [NSBundle bundleWithPath:args[3]];
         if (![args[1] isEqualToString:@"writer"]) {
             SCSettingsInitialize();
-            if ([args[1] isEqualToString:@"verify"]) { assert(updated()); return 0; }
+            if ([args[1] isEqualToString:@"verify"]) {
+                assert(updated());
+                assert([SCSettingsDeviceNickname(@"test-device-a") isEqualToString:@"Regression phone"]);
+                assert(!SCSettingsDeviceNickname(@"test-device-b"));
+                return 0;
+            }
             assert(!sc_settings_toolbar_visible()); // Explicit OFF survives launch.
             NSUInteger initial = events;
             [@"ready" writeToFile:args[4] atomically:YES encoding:NSUTF8StringEncoding error:nil];
@@ -90,6 +95,15 @@ int main(int argc, const char *argv[]) {
         assert(sc_settings_set_toolbar_visible(true));
         assert(sc_settings_toolbar_visible()); // New settings take precedence.
         assert(sc_settings_set_toolbar_visible(false));
+        assert(!SCSettingsDeviceNickname(nil));
+        assert(!SCSettingsDeviceNickname(@"test-device-a"));
+        SCSettingsSetDeviceNickname(@"test-device-a", @"  Regression phone \n");
+        SCSettingsSetDeviceNickname(@"test-device-b", @"Demo phone");
+        assert([SCSettingsDeviceNickname(@"test-device-a") isEqualToString:@"Regression phone"]);
+        assert([SCSettingsDeviceNickname(@"test-device-b") isEqualToString:@"Demo phone"]);
+        SCSettingsSetDeviceNickname(@"test-device-b", @"  \n ");
+        assert(!SCSettingsDeviceNickname(@"test-device-b"));
+        assert([SCSettingsDeviceNickname(@"test-device-a") isEqualToString:@"Regression phone"]);
         SCSettingsPreviewLanguage(@"zh-Hant");
         [NSNotificationCenter.defaultCenter postNotificationName:NSApplicationDidBecomeActiveNotification object:nil];
         assert([SCCurrentLanguage() isEqualToString:@"zh-Hant"]);
@@ -109,7 +123,7 @@ int main(int argc, const char *argv[]) {
         assert(reopened.terminationStatus == 0);
         [isolated removePersistentDomainForName:domain]; [isolated synchronize];
         [NSFileManager.defaultManager removeItemAtPath:ready error:nil];
-        puts("Defaults, legacy OFF, onboarding preview, cross-process live updates and relaunch persistence passed.");
+        puts("Defaults, legacy OFF, onboarding preview, cross-process live updates and nickname persistence passed.");
     }
     return 0;
 }

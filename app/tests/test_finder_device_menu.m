@@ -8,15 +8,22 @@ int main(void) {
             "USB123 device product:foo model:Google_Pixel_7a device:lynx transport_id:1\n"
             "192.168.1.10:5555 device product:foo model:Pixel_8 transport_id:2\n"
             "emulator-5554 device product:sdk model:sdk_gphone64_arm64 transport_id:3\n"
+            "adb-pixel-AbCd._adb-tls-connect._tcp device transport_id:6 model:Pixel_7a\n"
+            "USB2 device transport_id:-1\n"
             "BAD unauthorized usb:1-1 transport_id:4\n"
             "OFF offline transport_id:5\n";
         NSArray *devices = SCFinderParseADBDevices(output);
-        assert(devices.count == 3);
+        assert(devices.count == 5);
         assert([devices[0][SCFinderDeviceSerialKey] isEqualToString:@"USB123"]);
         assert([devices[0][SCFinderDeviceModelKey] isEqualToString:@"Google Pixel 7a"]);
         assert([devices[0][SCFinderDeviceTransportKey] isEqualToString:@"USB"]);
+        assert([devices[0][SCFinderDeviceTransportIDKey] isEqualToString:@"1"]);
         assert([devices[1][SCFinderDeviceTransportKey] isEqualToString:@"Wi-Fi"]);
         assert([devices[2][SCFinderDeviceTransportKey] isEqualToString:@"Emulator"]);
+        assert([devices[3][SCFinderDeviceTransportKey] isEqualToString:@"Wi-Fi"]);
+        assert([devices[3][SCFinderDeviceTransportIDKey] isEqualToString:@"6"]);
+        assert([devices[3][SCFinderDeviceModelKey] isEqualToString:@"Pixel 7a"]);
+        assert(!devices[4][SCFinderDeviceTransportIDKey]);
 
         NSString *directory = [NSTemporaryDirectory()
             stringByAppendingPathComponent:NSUUID.UUID.UUIDString];

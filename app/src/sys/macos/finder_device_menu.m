@@ -3,6 +3,7 @@
 NSString *const SCFinderDeviceSerialKey = @"serial";
 NSString *const SCFinderDeviceModelKey = @"model";
 NSString *const SCFinderDeviceTransportKey = @"transport";
+NSString *const SCFinderDeviceTransportIDKey = @"transport_id";
 
 BOOL SCFinderSelectionIsSingleAPK(NSArray<NSURL *> *urls) {
     if (urls.count != 1) {
@@ -19,6 +20,8 @@ NSArray<NSDictionary<NSString *, NSString *> *> *SCFinderParseADBDevices(
         NSString *output) {
     NSMutableArray *devices = [NSMutableArray array];
     NSCharacterSet *whitespace = NSCharacterSet.whitespaceCharacterSet;
+    NSCharacterSet *nonDigits = [[NSCharacterSet
+        characterSetWithCharactersInString:@"0123456789"] invertedSet];
     for (NSString *rawLine in [output componentsSeparatedByCharactersInSet:
             NSCharacterSet.newlineCharacterSet]) {
         NSString *line = [rawLine stringByTrimmingCharactersInSet:whitespace];
@@ -37,20 +40,32 @@ NSArray<NSDictionary<NSString *, NSString *> *> *SCFinderParseADBDevices(
         }
         NSString *serial = fields[0];
         NSString *model = nil;
+        NSString *transportID = nil;
         for (NSString *field in fields) {
             if ([field hasPrefix:@"model:"] && field.length > 6) {
                 model = [[field substringFromIndex:6]
                     stringByReplacingOccurrencesOfString:@"_" withString:@" "];
-                break;
+            } else if ([field hasPrefix:@"transport_id:"]) {
+                NSString *value = [field substringFromIndex:13];
+                if (value.length && ![value hasPrefix:@"0"]
+                        && [value rangeOfCharacterFromSet:nonDigits].location == NSNotFound) {
+                    transportID = value;
+                }
             }
         }
+        BOOL wireless = [serial containsString:@":"]
+            || [serial containsString:@"adb-tls-connect"];
         NSString *transport = [serial hasPrefix:@"emulator-"] ? @"Emulator"
-            : [serial containsString:@":"] ? @"Wi-Fi" : @"USB";
-        [devices addObject:@{
+            : wireless ? @"Wi-Fi" : @"USB";
+        NSMutableDictionary *device = [@{
             SCFinderDeviceSerialKey: serial,
             SCFinderDeviceModelKey: model.length ? model : @"Android device",
             SCFinderDeviceTransportKey: transport,
-        }];
+        } mutableCopy];
+        if (transportID) {
+            device[SCFinderDeviceTransportIDKey] = transportID;
+        }
+        [devices addObject:[device copy]];
     }
     return devices;
 }

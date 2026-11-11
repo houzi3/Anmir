@@ -9,6 +9,7 @@ NSNotificationName const SCSettingsChangedNotification = @"AnmirSettingsChanged"
 static NSString *const SCThemeKey = @"AnmirTheme";
 static NSString *const SCLanguageKey = @"AnmirLanguage";
 static NSString *const SCToolbarKey = @"AnmirToolbarVisible";
+static NSString *const SCDeviceNicknameKeyPrefix = @"AnmirDeviceNickname.";
 static NSUserDefaults *defaults;
 static NSString *previewLanguage;
 
@@ -47,6 +48,24 @@ BOOL SCSettingsHasTheme(void) {
 NSString *SCSettingsLanguage(void) {
     NSString *value = [SCSettingsDefaults() stringForKey:SCLanguageKey];
     return [@[@"system", @"en", @"zh-Hans", @"zh-Hant"] containsObject:value ?: @""] ? value : @"system";
+}
+NSString *SCSettingsDeviceNickname(NSString *identity) {
+    if (!identity.length) { return nil; }
+    NSString *key = [SCDeviceNicknameKeyPrefix stringByAppendingString:identity];
+    NSString *nickname = [SCSettingsDefaults() stringForKey:key];
+    return nickname.length ? nickname : nil;
+}
+void SCSettingsSetDeviceNickname(NSString *identity, NSString *nickname) {
+    if (!identity.length) { return; }
+    NSString *key = [SCDeviceNicknameKeyPrefix stringByAppendingString:identity];
+    NSString *trimmed = [nickname stringByTrimmingCharactersInSet:
+        NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSUserDefaults *deviceDefaults = SCSettingsDefaults();
+    if (trimmed.length) {
+        [deviceDefaults setObject:trimmed forKey:key];
+    } else {
+        [deviceDefaults removeObjectForKey:key];
+    }
 }
 bool sc_settings_toolbar_visible(void) {
     id value = [SCSettingsDefaults() objectForKey:SCToolbarKey];
