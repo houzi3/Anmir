@@ -131,9 +131,13 @@ build, a matching release tag, an unchanged APK payload and the pinned release
 certificate before uploading the Mac packages, APK, checksums and `update.json`.
 Published releases are never overwritten.
 
-After publication succeeds, the workflow runs `bump_version` and commits the next
-patch version to `main`, including both Android modules. Forks still build artifacts
-but never publish or change their branches.
+After publication succeeds, the workflow adds the published version and date to
+both READMEs. Use the optional `readme_summary_zh` and `readme_summary_en` inputs
+when dispatching the publish run to provide one-sentence README summaries.
+If a summary is blank, its README uses “修复了一些 Bug。” or “Fixed some bugs.”
+Each entry links to the full release notes. In the same commit to `main`, the
+workflow runs `bump_version` to advance to the next patch version, including
+both Android modules. Forks only build artifacts.
 
 Drafts and prereleases are not selected by GitHub's `releases/latest` redirect.
 Missing, malformed or incomplete manifests fail closed. The updater verifies
