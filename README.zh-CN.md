@@ -23,6 +23,7 @@
 - **内置无线配对**：用安卓设备扫描 Anmir 的二维码，或在 Anmir 中输入配对码；支持手动连接已配对设备。
 - **公司网络连接**：mDNS 受限时可使用 Anmir Connect 辅助连接，Wi-Fi 恢复后自动重连。
 - **统一设备管理**：自动发现安卓设备，合并同一设备的 USB 与无线连接；每台设备拥有独立投屏窗口与 Dock 入口。
+- 在访达中**双击 APK 文件**，即可用 Anmir 安装到已连接的安卓设备。
 - **悬浮工具栏**：在投屏窗口旁快速返回、打开主页、切换最近任务、截图和录屏。
 - **截图与录屏**：一键截图到 Mac 剪贴板；投屏中启停录屏，显示录制时长，并通过保存对话框选择位置。
 - **外观与语言**：浅色、深色或跟随系统；简体中文、繁体中文与英文即时切换，设置同步到投屏窗口。
@@ -42,7 +43,13 @@
   </tr>
   <tr>
     <td valign="top"><img src="doc/images/devices.png" alt="Anmir 设备列表" width="480" /></td>
-    <td valign="top"><img src="doc/images/mirroring.png" alt="Anmir 设备投屏与悬浮工具栏" width="250" /></td>
+    <td valign="top" rowspan="3"><img src="doc/images/mirroring.png" alt="Anmir 设备投屏与悬浮工具栏" width="250" /></td>
+  </tr>
+  <tr>
+    <th>访达中的 APK 文件</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="doc/images/finder-apk.png" alt="访达中带有 Anmir 图标的两个 APK 文件" width="290" /></td>
   </tr>
 </table>
 
@@ -111,6 +118,7 @@
 | --- | --- |
 | 返回、主页、最近任务 | 投屏窗口旁的悬浮工具栏。 |
 | 截图、录屏 | 悬浮工具栏；截图复制到 Mac 剪贴板，录屏可选择保存位置。 |
+| 安装 APK | 在访达中双击 `.apk` 文件。一台设备可用时直接安装，多台可用时勾选目标设备并点击「安装」。 |
 | 外观、语言、工具栏设置 | 设备列表或投屏窗口右上角的齿轮，或按 `⌘,`。 |
 | 重新打开窗口 | 从 Spotlight 或访达打开 Anmir；已有窗口会恢复并置前，否则显示设备列表。 |
 | 完全退出 | 按 `⌘Q`，关闭 Anmir 和投屏窗口，同时停止后台重连。 |
