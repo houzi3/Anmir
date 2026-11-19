@@ -23,6 +23,7 @@ adb is included, with no separate Homebrew or Android SDK installation needed. M
 - **Built-in wireless pairing:** scan Anmir's QR code with your Android device, or enter a pairing code. Connect paired devices by IP address and port.
 - **Company-network pairing:** use Anmir Connect when mDNS is restricted, with reconnection after Wi-Fi returns.
 - **Unified device management:** discover Android devices and group each device's USB and wireless connections. Each mirror has its own window and Dock entry.
+- **Double-click an APK in Finder** to install it on a connected Android device with Anmir.
 - **Floating controls:** Back, Home, Recents, screenshots and recording beside the mirror window.
 - **Screenshots and recording:** copy device screenshots to your Mac's clipboard. Start and stop recording while mirroring, check elapsed time and choose a save location.
 - **Appearance and language:** light, dark or system appearance; live switching between English, Simplified Chinese and Traditional Chinese. Settings apply to mirror windows too.
@@ -42,7 +43,13 @@ Choose **arm64** for Apple Silicon or **x86_64** for Intel.
   </tr>
   <tr>
     <td valign="top"><img src="doc/images/devices.png" alt="Anmir device list" width="480" /></td>
-    <td valign="top"><img src="doc/images/mirroring.png" alt="Anmir screen mirroring and floating controls" width="250" /></td>
+    <td valign="top" rowspan="3"><img src="doc/images/mirroring.png" alt="Anmir screen mirroring and floating controls" width="250" /></td>
+  </tr>
+  <tr>
+    <th>APK files in Finder</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="doc/images/finder-apk.png" alt="Two APK files with Anmir icons in Finder" width="290" /></td>
   </tr>
 </table>
 
@@ -111,6 +118,7 @@ Keep both apps running and wireless debugging enabled to reconnect when Wi-Fi re
 | --- | --- |
 | Back, Home and Recents | Floating toolbar beside the mirror window. |
 | Screenshots and recording | Floating toolbar. Screenshots go to your Mac's clipboard; recordings can be saved to a chosen location. |
+| Install an APK | Double-click the `.apk` file in Finder. Anmir installs it directly if one device is available. If several are available, select the target devices and click **Install**. |
 | Appearance, language and toolbar settings | Gear in the device list or mirror window, or `⌘,`. |
 | Reopen windows | Open Anmir from Spotlight or Finder. Existing windows are restored and brought forward; otherwise, the device list opens. |
 | Quit completely | Press `⌘Q` to close Anmir and its mirrors and stop background reconnection. |
