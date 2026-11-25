@@ -195,9 +195,16 @@ static NSString *SCAPKADBExecutable(void) {
 @property(nonatomic, strong) NSProgressIndicator *progress;
 @property(nonatomic, strong) SCDeviceButton *button;
 @property(nonatomic, strong) SCDeviceCommand *command;
+@property(nonatomic, copy) NSString *apk;
+@property(nonatomic, copy) NSString *serial;
+@property(nonatomic, copy) NSString *deviceName;
 @property(nonatomic) int result;
 @property(nonatomic) BOOL exitWhenClosed;
+@property(nonatomic) BOOL fromMirror;
+@property(nonatomic) BOOL canRetry;
+@property(nonatomic) BOOL closed;
 @property(nonatomic, copy) void (^completion)(void);
+- (void)finishClosing;
 @end
 
 @implementation SCAPKInstallerController
@@ -272,6 +279,9 @@ static NSString *SCAPKADBExecutable(void) {
         return nil;
     }
     _result = 1;
+    _apk = [apk copy];
+    _serial = [serial copy];
+    _deviceName = [deviceName copy];
     _exitWhenClosed = exitWhenClosed;
     _completion = [completion copy];
     _window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0,
@@ -292,11 +302,8 @@ static NSString *SCAPKADBExecutable(void) {
     NSView *content = _window.contentView;
     _icon = [[NSImageView alloc] init];
     _icon.translatesAutoresizingMaskIntoConstraints = NO;
-    _icon.image = SCAPKFileIcon();
-    _titleLabel = [self label:SCLocalized(@"Installing APK…") size:18
-        weight:NSFontWeightSemibold];
-    _detailLabel = [self label:[NSString stringWithFormat:@"%@\n%@",
-        apk.lastPathComponent, deviceName] size:12 weight:NSFontWeightRegular];
+    _titleLabel = [self label:@"" size:18 weight:NSFontWeightSemibold];
+    _detailLabel = [self label:@"" size:12 weight:NSFontWeightRegular];
     _detailLabel.textColor = NSColor.secondaryLabelColor;
     _detailLabel.lineBreakMode = NSLineBreakByCharWrapping;
     _detailLabel.selectable = YES;
@@ -305,7 +312,6 @@ static NSString *SCAPKADBExecutable(void) {
     _progress.indeterminate = YES;
     _progress.controlSize = NSControlSizeSmall;
     _progress.translatesAutoresizingMaskIntoConstraints = NO;
-    [_progress startAnimation:nil];
     _button = [SCDeviceButton buttonWithTitle:@"Cancel" target:self
         action:@selector(buttonPressed:)];
     _button.primary = NO;
@@ -343,16 +349,34 @@ static NSString *SCAPKADBExecutable(void) {
         [_button.widthAnchor constraintGreaterThanOrEqualToConstant:88],
         [_button.heightAnchor constraintEqualToConstant:32],
     ]];
-    [self resizeForDetailText:_detailLabel.stringValue];
-    [_window center];
+    return self;
+}
 
-    NSString *adb = SCAPKADBExecutable();
+- (void)startInstallation {
+    self.canRetry = NO;
+    self.icon.image = SCAPKFileIcon();
+    self.icon.contentTintColor = nil;
+    self.titleLabel.stringValue = SCLocalized(@"Installing APK…");
+    self.detailLabel.stringValue = [NSString stringWithFormat:@"%@\n%@",
+        self.apk.lastPathComponent, self.deviceName];
+    self.progress.hidden = NO;
+    [self.progress startAnimation:nil];
+    self.button.title = SCLocalized(@"Cancel");
+    self.button.primary = NO;
+    self.button.enabled = YES;
+    [self resizeForDetailText:self.detailLabel.stringValue];
+
     __weak SCAPKInstallerController *weakSelf = self;
-    _command = [SCDeviceCommand run:adb
-        arguments:@[@"-s", serial, @"install", @"-r", apk]
+    self.command = [SCDeviceCommand run:SCAPKADBExecutable()
+        arguments:@[@"-s", self.serial, @"install", @"-r", self.apk]
         input:nil timeout:600 completion:^(NSString *output, int status) {
             SCAPKInstallerController *controller = weakSelf;
             if (!controller) {
+                return;
+            }
+            controller.command = nil;
+            if (controller.closed) {
+                [controller finishClosing];
                 return;
             }
             [controller.progress stopAnimation:nil];
@@ -366,32 +390,46 @@ static NSString *SCAPKADBExecutable(void) {
                 controller.titleLabel.stringValue = SCLocalized(@"APK installed");
                 controller.detailLabel.stringValue = [NSString stringWithFormat:
                     SCLocalized(@"Installed “%@” on %@."),
-                    apk.lastPathComponent, deviceName];
+                    controller.apk.lastPathComponent, controller.deviceName];
                 [controller setStatusSymbol:@"checkmark.circle.fill"
                     color:SCDeviceBlue()];
                 controller.button.title = SCLocalized(@"OK");
                 controller.button.primary = YES;
+                if (controller.fromMirror) {
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
+                        dispatch_get_main_queue(), ^{
+                            if (!weakSelf.closed) {
+                                [weakSelf.window close];
+                            }
+                        });
+                }
             } else {
+                BOOL cancelled = controller.fromMirror && status == -2;
+                controller.canRetry = controller.fromMirror && !cancelled;
                 controller.titleLabel.stringValue =
-                    SCLocalized(@"APK installation failed");
-                controller.detailLabel.stringValue = message.length
-                    ? message : SCLocalized(@"ADB did not return an error message.");
+                    SCLocalized(cancelled ? @"Cancelled" : @"APK installation failed");
+                controller.detailLabel.stringValue = cancelled
+                    ? controller.apk.lastPathComponent : message.length
+                        ? message : SCLocalized(@"ADB did not return an error message.");
                 [controller setStatusSymbol:@"exclamationmark.triangle.fill"
                     color:NSColor.systemRedColor];
-                controller.button.title = SCLocalized(@"Close");
-                controller.button.primary = NO;
+                controller.button.title = SCLocalized(controller.canRetry ? @"Retry" : @"Close");
+                controller.button.primary = controller.canRetry;
             }
             controller.button.hidden = NO;
             controller.button.enabled = YES;
             [controller resizeForDetailText:controller.detailLabel.stringValue];
-            [NSApp activateIgnoringOtherApps:YES];
-            [controller.window makeKeyAndOrderFront:nil];
-            [controller.window orderFrontRegardless];
+            if (!controller.fromMirror) {
+                [NSApp activateIgnoringOtherApps:YES];
+                [controller.window makeKeyAndOrderFront:nil];
+                [controller.window orderFrontRegardless];
+            }
         }];
-    return self;
 }
 
 - (void)show {
+    [self startInstallation];
+    [self.window center];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     [NSApp finishLaunching];
     [NSApp activateIgnoringOtherApps:YES];
@@ -405,6 +443,8 @@ static NSString *SCAPKADBExecutable(void) {
         [self.command cancel];
         self.button.enabled = NO;
         self.titleLabel.stringValue = SCLocalized(@"Cancelling…");
+    } else if (self.canRetry) {
+        [self startInstallation];
     } else {
         [self.window close];
     }
@@ -412,19 +452,87 @@ static NSString *SCAPKADBExecutable(void) {
 
 - (void)windowWillClose:(NSNotification *)notification {
     (void)notification;
+    self.closed = YES;
     if (self.command.running) {
         [self.command cancel];
     }
+    // Wait for ADB to exit before starting the next installation on this device.
+    if (!self.fromMirror || !self.command) {
+        [self finishClosing];
+    }
+}
+
+- (void)finishClosing {
     if (self.exitWhenClosed) {
         [NSApp stop:nil];
     }
-    if (self.completion) {
-        self.completion();
-        self.completion = nil;
+    void (^completion)(void) = self.completion;
+    self.completion = nil;
+    if (completion) {
+        completion();
     }
 }
 
 @end
+
+static NSMutableArray<SCAPKInstallerController *> *SCAPKDroppedInstallers;
+
+bool sc_apk_installer_install_dropped_file(const char *path, const char *serial,
+                                          const char *device_name) {
+    @autoreleasepool {
+        if (!path || !serial || ![[NSBundle.mainBundle objectForInfoDictionaryKey:
+                @"CFBundlePackageType"] isEqualToString:@"APPL"]) {
+            return false;
+        }
+        NSString *apk = [NSString stringWithUTF8String:path].stringByStandardizingPath;
+        BOOL directory = NO;
+        if (!apk.length || [apk.pathExtension caseInsensitiveCompare:@"apk"] != NSOrderedSame
+                || ![NSFileManager.defaultManager fileExistsAtPath:apk isDirectory:&directory]
+                || directory) {
+            return false;
+        }
+
+        NSString *target = [NSString stringWithUTF8String:serial];
+        if (!target.length) {
+            return false;
+        }
+        NSString *name = device_name ? [NSString stringWithUTF8String:device_name] : nil;
+        SCAPKInstallerController *controller = [[SCAPKInstallerController alloc]
+            initWithAPK:apk serial:target deviceName:name.length ? name : target
+            exitWhenClosed:NO completion:nil];
+        controller.fromMirror = YES;
+        __weak SCAPKInstallerController *weakController = controller;
+        controller.completion = ^{
+            if (SCAPKDroppedInstallers.firstObject == weakController) {
+                [SCAPKDroppedInstallers removeObjectAtIndex:0];
+                SCAPKInstallerController *next = SCAPKDroppedInstallers.firstObject;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (next && SCAPKDroppedInstallers.firstObject == next) {
+                        [next show];
+                    }
+                });
+            }
+        };
+        if (!SCAPKDroppedInstallers) {
+            SCAPKDroppedInstallers = [NSMutableArray array];
+        }
+        [SCAPKDroppedInstallers addObject:controller];
+        if (SCAPKDroppedInstallers.count == 1) {
+            [controller show];
+        }
+        return true;
+    }
+}
+
+void sc_apk_installer_cancel_dropped_files(void) {
+    @autoreleasepool {
+        SCAPKInstallerController *active = SCAPKDroppedInstallers.firstObject;
+        SCAPKDroppedInstallers = nil;
+        if (active && !active.closed) {
+            [active.window close];
+        }
+    }
+}
 
 @interface SCAPKOpenController : NSObject <NSWindowDelegate>
 @property(nonatomic, copy) NSString *apk;

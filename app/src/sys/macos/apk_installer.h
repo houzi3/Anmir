@@ -7,6 +7,13 @@
 // Returns the installer exit status and sets handled only for that invocation.
 int sc_apk_installer_try_run(int argc, char *argv[], bool *handled);
 
+// Handle a file dropped on a bundled mirror window for its current device.
+// Returns false when the normal file pusher should handle the drop.
+bool sc_apk_installer_install_dropped_file(const char *path, const char *serial,
+                                          const char *device_name);
+
+void sc_apk_installer_cancel_dropped_files(void);
+
 #ifdef __OBJC__
 @class NSString;
 

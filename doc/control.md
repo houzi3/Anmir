@@ -123,7 +123,8 @@ This only works for the default mouse mode (`--mouse=sdk`).
 To install an APK, drag & drop an APK file (ending with `.apk`) to the _scrcpy_
 window.
 
-There is no visual feedback, a log is printed to the console.
+The macOS Anmir app shows an installation window with the status and result.
+Other builds log installation activity to the console.
 
 
 ### Push file to device
