@@ -14,6 +14,9 @@
 #include "shortcut_mod.h"
 #include "util/log.h"
 #include "util/sdl.h"
+#ifdef __APPLE__
+# include "sys/macos/apk_installer.h"
+#endif
 
 void
 sc_input_manager_init(struct sc_input_manager *im,
@@ -1175,6 +1178,13 @@ sc_input_manager_process_file(struct sc_input_manager *im,
     }
 
     assert(event->type == SDL_EVENT_DROP_FILE);
+#ifdef __APPLE__
+    if (event->windowID == SDL_GetWindowID(im->screen->window)
+            && sc_apk_installer_install_dropped_file(event->data, im->fp->serial,
+                                      SDL_GetWindowTitle(im->screen->window))) {
+        return;
+    }
+#endif
     char *file = strdup(event->data);
     if (!file) {
         LOG_OOM();

@@ -52,6 +52,7 @@
 #include "video_regulator.h"
 #ifdef __APPLE__
 # include "device_picker.h"
+# include "sys/macos/apk_installer.h"
 #endif
 
 struct scrcpy {
@@ -1024,6 +1025,9 @@ end:
     }
     if (file_pusher_initialized) {
         sc_file_pusher_stop(&s->file_pusher);
+#ifdef __APPLE__
+        sc_apk_installer_cancel_dropped_files();
+#endif
     }
     if (recording_manager_initialized) {
         sc_recording_manager_stop(&s->recording_manager);
