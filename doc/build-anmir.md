@@ -114,11 +114,11 @@ manifest. When Anmir Connect and the Mac app are both set to the same version,
 the artifact also includes the unsigned companion APK. The Android signing key
 remains on the maintainer's machine.
 
-To publish macOS on its own, keep `companion/build.gradle` at the current published
-Anmir Connect version. The Mac app uses that version for the Android download page
-and QR code. Dispatch `anmir-release.yml` on `main` with `macos_only=true` and
-`publish=true`, with `build_run_id` empty. The run builds both Mac architectures
-and publishes them with the embedded mirroring server and no standalone APK.
+To publish macOS on its own, dispatch `anmir-release.yml` on `main` with
+`macos_only=true` and `publish=true`, with `build_run_id` empty. The action finds
+the highest stable Anmir Connect version with a published APK on GitHub and embeds
+its download page and QR code in both Mac builds. The job log records the version
+for source rebuilds using `ANMIR_COMPANION_RELEASE_VERSION` with `release/build_macos.sh`.
 
 To release a new Anmir Connect APK, use `./bump_version VERSION` to set both app
 versions before building and follow the signing steps below.

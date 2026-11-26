@@ -50,6 +50,7 @@ meson setup "$MACOS_BUILD_DIR" \
     --buildtype=release \
     --strip \
     -Db_lto=true \
+    -Dcompanion_release_version="${ANMIR_COMPANION_RELEASE_VERSION:-}" \
     -Dcompile_server=false \
     -Dportable=true \
     -Dstatic=true

@@ -46,17 +46,34 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build_companion: ${{ steps.companion.outputs.build }}
+      companion_version: ${{ steps.companion.outputs.version }}
     steps:
       - uses: actions/checkout@v6
-      - name: Check whether to build Anmir Connect
+      - name: Resolve Anmir Connect version for the Mac builds
         id: companion
-        if: '!inputs.macos_only'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MACOS_ONLY: ${{ inputs.macos_only }}
         run: |
           version="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
           companion_version="$(sed -n "s/^ *versionName = '\([^']*\)'$/\1/p" companion/build.gradle)"
-          if [[ "$companion_version" == "$version" ]]; then
+          if [[ "$MACOS_ONLY" != true && "$companion_version" == "$version" ]]; then
             echo 'build=true' >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REPOSITORY" == houzi3/Anmir ]]; then
+            companion_version="$(gh api --paginate --slurp 'repos/houzi3/Anmir/releases?per_page=100' | jq -er '
+              [ .[][] | select(.draft == false and .prerelease == false)
+                | .tag_name as $tag
+                | select($tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                | ($tag | ltrimstr("v")) as $version
+                | select(any(.assets[]; .state == "uploaded"
+                    and .name == "AnmirConnect-\($version).apk"
+                    and .browser_download_url == "https://github.com/houzi3/Anmir/releases/download/\($tag)/\(.name)"))
+                | $version
+              ] | max_by(split(".") | map(tonumber)) // error("No published Anmir Connect APK found")
+            ')"
           fi
+          echo "version=$companion_version" >> "$GITHUB_OUTPUT"
+          echo "Mac builds will link to Anmir Connect $companion_version."
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -101,6 +118,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       MACOSX_DEPLOYMENT_TARGET: '11.0'
+      ANMIR_COMPANION_RELEASE_VERSION: ${{ needs.server.outputs.companion_version }}
     steps:
       - uses: actions/checkout@v6
       - name: Check native compatibility before building dependencies
@@ -139,6 +157,7 @@ jobs:
         run: |
           export PKG_CONFIG_LIBDIR="$PWD/app/deps/work/install/macos-native-static/lib/pkgconfig"
           meson setup build-tests --buildtype=debug -Dcompile_server=false -Dstatic=true \
+            -Dcompanion_release_version="$ANMIR_COMPANION_RELEASE_VERSION" \
             -Dc_args="-I$PWD/app/deps/work/install/macos-native-static/include" \
             -Dc_link_args="-L$PWD/app/deps/work/install/macos-native-static/lib"
           meson test -C build-tests --num-processes 1 --print-errorlogs
