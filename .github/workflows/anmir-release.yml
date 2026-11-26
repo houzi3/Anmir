@@ -254,7 +254,7 @@ jobs:
         with:
           name: anmir-release
           path: dist
-          github-token: ${{ github.token }}
+          github-token: ${{ inputs.build_run_id && github.token || '' }}
           run-id: ${{ inputs.build_run_id || github.run_id }}
       - name: Validate source build and signed APK
         if: '!inputs.macos_only'
@@ -292,7 +292,7 @@ jobs:
           MACOS_ONLY: ${{ inputs.macos_only }}
         run: |
           tag="v$VERSION"
-          jq -r '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
+          jq -j '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
           release_files=(
             "dist/Anmir-$VERSION-arm64.dmg"
             "dist/Anmir-$VERSION-arm64.zip"
@@ -302,7 +302,7 @@ jobs:
             "dist/SHA256SUMS"
           )
           if [[ "$MACOS_ONLY" == true ]]; then
-            tag_refs="$(git ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}")"
+            tag_refs="$(git ls-remote --sort=refname origin "refs/tags/$tag" "refs/tags/$tag^{}")"
             tag_sha="$(awk 'END {print $1}' <<< "$tag_refs")"
             if [[ -n "$tag_sha" && "$tag_sha" != "$GITHUB_SHA" ]]; then
               echo "Release tag $tag does not match this build." >&2

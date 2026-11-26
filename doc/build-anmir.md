@@ -66,8 +66,8 @@ matching build directory under `app/deps/work/build/` before rebuilding. The
 source archive includes no private application code or unavailable link inputs.
 ADB is a separate executable; its upstream notices are included in the app.
 
-The Android helper's version must match the client version. Both are `0.1.2`
-for this release. Its Java namespace remains `com.genymobile.scrcpy`.
+The embedded mirroring server must match the Mac client version. Its Java
+namespace remains `com.genymobile.scrcpy`.
 
 ## In-app updates
 
