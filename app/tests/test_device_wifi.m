@@ -138,10 +138,10 @@ static void checkLayout(SCDeviceWiFiController *wifi) {
                 assert(scan);
                 assert(alternative);
                 assert([download.toolTip isEqualToString:
-                    @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION]);
+                    @"https://github.com/houzi3/Anmir/releases/tag/v" ANMIR_COMPANION_VERSION]);
                 assert([scan.toolTip isEqualToString:
-                    @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
-                    "/AnmirConnect-" SCRCPY_VERSION ".apk"]);
+                    @"https://github.com/houzi3/Anmir/releases/download/v" ANMIR_COMPANION_VERSION
+                    "/AnmirConnect-" ANMIR_COMPANION_VERSION ".apk"]);
                 assert(find(content, @"WiFi.companySteps"));
                 NSView *installRow = caption.superview;
                 assert(NSContainsRect(installRow.bounds, [download convertRect:download.bounds toView:installRow]));
@@ -253,8 +253,8 @@ int main(int argc, const char *argv[]) {
             [CIImage imageWithCGImage:installerPixels.CGImage]];
         assert(installerFeatures.count == 1);
         assert([((CIQRCodeFeature *)installerFeatures.firstObject).messageString isEqualToString:
-            @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
-            "/AnmirConnect-" SCRCPY_VERSION ".apk"]);
+            @"https://github.com/houzi3/Anmir/releases/download/v" ANMIR_COMPANION_VERSION
+            "/AnmirConnect-" ANMIR_COMPANION_VERSION ".apk"]);
         assert(find(installerPopover.contentViewController.view, @"WiFi.companionInstallQRHint"));
         save(installerPopover.contentViewController.view, @"companion-installer.png");
         [installerPopover close];

@@ -220,6 +220,17 @@ conf.set('HAVE_SOCK_CLOEXEC', host_machine.system() != 'windows' and
 
 # the version, updated on release
 conf.set_quoted('SCRCPY_VERSION', meson.project_version())
+if host_machine.system() == 'darwin'
+    companion_version = get_option('companion_release_version')
+    if companion_version == ''
+        companion_version = run_command('sed', '-n', 's/^ *versionName = \'\\([^\']*\\)\'$/\\1/p',
+            files('../companion/build.gradle'), check: true).stdout().strip()
+    endif
+    if companion_version == ''
+        error('Missing Anmir Connect version in companion/build.gradle')
+    endif
+    conf.set_quoted('ANMIR_COMPANION_VERSION', companion_version)
+endif
 
 # the prefix used during configuration (meson --prefix=PREFIX)
 conf.set_quoted('PREFIX', get_option('prefix'))

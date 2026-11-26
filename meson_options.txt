@@ -1,6 +1,7 @@
 option('compile_app', type: 'boolean', value: true, description: 'Build the client')
 option('compile_server', type: 'boolean', value: true, description: 'Build the server')
 option('prebuilt_server', type: 'string', description: 'Path of the prebuilt server')
+option('companion_release_version', type: 'string', description: 'Anmir Connect version linked from the macOS app')
 option('portable', type: 'boolean', value: false, description: 'Use scrcpy-server from the same directory as the scrcpy executable')
 option('static', type: 'boolean', value: false, description: 'Use static dependencies')
 option('server_debugger', type: 'boolean', value: false, description: 'Run a server debugger and wait for a client to be attached')

@@ -16,12 +16,17 @@ on:
         required: false
         type: string
       publish:
-        description: Publish a completed build after the APK was signed locally
+        description: Publish the macOS build or a completed build with a locally signed APK
+        required: false
+        type: boolean
+        default: false
+      macos_only:
+        description: Skip Anmir Connect and publish only the macOS release
         required: false
         type: boolean
         default: false
       build_run_id:
-        description: Completed build run to publish (skip rebuilding)
+        description: Completed build run to publish with a locally signed APK
         required: false
         type: string
   push:
@@ -39,8 +44,36 @@ jobs:
   server:
     if: inputs.build_run_id == ''
     runs-on: ubuntu-latest
+    outputs:
+      build_companion: ${{ steps.companion.outputs.build }}
+      companion_version: ${{ steps.companion.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+      - name: Resolve Anmir Connect version for the Mac builds
+        id: companion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MACOS_ONLY: ${{ inputs.macos_only }}
+        run: |
+          version="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
+          companion_version="$(sed -n "s/^ *versionName = '\([^']*\)'$/\1/p" companion/build.gradle)"
+          if [[ "$MACOS_ONLY" != true && "$companion_version" == "$version" ]]; then
+            echo 'build=true' >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REPOSITORY" == houzi3/Anmir ]]; then
+            companion_version="$(gh api --paginate --slurp 'repos/houzi3/Anmir/releases?per_page=100' | jq -er '
+              [ .[][] | select(.draft == false and .prerelease == false)
+                | .tag_name as $tag
+                | select($tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                | ($tag | ltrimstr("v")) as $version
+                | select(any(.assets[]; .state == "uploaded"
+                    and .name == "AnmirConnect-\($version).apk"
+                    and .browser_download_url == "https://github.com/houzi3/Anmir/releases/download/\($tag)/\(.name)"))
+                | $version
+              ] | max_by(split(".") | map(tonumber)) // error("No published Anmir Connect APK found")
+            ')"
+          fi
+          echo "version=$companion_version" >> "$GITHUB_OUTPUT"
+          echo "Mac builds will link to Anmir Connect $companion_version."
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -51,10 +84,13 @@ jobs:
       - name: Install Android SDK components
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Test companion protocol
+        if: steps.companion.outputs.build == 'true'
         run: bash release/test_companion.sh
       - name: Build unsigned Anmir Connect
+        if: steps.companion.outputs.build == 'true'
         run: bash release/build_companion.sh release/work/build-companion
       - uses: actions/upload-artifact@v7
+        if: steps.companion.outputs.build == 'true'
         with:
           name: anmir-companion
           path: release/work/build-companion/AnmirConnect-unsigned.apk
@@ -82,6 +118,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       MACOSX_DEPLOYMENT_TARGET: '11.0'
+      ANMIR_COMPANION_RELEASE_VERSION: ${{ needs.server.outputs.companion_version }}
     steps:
       - uses: actions/checkout@v6
       - name: Check native compatibility before building dependencies
@@ -120,6 +157,7 @@ jobs:
         run: |
           export PKG_CONFIG_LIBDIR="$PWD/app/deps/work/install/macos-native-static/lib/pkgconfig"
           meson setup build-tests --buildtype=debug -Dcompile_server=false -Dstatic=true \
+            -Dcompanion_release_version="$ANMIR_COMPANION_RELEASE_VERSION" \
             -Dc_args="-I$PWD/app/deps/work/install/macos-native-static/include" \
             -Dc_link_args="-L$PWD/app/deps/work/install/macos-native-static/lib"
           meson test -C build-tests --num-processes 1 --print-errorlogs
@@ -145,7 +183,7 @@ jobs:
           if-no-files-found: error
 
   release-artifacts:
-    needs: macos
+    needs: [server, macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -155,22 +193,30 @@ jobs:
           path: dist
           merge-multiple: true
       - uses: actions/download-artifact@v8
+        if: needs.server.outputs.build_companion == 'true'
         with:
           name: anmir-companion
           path: dist
       - name: Generate static update manifest and checksums
         env:
           RELEASE_NOTES: ${{ inputs.release_notes || '' }}
+          BUILD_COMPANION: ${{ needs.server.outputs.build_companion }}
         run: |
           version="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
-          mv dist/AnmirConnect-unsigned.apk "dist/AnmirConnect-$version-unsigned.apk"
           if [[ -z "$RELEASE_NOTES" && -f "release/notes/$version.md" ]]; then
             bash release/generate_update_manifest.sh dist "release/notes/$version.md"
           else
             bash release/generate_update_manifest.sh dist
           fi
-          (cd dist && sha256sum Anmir-*.dmg Anmir-*.zip Anmir-*-source.tar.gz AnmirConnect-*.apk update.json > SHA256SUMS)
-          jq . dist/update.json
+          cd dist
+          release_files=(Anmir-*.dmg Anmir-*.zip Anmir-*-source.tar.gz update.json)
+          if [[ "$BUILD_COMPANION" == true ]]; then
+            apk="AnmirConnect-$version-unsigned.apk"
+            mv AnmirConnect-unsigned.apk "$apk"
+            release_files+=("$apk")
+          fi
+          sha256sum "${release_files[@]}" > SHA256SUMS
+          jq . update.json
       - uses: actions/upload-artifact@v7
         with:
           name: anmir-release
@@ -194,14 +240,26 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+      - name: Validate macOS-only inputs
+        if: inputs.macos_only
+        env:
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: |
+          if [[ -n "$BUILD_RUN_ID" ]]; then
+            echo 'A macOS-only release must build and publish in the same run. Clear build_run_id.' >&2
+            exit 1
+          fi
       - uses: actions/setup-java@v5
+        if: '!inputs.macos_only'
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        if: '!inputs.macos_only'
         with:
           packages: platform-tools
       - run: sdkmanager 'build-tools;36.0.0'
+        if: '!inputs.macos_only'
       - name: Show required repository permission
         run: |
           message="Release publishing and automatic README and version updates require Settings > Actions > General > Workflow permissions > Read and write permissions. Any main branch protection must also allow github-actions[bot] to push."
@@ -215,9 +273,10 @@ jobs:
         with:
           name: anmir-release
           path: dist
-          github-token: ${{ github.token }}
+          github-token: ${{ inputs.build_run_id && github.token || '' }}
           run-id: ${{ inputs.build_run_id || github.run_id }}
       - name: Validate source build and signed APK
+        if: '!inputs.macos_only'
         id: payload
         env:
           GH_TOKEN: ${{ github.token }}
@@ -227,6 +286,8 @@ jobs:
           bash release/prepare_signed_release.sh dist "$BUILD_RUN_ID"
       - name: Validate release payload
         id: version
+        env:
+          MACOS_ONLY: ${{ inputs.macos_only }}
         run: |
           version="$(jq -er '.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' dist/update.json)"
           test -f "dist/Anmir-$version-arm64.zip"
@@ -234,7 +295,12 @@ jobs:
           test -f "dist/Anmir-$version-arm64.dmg"
           test -f "dist/Anmir-$version-x86_64.dmg"
           test -f "dist/Anmir-$version-source.tar.gz"
-          test -f "dist/AnmirConnect-$version.apk"
+          if [[ "$MACOS_ONLY" != true ]]; then
+            test -f "dist/AnmirConnect-$version.apk"
+          elif compgen -G 'dist/AnmirConnect-*.apk' > /dev/null; then
+            echo 'Unexpected APK in macOS-only release artifacts.' >&2
+            exit 1
+          fi
           (cd dist && sha256sum -c SHA256SUMS)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Create or update GitHub Release
@@ -242,9 +308,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
+          MACOS_ONLY: ${{ inputs.macos_only }}
         run: |
           tag="v$VERSION"
-          jq -r '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
+          jq -j '.notes' dist/update.json > "$RUNNER_TEMP/release-notes.md"
           release_files=(
             "dist/Anmir-$VERSION-arm64.dmg"
             "dist/Anmir-$VERSION-arm64.zip"
@@ -252,11 +319,35 @@ jobs:
             "dist/Anmir-$VERSION-x86_64.zip"
             "dist/Anmir-$VERSION-source.tar.gz"
             "dist/SHA256SUMS"
-            "dist/AnmirConnect-$VERSION.apk"
           )
+          if [[ "$MACOS_ONLY" == true ]]; then
+            tag_refs="$(git ls-remote --sort=refname origin "refs/tags/$tag" "refs/tags/$tag^{}")"
+            tag_sha="$(awk 'END {print $1}' <<< "$tag_refs")"
+            if [[ -n "$tag_sha" && "$tag_sha" != "$GITHUB_SHA" ]]; then
+              echo "Release tag $tag does not match this build." >&2
+              exit 1
+            fi
+            if ! gh release view "$tag" > /dev/null 2>&1; then
+              gh release create "$tag" --draft --target "$GITHUB_SHA" \
+                --title "Anmir $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+            fi
+            if [[ -z "$tag_sha" && "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" != "$GITHUB_SHA" ]]; then
+              echo "Release draft $tag does not target this build." >&2
+              exit 1
+            fi
+          else
+            release_files+=("dist/AnmirConnect-$VERSION.apk")
+          fi
           if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != true ]]; then
             echo "Release $tag is already published; refusing to replace its assets." >&2
             exit 1
+          fi
+          if [[ "$MACOS_ONLY" == true ]]; then
+            draft_apks="$(gh release view "$tag" --json assets --jq '[.assets[].name | select(endswith(".apk"))] | length')"
+            if [[ "$draft_apks" != 0 ]]; then
+              echo "Release draft $tag already contains APK assets." >&2
+              exit 1
+            fi
           fi
           gh release upload "$tag" "${release_files[@]}" --clobber
           gh release upload "$tag" dist/update.json --clobber
@@ -290,12 +381,17 @@ jobs:
       - name: Commit the release history and next patch version
         env:
           RELEASED_VERSION: ${{ needs.publish.outputs.version }}
+          MACOS_ONLY: ${{ inputs.macos_only }}
         run: |
           current="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" meson.build | head -n 1)"
           if [[ "$current" == "$RELEASED_VERSION" ]]; then
             IFS=. read -r major minor patch <<< "$current"
             next="$major.$minor.$((10#$patch + 1))"
-            ./bump_version "$next"
+            if [[ "$MACOS_ONLY" == true ]]; then
+              ./bump_version --macos-only "$next"
+            else
+              ./bump_version "$next"
+            fi
           else
             echo "Version is already $current; released $RELEASED_VERSION, so no bump is needed."
           fi

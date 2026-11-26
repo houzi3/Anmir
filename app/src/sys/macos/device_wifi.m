@@ -9,10 +9,10 @@
 #include "config.h"
 
 static NSString * const SCCompanionDownloadPage =
-    @"https://github.com/houzi3/Anmir/releases/tag/v" SCRCPY_VERSION;
+    @"https://github.com/houzi3/Anmir/releases/tag/v" ANMIR_COMPANION_VERSION;
 static NSString * const SCCompanionDownloadURL =
-    @"https://github.com/houzi3/Anmir/releases/download/v" SCRCPY_VERSION
-    "/AnmirConnect-" SCRCPY_VERSION ".apk";
+    @"https://github.com/houzi3/Anmir/releases/download/v" ANMIR_COMPANION_VERSION
+    "/AnmirConnect-" ANMIR_COMPANION_VERSION ".apk";
 
 typedef NS_ENUM(NSUInteger, SCDeviceWiFiMode) {
     SCDeviceWiFiQRCode, SCDeviceWiFiPairingCode, SCDeviceWiFiManual,

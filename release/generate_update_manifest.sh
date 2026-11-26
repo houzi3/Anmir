@@ -13,11 +13,10 @@ die() {
 
 command -v jq >/dev/null || die "jq is required to generate update.json"
 [[ -d "$OUTPUT_DIR" ]] || die "directory not found: $OUTPUT_DIR"
+NOTES_ARG=(--arg notes "${RELEASE_NOTES:-}")
 if [[ -n "$NOTES_FILE" ]]; then
     [[ -f "$NOTES_FILE" ]] || die "release notes not found: $NOTES_FILE"
-    NOTES="$(<"$NOTES_FILE")"
-else
-    NOTES="${RELEASE_NOTES:-}"
+    NOTES_ARG=(--rawfile notes "$NOTES_FILE")
 fi
 
 VERSION="$(sed -n "s/^ *version: *'\([^']*\)'.*/\1/p" "$ROOT_DIR/meson.build" | head -n 1)"
@@ -45,7 +44,7 @@ trap 'rm -f "$TEMP"' EXIT
 jq -n \
     --argjson schema 1 \
     --arg version "$VERSION" \
-    --arg notes "$NOTES" \
+    "${NOTES_ARG[@]}" \
     --arg arm_name "$ARM_NAME" \
     --arg arm_sha256 "$ARM_SHA256" \
     --arg intel_name "$INTEL_NAME" \
