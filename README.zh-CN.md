@@ -154,6 +154,12 @@
     <th>发布页</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.10</td>
+    <td nowrap>2026-11-26</td>
+    <td>Mac 版支持设备备注和 APK 批量安装，也可将 APK 拖入投屏窗口安装并查看进度。</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.10">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.9</td>
     <td nowrap>2026-11-11</td>
     <td>修复投屏、Wi-Fi 连接和 APK 安装窗口的按钮文字偏移，使文字与状态图标对齐。</td>

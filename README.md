@@ -154,6 +154,12 @@ Report problems in [Issues](https://github.com/houzi3/Anmir/issues), including:
     <th>Release</th>
   </tr>
   <tr>
+    <td nowrap>v0.1.10</td>
+    <td nowrap>2026-11-26</td>
+    <td>Add device nicknames, install an APK on multiple devices at once, or drop it into a mirroring window to install it and see its progress.</td>
+    <td><a href="https://github.com/houzi3/Anmir/releases/tag/v0.1.10">Release</a></td>
+  </tr>
+  <tr>
     <td nowrap>v0.1.9</td>
     <td nowrap>2026-11-11</td>
     <td>Aligned button labels with status icons in mirroring, Wi-Fi connection, and APK installation dialogs.</td>
