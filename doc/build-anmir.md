@@ -109,10 +109,19 @@ text in the versioned notes file, GitHub Release body and `update.json.notes`.
 Keep installation instructions, download tables and engineering details in
 their respective documentation or release assets.
 
-The `anmir-release` CI artifact combines both architectures, the unsigned companion APK,
-and the static update manifest. CI does not receive the Android signing key and does not
-publish automatically: the key is shared with other applications and remains on the
-maintainer's machine.
+The `anmir-release` CI artifact combines both architectures and the static update
+manifest. When Anmir Connect and the Mac app are both set to the same version,
+the artifact also includes the unsigned companion APK. The Android signing key
+remains on the maintainer's machine.
+
+To publish macOS on its own, keep `companion/build.gradle` at the current published
+Anmir Connect version. The Mac app uses that version for the Android download page
+and QR code. Dispatch `anmir-release.yml` on `main` with `macos_only=true` and
+`publish=true`, with `build_run_id` empty. The run builds both Mac architectures
+and publishes them with the embedded mirroring server and no standalone APK.
+
+To release a new Anmir Connect APK, use `./bump_version VERSION` to set both app
+versions before building and follow the signing steps below.
 
 After the PR merges, let the main-branch build complete. Download its `anmir-release`
 artifact and sign its APK locally:
@@ -136,8 +145,9 @@ both READMEs. Use the optional `readme_summary_zh` and `readme_summary_en` input
 when dispatching the publish run to provide one-sentence README summaries.
 If a summary is blank, its README uses “修复了一些 Bug。” or “Fixed some bugs.”
 Each entry links to the full release notes. In the same commit to `main`, the
-workflow runs `bump_version` to advance to the next patch version, including
-both Android modules. Forks only build artifacts.
+workflow runs `bump_version` to advance to the next patch version. A macOS-only
+release keeps the Anmir Connect version and advances the embedded mirroring
+server with the Mac app. Forks only build artifacts.
 
 Drafts and prereleases are not selected by GitHub's `releases/latest` redirect.
 Missing, malformed or incomplete manifests fail closed. The updater verifies
