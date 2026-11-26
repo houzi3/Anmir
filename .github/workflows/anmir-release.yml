@@ -323,6 +323,13 @@ jobs:
             echo "Release $tag is already published; refusing to replace its assets." >&2
             exit 1
           fi
+          if [[ "$MACOS_ONLY" == true ]]; then
+            draft_apks="$(gh release view "$tag" --json assets --jq '[.assets[].name | select(endswith(".apk"))] | length')"
+            if [[ "$draft_apks" != 0 ]]; then
+              echo "Release draft $tag already contains APK assets." >&2
+              exit 1
+            fi
+          fi
           gh release upload "$tag" "${release_files[@]}" --clobber
           gh release upload "$tag" dist/update.json --clobber
           gh release edit "$tag" --title "Anmir $VERSION" \
